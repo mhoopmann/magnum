@@ -26,12 +26,17 @@ limitations under the License.
 
 #define HISTOSZ 152
 
+typedef struct sHistoPep {
+  int pepIndex;
+  int topScore;
+} sHistoPep;
+
 class MSpectrum {
 
 public:
 
   //Constructors & Destructors
-  MSpectrum(const int& i, const double& bs, const double& os);
+  MSpectrum(const int& i, const double& bs, const double& os, const int& th);
   MSpectrum(const MSpectrum& p);
   ~MSpectrum();
 
@@ -72,6 +77,8 @@ public:
   mScoreCard*    singletLast;    //pointer to end of linked list
   int            singletMax;
 
+  int hpSize;
+  sHistoPep* hp;
   int histogram[HISTOSZ];
   int histogramCount;
   int histoMaxIndex;
@@ -92,10 +99,11 @@ public:
   //Functions
   bool calcEValue(mParams* params, MDecoys& decoys);
   bool checkReporterIon(double mz,mParams* params);
-  void  checkScore        (mScoreCard& s);
+  void  checkScore(mScoreCard& s, int th);
   void  checkSingletScore (mScoreCard& s);
   bool generateXcorrDecoys(mParams* params, MDecoys& decoys);
   void linearRegression(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr);
+  void linearRegression2(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr, double& rSquared);
   void  resetSingletList  ();
   void  sortMZ            ();
   void  xCorrScore        ();

@@ -1030,7 +1030,7 @@ bool MData::outputResults(MDatabase& db, MParams& par){
       fprintf(fOut,"\n");
       
       if(params->exportPercolator) outputPercolator(fSingle,db,res,count);
-      if(params->exportPepXML) {
+      /*if(params->exportPepXML) {
         for(q=0;q<pxg.size();q++){
           size_t qq;
           for(qq=0;qq<pxg[q].indexes.size();qq++){
@@ -1041,7 +1041,8 @@ bool MData::outputResults(MDatabase& db, MParams& par){
           else outputPepXML2(sq, pxg[q].shIndex, res);
           break;
         }
-      }
+      }*/
+      if (params->exportPepXML) outputPepXML(sq, db, res);
 
       //Get the next entry - it must also be exported if it has the same score
       //if(bDupe) scoreIndex+=iDupe;
@@ -1077,7 +1078,7 @@ bool MData::readSpectra(){
   MSReader   msr;
   Spectrum   s;
   Spectrum   c;
-  MSpectrum  pls(params->topCount,params->binSize,params->binOffset);
+  MSpectrum  pls(params->topCount,params->binSize,params->binOffset,params->threads);
   mSpecPoint sp;
   float      max;
   mPrecursor pre;

@@ -381,10 +381,18 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     if(p->monoMass>maxMass) continue;
     score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,p->charge);
     if(score==0) {
+
       Threading::LockMutex(mutexSpecScore[index]);
-      s->histogram[0]++;
-      s->histogramCount++;
+      if(s->hp[iIndex].pepIndex!=pep){ //first score
+        s->hp[iIndex].pepIndex=pep;
+        s->hp[iIndex].topScore=0;
+        s->histogram[0]++;
+        s->histogramCount++;
+      } else {
+        //do nothing, can't be a better score than what is already there.
+      }
       Threading::UnlockMutex(mutexSpecScore[index]);
+
       continue;
     }
     tp = s->getTopPeps(i);
@@ -395,10 +403,22 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
       int x;
       x = (int)(score * 10.0 + 0.5);
       if (x >= HISTOSZ) x = HISTOSZ - 1;
+
       Threading::LockMutex(mutexSpecScore[index]);
-      s->histogram[x]++;
-      s->histogramCount++;
+      if (s->hp[iIndex].pepIndex != pep){ //first score
+        s->hp[iIndex].pepIndex = pep;
+        s->hp[iIndex].topScore = x;
+        s->histogram[x]++;
+        s->histogramCount++;
+      } else {
+        if(x>s->hp[iIndex].topScore){ //new top score
+          s->histogram[s->hp[iIndex].topScore]--;
+          s->histogram[x]++;
+          s->hp[iIndex].topScore = x;
+        }
+      }
       Threading::UnlockMutex(mutexSpecScore[index]);
+
       continue; //don't bother with the singlet overhead if it won't make the list
     }
     Threading::UnlockMutex(mutexSingletScore[index][i]);
@@ -430,8 +450,9 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     Threading::UnlockMutex(mutexSingletScore[index][i]);
 
     Threading::LockMutex(mutexSpecScore[index]);
-    s->checkScore(sc);
+    s->checkScore(sc,iIndex);
     Threading::UnlockMutex(mutexSpecScore[index]);
+
   }
 
 }
@@ -462,10 +483,18 @@ void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, double modMass, int
     
     sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,z);
     if(sc.simpleScore==0) {
+
       Threading::LockMutex(mutexSpecScore[index[a]]);
-      spec->at(index[a]).histogram[0]++;
-      spec->at(index[a]).histogramCount++;
+      if (spec->at(index[a]).hp[iIndex].pepIndex != pep1){ //first score
+        spec->at(index[a]).hp[iIndex].pepIndex = pep1;
+        spec->at(index[a]).hp[iIndex].topScore = 0;
+        spec->at(index[a]).histogram[0]++;
+        spec->at(index[a]).histogramCount++;
+      } else {
+        //do nothing, can't be a better score than what is already there.
+      }
       Threading::UnlockMutex(mutexSpecScore[index[a]]);
+
       continue;
     }
     sc.mods->clear();
@@ -492,7 +521,7 @@ void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, double modMass, int
     Threading::UnlockMutex(mutexSingletScore[index[a]][ps]);
 
     Threading::LockMutex(mutexSpecScore[index[a]]);
-    spec->at(index[a]).checkScore(sc);
+    spec->at(index[a]).checkScore(sc,iIndex);
     Threading::UnlockMutex(mutexSpecScore[index[a]]);
 
   }

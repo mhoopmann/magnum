@@ -22,7 +22,7 @@ using namespace std;
 /*============================
   Constructors & Destructors
 ============================*/
-MSpectrum::MSpectrum(const int& i, const double& bs, const double& os){
+MSpectrum::MSpectrum(const int& i, const double& bs, const double& os, const int& th){
   binOffset=os;
   binSize=bs;
   instrumentPrecursor=false;
@@ -52,6 +52,12 @@ MSpectrum::MSpectrum(const int& i, const double& bs, const double& os){
 
   lowScore=0;
 
+  hpSize=th;
+  hp=new sHistoPep[hpSize];
+  for(int j=0;j<hpSize;j++){
+    hp[j].pepIndex=-1;
+    hp[j].topScore=0;
+  }
   for(int j=0;j<HISTOSZ;j++) histogram[j]=0;
   histogramCount=0;
   histoMaxIndex=0;
@@ -63,13 +69,10 @@ MSpectrum::MSpectrum(const int& i, const double& bs, const double& os){
 MSpectrum::MSpectrum(const MSpectrum& p){
   unsigned int i;
   int j;
-  spec = new vector<mSpecPoint>;
-  for(i=0;i<p.spec->size();i++) spec->push_back(p.spec->at(i));
+  spec = new vector<mSpecPoint>(*p.spec);
   for(i=0;i<20;i++) topHit[i]=p.topHit[i];
-  precursor = new vector<mPrecursor>;
-  for(i=0;i<p.precursor->size();i++) precursor->push_back(p.precursor->at(i));
-  singlets = new vector<MTopPeps>;
-  for (i = 0; i<p.singlets->size(); i++) singlets->push_back(p.singlets->at(i));
+  precursor = new vector<mPrecursor>(*p.precursor);
+  singlets = new vector<MTopPeps>(*p.singlets);
 
   binOffset = p.binOffset;
   binSize = p.binSize;
@@ -89,6 +92,10 @@ MSpectrum::MSpectrum(const MSpectrum& p){
 
   cc=p.cc;
   sc=p.sc;
+
+  hpSize=p.hpSize;
+  hp=new sHistoPep[hpSize];
+  for(j=0;j<hpSize;j++)hp[j]=p.hp[j];
 
   singletCount=p.singletCount;
   singletMax=p.singletMax;
@@ -151,6 +158,8 @@ MSpectrum::~MSpectrum(){
     }
     delete [] kojakSparseArray;
   }
+
+  delete [] hp;
 }
 
 
@@ -162,15 +171,12 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
     unsigned int i;
     int j;
     delete spec;
-    spec = new vector<mSpecPoint>;
-    for(i=0;i<p.spec->size();i++) spec->push_back(p.spec->at(i));
+    spec = new vector<mSpecPoint>(*p.spec);
     for(i=0;i<20;i++) topHit[i]=p.topHit[i];
     delete precursor;
-    precursor = new vector<mPrecursor>;
-    for(i=0;i<p.precursor->size();i++) precursor->push_back(p.precursor->at(i));
+    precursor = new vector<mPrecursor>(*p.precursor);
     delete singlets;
-    singlets = new vector<MTopPeps>;
-    for (i = 0; i<p.singlets->size(); i++) singlets->push_back(p.singlets->at(i));
+    singlets = new vector<MTopPeps>(*p.singlets);
 
     binOffset = p.binOffset;
     binSize = p.binSize;
@@ -191,6 +197,11 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
 
     cc = p.cc;
     sc = p.sc;
+
+    delete [] hp;
+    hpSize = p.hpSize;
+    hp = new sHistoPep[hpSize];
+    for (j = 0; j<hpSize; j++)hp[j] = p.hp[j];
 
     singletCount=p.singletCount;
     singletMax=p.singletMax;
@@ -385,7 +396,7 @@ bool MSpectrum::checkReporterIon(double mz, mParams* params){
   return false;
 }
 
-void MSpectrum::checkScore(mScoreCard& s){
+void MSpectrum::checkScore(mScoreCard& s, int th){
   unsigned int i;
   unsigned int j;
 
@@ -398,8 +409,18 @@ void MSpectrum::checkScore(mScoreCard& s){
   int index;
   index = (int)(s.simpleScore * 10.0 + 0.5);
   if (index >= HISTOSZ) index = HISTOSZ - 1;
-  histogram[index]++;
-  histogramCount++;
+  if(hp[th].pepIndex!=s.pep){ //first score
+    histogram[index]++;
+    histogramCount++;
+    hp[th].pepIndex=s.pep;
+    hp[th].topScore=index;
+  } else {
+    if(index>hp[th].topScore){
+      histogram[hp[th].topScore]--;
+      histogram[index]++;
+      hp[th].topScore=index;
+    }
+  }
 
   //edge case for "reversible" cross-links: check if already matches top hit identically
   //note that such duplications still occur below the top score, but shouldn't influence the final result to the user
@@ -776,12 +797,15 @@ bool MSpectrum::calcEValue(mParams* params, MDecoys& decoys) {
   int iNextCorr;
   double dSlope;
   double dIntercept;
+  double dRSq;
+  if(topHit[0].simpleScore==0) return true;
 
   if (histogramCount < DECOY_SIZE) {
     if (!generateXcorrDecoys(params,decoys)) return false;
   }
 
-  linearRegression(dSlope, dIntercept, iMaxCorr, iStartCorr, iNextCorr);
+  //linearRegression(dSlope, dIntercept, iMaxCorr, iStartCorr, iNextCorr);
+  linearRegression2(dSlope, dIntercept, iMaxCorr, iStartCorr, iNextCorr,dRSq);
   histoMaxIndex = iMaxCorr;
 
   dSlope *= 10.0;
@@ -790,7 +814,7 @@ bool MSpectrum::calcEValue(mParams* params, MDecoys& decoys) {
   for (i = 0; i<iLoopCount; i++) {
     if(topHit[i].simpleScore==0) break; //score all e-values among top hits?
     if (dSlope >= 0.0) {
-      topHit[i].eVal=999.0;
+      topHit[i].eVal=1e12;
     } else {
       topHit[i].eVal = pow(10.0, dSlope * topHit[i].simpleScore + dIntercept);
     }
@@ -809,7 +833,7 @@ bool MSpectrum::generateXcorrDecoys(mParams* params, MDecoys& decoys) {
   int k;
   int maxZ;
   int z;
-  int r;
+  size_t r=0;
   int key;
   int pos;
   double dBion;
@@ -820,16 +844,19 @@ bool MSpectrum::generateXcorrDecoys(mParams* params, MDecoys& decoys) {
   // DECOY_SIZE is the minimum # of decoys required or else this function isn't
   // called.  So need to generate iLoopMax more xcorr scores for the histogram.
   int iLoopMax = DECOY_SIZE - histogramCount;
-  int seed = rand()%3000;
+  int seed = (scanNumber*histogramCount);
+  if (seed<0) seed = -seed;
+  seed = seed % DECOY_SIZE; //don't always start at the top, but not random either; remains reproducible across threads
   int decoyIndex;
 
   j = 0;
   for (i = 0; i<iLoopMax; i++) { // iterate through required # decoys
     dXcorr = 0.0;
-    decoyIndex=(seed+i)%3000;
+    decoyIndex = (seed + i) % DECOY_SIZE;
 
-    //grab precursor at random
-    r=rand()%precursor->size();
+    //iterate over precursors
+    r++;
+    if (r >= precursor->size()) r = 0;
     maxZ = precursor->at(r).charge;
     if (maxZ>4) maxZ = 4;
 
@@ -867,6 +894,7 @@ bool MSpectrum::generateXcorrDecoys(mParams* params, MDecoys& decoys) {
     if (k < 0) k = 0;
     else if (k >= HISTOSZ) k = HISTOSZ - 1;
     histogram[k] += 1;
+    histogramCount++;
   }
 
   return true;
@@ -972,6 +1000,144 @@ void MSpectrum::linearRegression(double& slope, double& intercept, int&  iMaxXco
   iMaxXcorr = iMaxCorr;
   iStartXcorr = iStartCorr;
   iNextXcorr = iNextCorr;
+}
+
+void MSpectrum::linearRegression2(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr, double& rSquared) {
+  double Sx, Sxy;      // Sum of square distances.
+  double Mx, My;       // means
+  double dx, dy;
+  double b, a;
+  double SumX, SumY;   // Sum of X and Y values to calculate mean.
+  double SST, SSR;
+  double rsq;
+  double bestRSQ;
+  double bestSlope;
+  double bestInt;
+
+  double dCummulative[HISTOSZ];  // Cummulative frequency at each xcorr value.
+
+  int i;
+  int bestNC;
+  int bestStart;
+  int iNextCorr;    // 2nd best xcorr index
+  int iMaxCorr = 0;   // max xcorr index
+  int iStartCorr;
+  int iNumPoints;
+
+  // Find maximum correlation score index.
+  for (i = HISTOSZ - 2; i >= 0; i--) {
+    if (histogram[i] > 0)  break;
+  }
+  iMaxCorr = i;
+
+  //bail now if there is no width to the distribution
+  if (iMaxCorr<3) {
+    slope = 0;
+    intercept = 0;
+    iMaxXcorr = 0;
+    iStartXcorr = 0;
+    iNextXcorr = 0;
+    rSquared = 0;
+    return;
+  }
+
+  //More aggressive version summing everything below the max
+  dCummulative[iMaxCorr - 1] = histogram[iMaxCorr - 1];
+  for (i = iMaxCorr - 2; i >= 0; i--) {
+    dCummulative[i] = dCummulative[i + 1] + histogram[i];
+  }
+
+  //get middle-ish datapoint as seed. Using count/10.
+  for (i = 0; i<iMaxCorr; i++){
+    if (dCummulative[i] < histogramCount / 10) break;
+  }
+  if (i >= (iMaxCorr - 1)) iNextCorr = iMaxCorr - 2;
+  else iNextCorr = i;
+
+  // log10...and stomp all over the original...hard to troubleshoot later
+  for (i = iMaxCorr - 1; i >= 0; i--)  {
+    histogram[i] = (int)dCummulative[i];
+    if(dCummulative[i]>0) dCummulative[i] = log10(dCummulative[i]);
+  }
+
+  iStartCorr = iNextCorr - 1;
+  iNextCorr++;
+
+  bool bRight = false; // which direction to add datapoint from
+  bestRSQ = 0;
+  bestNC = 0;
+  bestSlope = 0;
+  bestInt = 0;
+  rsq = Mx = My = a = b = 0.0;
+  while (true) {
+    Sx = Sxy = SumX = SumY = 0.0;
+    iNumPoints = 0;
+
+    // Calculate means.
+    for (i = iStartCorr; i <= iNextCorr; i++) {
+      if (histogram[i] > 0) {
+        SumY += dCummulative[i];
+        SumX += i;
+        iNumPoints++;
+      }
+    }
+    if (iNumPoints > 0) {
+      Mx = SumX / iNumPoints;
+      My = SumY / iNumPoints;
+    } else {
+      Mx = My = 0.0;
+    }
+
+    // Calculate sum of squares.
+    SST = 0;
+    for (i = iStartCorr; i <= iNextCorr; i++) {
+      dx = i - Mx;
+      dy = dCummulative[i] - My;
+      Sx += dx*dx;
+      Sxy += dx*dy;
+      SST += dy*dy;
+    }
+    b = Sxy / Sx;
+    a = My - b*Mx;  // y-intercept
+
+    //MH: compute R2
+    SSR = 0;
+    for (i = iStartCorr; i <= iNextCorr; i++) {
+      dy = dCummulative[i] - (b*i + a);
+      SSR += (dy*dy);
+    }
+    rsq = 1 - SSR / SST;
+
+    if (rsq>0.95 || rsq>bestRSQ){
+      if (rsq>bestRSQ || iNextCorr - iStartCorr + 1<8){ //keep better RSQ only if more than 8 datapoints, otherwise keep every RSQ below 8 datapoints
+        bestRSQ = rsq;
+        bestNC = iNextCorr;
+        bestSlope = b;
+        bestInt = a;
+        bestStart = iStartCorr;
+      }
+      if (bRight){
+        if (iNextCorr<(iMaxCorr - 1) && dCummulative[iNextCorr]>0) iNextCorr++;
+        else if (iStartCorr>0) iStartCorr--;
+        else break;
+      } else {
+        if (iStartCorr>0) iStartCorr--;
+        else if (iNextCorr<(iMaxCorr - 1) && dCummulative[iNextCorr]>0) iNextCorr++;
+        else break;
+      }
+      bRight = !bRight;
+    } else {
+      break;
+    }
+  }
+
+  slope = bestSlope;
+  intercept = bestInt;
+  iMaxXcorr = iMaxCorr;
+  iStartXcorr = bestStart;
+  iNextXcorr = bestNC;
+  rSquared = bestRSQ;
+
 }
 
 /*============================

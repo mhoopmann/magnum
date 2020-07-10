@@ -1165,23 +1165,23 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
   //compute yn+offset
   //compute bn;  <-this is redundant for all lengths
 
-  //int histoXCount[MAX_DECOY_PEP_LEN];
-  //int histoX[MAX_DECOY_PEP_LEN][HISTOSZ];
-  //for(int a=0;a<MAX_DECOY_PEP_LEN;a++){
-  //  histoXCount[a]=0;
-  //  for(int b=0;b<HISTOSZ;b++){
-  //    histoX[a][b]=0;
-  //  }
-  //}
-
-  int histoXCount[51];
-  int histoX[51][HISTOSZ];
-  for (int a = 0; a<51; a++){
-    histoXCount[a] = 0;
-    for (int b = 0; b<HISTOSZ; b++){
-      histoX[a][b] = 0;
+  int histoXCount[MAX_DECOY_PEP_LEN];
+  int histoX[MAX_DECOY_PEP_LEN][HISTOSZ];
+  for(int a=0;a<MAX_DECOY_PEP_LEN;a++){
+    histoXCount[a]=0;
+    for(int b=0;b<HISTOSZ;b++){
+      histoX[a][b]=0;
     }
   }
+
+  //int histoXCount[51];
+  //int histoX[51][HISTOSZ];
+  //for (int a = 0; a<51; a++){
+  //  histoXCount[a] = 0;
+  //  for (int b = 0; b<HISTOSZ; b++){
+  //    histoX[a][b] = 0;
+  //  }
+  //}
 
   int decoyIndex=0;
   double monoMass=bigMonoMass;

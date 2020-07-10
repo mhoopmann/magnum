@@ -210,6 +210,49 @@ bool MAnalysis::doEValueAnalysis(){
   return true;
 }
 
+bool MAnalysis::doEValuePrecalc(){
+  int i;
+  int iPercent;
+  int iTmp;
+
+  ThreadPool<MSpectrum*>* threadPool = new ThreadPool<MSpectrum*>(analyzeEValuePrecalcProc, params.threads, params.threads, 1);
+
+  //Set progress meter
+  iPercent = 0;
+  printf("%2d%%", iPercent);
+  fflush(stdout);
+
+  //Iterate the peptide for the first pass
+  for (i = 0; i<spec->size(); i++){
+
+    threadPool->WaitForQueuedParams();
+
+    MSpectrum* a = &spec->at(i);
+    threadPool->Launch(a);
+
+    //Update progress meter
+    iTmp = (int)((double)i / spec->size() * 100);
+    if (iTmp>iPercent){
+      iPercent = iTmp;
+      printf("\b\b\b%2d%%", iPercent);
+      fflush(stdout);
+    }
+  }
+
+  threadPool->WaitForQueuedParams();
+  threadPool->WaitForThreads();
+
+  //Finalize progress meter
+  printf("\b\b\b100%%");
+  cout << endl;
+
+  //clean up memory & release pointers
+  delete threadPool;
+  threadPool = NULL;
+
+  return true;
+}
+
 //============================
 //  Private Functions
 //============================
@@ -245,6 +288,11 @@ void MAnalysis::analyzeEValueProc(MSpectrum* s){
   s = NULL;
 }
 
+void MAnalysis::analyzeEValuePrecalcProc(MSpectrum* s){
+  s->generateXcorrDecoys3(params.minPepLen, db->getMaxPepLen(s->bigMonoMass),params.eValDepth);
+  s = NULL;
+}
+
 //============================
 //  Analysis Functions
 //============================
@@ -262,13 +310,14 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
   //db->getPeptideSeq(p->map->at(0).index,p->map->at(0).start,p->map->at(0).stop,str);
   //cout << str << "\t" << p->mass << endl;
   //Set the peptide, calc the ions, and score it against the spectra
+  int len = (p->map->at(0).stop - p->map->at(0).start) + 1;
   ions[iIndex].setPeptide(&db->at(p->map->at(0).index).sequence[p->map->at(0).start],p->map->at(0).stop-p->map->at(0).start+1,p->mass,p->nTerm,p->cTerm);
   ions[iIndex].buildIons();
   ions[iIndex].modIonsRec2(0,-1,0,0,false);
 
   for(j=0;j<ions[iIndex].size();j++){
     bt=spec->getBoundaries2(ions[iIndex][j].mass,params.ppmPrecursor,index,scanBuffer[iIndex]);
-    if(bt) scoreSpectra(index,j,ions[iIndex][j].difMass,pepIndex,-1,-1,-1,-1,iIndex);
+    if(bt) scoreSpectra(index,j,len,ions[iIndex][j].difMass,pepIndex,-1,-1,-1,-1,iIndex);
    }
 
   if(p->xlSites==0) return true;
@@ -365,99 +414,71 @@ void MAnalysis::deallocateMemory(int threads){
 
 //This function is way out of date. Particularly the mutexes and how to deal with multiple precursors.
 void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex){
+  //cout << "scoreSingletSpectra()" << endl;
   mScoreCard sc;
   MIonSet* iset;
   mPepMod mod;
   double score=0;
   int i,j;
+  int precI;
 
   MSpectrum* s=spec->getSpectrum(index);
   mPrecursor* p;
   MTopPeps* tp;
   int sz=s->sizePrecursor();
+  double topScore=0;
   for(i=0;i<sz;i++){
     p=s->getPrecursor2(i);
     if(p->monoMass<minMass) continue;
     if(p->monoMass>maxMass) continue;
     score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,p->charge);
-    if(score==0) {
-
-      Threading::LockMutex(mutexSpecScore[index]);
-      if(s->hp[iIndex].pepIndex!=pep){ //first score
-        s->hp[iIndex].pepIndex=pep;
-        s->hp[iIndex].topScore=0;
-        s->histogram[0]++;
-        s->histogramCount++;
-      } else {
-        //do nothing, can't be a better score than what is already there.
-      }
-      Threading::UnlockMutex(mutexSpecScore[index]);
-
-      continue;
-    }
-    tp = s->getTopPeps(i);
-
-    Threading::LockMutex(mutexSingletScore[index][i]); //does this need to be locked? Is locking more overhead than savings?
-    if (tp->peptideCount == tp->peptideMax && score<tp->peptideLast->simpleScore) {
-      Threading::UnlockMutex(mutexSingletScore[index][i]);
-      int x;
-      x = (int)(score * 10.0 + 0.5);
-      if (x >= HISTOSZ) x = HISTOSZ - 1;
-
-      Threading::LockMutex(mutexSpecScore[index]);
-      if (s->hp[iIndex].pepIndex != pep){ //first score
-        s->hp[iIndex].pepIndex = pep;
-        s->hp[iIndex].topScore = x;
-        s->histogram[x]++;
-        s->histogramCount++;
-      } else {
-        if(x>s->hp[iIndex].topScore){ //new top score
-          s->histogram[s->hp[iIndex].topScore]--;
-          s->histogram[x]++;
-          s->hp[iIndex].topScore = x;
-        }
-      }
-      Threading::UnlockMutex(mutexSpecScore[index]);
-
-      continue; //don't bother with the singlet overhead if it won't make the list
-    }
-    Threading::UnlockMutex(mutexSingletScore[index][i]);
-
-    //sc.len = len;
-    sc.simpleScore = (float)score;
-    sc.pep = pep;
-    sc.mass = mass;
-    sc.massA = p->monoMass - mass;
-    sc.precursor = i;
-    sc.site = k;
-    sc.mods->clear();
-    iset = ions[iIndex].at(sIndex);
-    if (iset->difMass != 0){
-      for (j = 0; j<ions[iIndex].getIonCount(); j++) {
-        if (iset->mods[j] != 0){
-          if (j == 0 && iset->modNTerm) mod.term = true;
-          else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
-          else mod.term = false;
-          mod.pos = (char)j;
-          mod.mass = iset->mods[j];
-          sc.mods->push_back(mod);
+    if(score==0) continue;
+    else if(score>topScore) {
+      topScore=score;
+      precI=i;
+      sc.simpleScore = (float)score;
+      sc.pep = pep;
+      sc.mass = mass;
+      sc.massA = p->monoMass - mass;
+      sc.precursor = i;
+      sc.site = k;
+      sc.mods->clear();
+      iset = ions[iIndex].at(sIndex);
+      if (iset->difMass != 0){
+        for (j = 0; j<ions[iIndex].getIonCount(); j++) {
+          if (iset->mods[j] != 0){
+            if (j == 0 && iset->modNTerm) mod.term = true;
+            else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
+            else mod.term = false;
+            mod.pos = (char)j;
+            mod.mass = iset->mods[j];
+            sc.mods->push_back(mod);
+          }
         }
       }
     }
+  }
 
-    Threading::LockMutex(mutexSingletScore[index][i]);
+  if(topScore>0){
+    double ev = 1000;
+    Threading::LockMutex(mutexSpecScore[index]);
+    ev = s->computeE(topScore, len);
+    Threading::UnlockMutex(mutexSpecScore[index]);
+    sc.eVal=ev;
+
+    tp = s->getTopPeps(precI);
+    Threading::LockMutex(mutexSingletScore[index][precI]);
     tp->checkPeptideScore(sc);
-    Threading::UnlockMutex(mutexSingletScore[index][i]);
-
+    Threading::UnlockMutex(mutexSingletScore[index][precI]);
+  
     Threading::LockMutex(mutexSpecScore[index]);
     s->checkScore(sc,iIndex);
     Threading::UnlockMutex(mutexSpecScore[index]);
-
   }
 
 }
 
-void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
+void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
   unsigned int a;
   int i,z,ps;
   mScoreCard sc;
@@ -484,19 +505,26 @@ void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, double modMass, int
     sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,z);
     if(sc.simpleScore==0) {
 
-      Threading::LockMutex(mutexSpecScore[index[a]]);
-      if (spec->at(index[a]).hp[iIndex].pepIndex != pep1){ //first score
-        spec->at(index[a]).hp[iIndex].pepIndex = pep1;
-        spec->at(index[a]).hp[iIndex].topScore = 0;
-        spec->at(index[a]).histogram[0]++;
-        spec->at(index[a]).histogramCount++;
-      } else {
-        //do nothing, can't be a better score than what is already there.
-      }
-      Threading::UnlockMutex(mutexSpecScore[index[a]]);
+      //Threading::LockMutex(mutexSpecScore[index[a]]);
+      //if (spec->at(index[a]).hp[iIndex].pepIndex != pep1){ //first score
+      //  spec->at(index[a]).hp[iIndex].pepIndex = pep1;
+      //  spec->at(index[a]).hp[iIndex].topScore = 0;
+      //  spec->at(index[a]).histogram[0]++;
+      //  spec->at(index[a]).histogramCount++;
+      //} else {
+      //  //do nothing, can't be a better score than what is already there.
+      //}
+      //Threading::UnlockMutex(mutexSpecScore[index[a]]);
 
       continue;
     }
+
+    double ev = 1000;
+    Threading::LockMutex(mutexSpecScore[index[a]]);
+    ev = spec->at(index[a]).computeE(sc.simpleScore, len);
+    Threading::UnlockMutex(mutexSpecScore[index[a]]);
+
+    sc.eVal=ev;
     sc.mods->clear();
     sc.site=k1;
     sc.mass=mass;

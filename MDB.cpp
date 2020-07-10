@@ -48,6 +48,8 @@ MDatabase::MDatabase(){
   fixMassProtC=0;
   fixMassProtN=0;
 
+  for(int i=0;i<100;i++) minMass[i]=1e6;
+
 }
 
 //==============================
@@ -114,7 +116,7 @@ bool  MDatabase::buildDB(char* fname) {
 
 
 //buildPeptides creates lists of peptides to search based on the user-defined enzyme rules
-bool MDatabase::buildPeptides(double min, double max, int mis){
+bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP){
 
   double mass;
   bool bCutMarked;
@@ -163,8 +165,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis){
         if(!bCutMarked) mc++;
         bCutMarked=true;
 
-        //Add the peptide now (if enough mass)
-        if ((mass+fixMassPepC)>min) addPeptide((int)i, (int)start, (int)n - 1, mass+fixMassPepC, p, vPep, bNTerm, bCTerm, xlSites);
+        //Add the peptide now (if enough mass and length)
+        if ((mass+fixMassPepC)>min && n>=(minP-1)) addPeptide((int)i, (int)start, (int)n - 1, mass+fixMassPepC, p, vPep, bNTerm, bCTerm, xlSites);
 
       }
 
@@ -178,7 +180,7 @@ bool MDatabase::buildPeptides(double min, double max, int mis){
         bCutMarked=true;
 
         //Add the peptide now (if enough mass)
-        if((mass+fixMassPepC)>min && (mass+fixMassPepC)<max) addPeptide((int)i,(int)start,(int)n,mass+fixMassPepC,p,vPep,bNTerm,bCTerm, xlSites);
+        if ((mass + fixMassPepC)>min && (mass + fixMassPepC)<max && n >= (minP - 1) ) addPeptide((int)i, (int)start, (int)n, mass + fixMassPepC, p, vPep, bNTerm, bCTerm, xlSites);
 
       }
 
@@ -189,7 +191,7 @@ bool MDatabase::buildPeptides(double min, double max, int mis){
       if((start+n+1)==seqSize) {
 
         //Add the peptide now (if enough mass)
-        if ((mass+fixMassPepC+fixMassProtC)>min && (mass+fixMassPepC+fixMassProtC)<max) addPeptide((int)i, (int)start, (int)n, mass+fixMassPepC+fixMassProtC, p, vPep, bNTerm, bCTerm, xlSites);
+        if ((mass + fixMassPepC + fixMassProtC)>min && (mass + fixMassPepC + fixMassProtC)<max && n >= (minP - 1) )addPeptide((int)i, (int)start, (int)n, mass + fixMassPepC + fixMassProtC, p, vPep, bNTerm, bCTerm, xlSites);
         if(next>-1) {
           start=next+1;
           n=0;
@@ -208,7 +210,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis){
 
       //Check if we exceeded peptide mass
       //Check if we exceeded the number of missed cleavages
-      if((mass+fixMassPepC)>max || mc>mis ) {
+      //Check if we exceeded peptide length
+      if((mass+fixMassPepC)>max || mc>mis || n>=(maxP-1)) {
 
         //if we know next cut site
         if(next>-1) {
@@ -288,29 +291,27 @@ bool MDatabase::buildPeptides(double min, double max, int mis){
     vPep.push_back(vtp[i]);
   }
 
+  //For determining boundaries of E-value precalculations based on peptide length
+  for(i=0;i<vPep.size();i++){
+    if(vPep[i].mass-1<minMass[vPep[i].map->at(0).stop-vPep[i].map->at(0).start+1]){
+      minMass[vPep[i].map->at(0).stop - vPep[i].map->at(0).start + 1] = vPep[i].mass-1;
+    }
+  }
+  for(i=0;i<100;i++){
+    if(i<99 && minMass[i+1]<minMass[i]) minMass[i]=minMass[i+1];
+    //cout << i << "\t" << minMass[i] << endl;
+  }
+
   cout << "  " << vPep.size() << " peptides to search (" << n << " with binding sites)." << endl;
   qsort(&vPep[0],vPep.size(),sizeof(mPeptide),compareMass);
 
   //Reporting list
-  /*
-  char str[256];
-  for(i=0;i<vPep.size();i++){
-    getPeptideSeq(vPep[i].map->at(0).index,vPep[i].map->at(0).start,vPep[i].map->at(0).stop,str);
-    cout << i << ", " << vPep[i].mass << "\t" << str;
-    for(k=0;k<vPep[i].vA->size();k++) cout << "\t" << vPep[i].vA->at(k);
-    cout << endl;
-    //if(i==10) break;
-  }
-  for(i=0;i<vPepK.size();i++){
-    getPeptideSeq(vPepK[i].map->at(0).index,vPepK[i].map->at(0).start,vPepK[i].map->at(0).stop,str);
-    cout << i << ", " << vPepK[i].mass << "\t" << str;
-    for(k=0;k<vPepK[i].vA->size();k++) cout << "\t" << vPepK[i].vA->at(k);
-    cout << endl;
-    //if(i==10) break;
-  }
+  //for (i = 0; i<vPep.size(); i++){
+  //  char str[256];
+  //  getPeptideSeq(vPep[i].map->at(0).index, vPep[i].map->at(0).start, vPep[i].map->at(0).stop, str);
+  //  cout << i << ", " << vPep[i].mass << "\t" << str << "\t" << strlen(str) << endl;
+  //}
 
-  exit(0);
-  */
   return true;
 
 }
@@ -332,6 +333,13 @@ mDB& MDatabase::at(const int& i){
 
 mEnzymeRules& MDatabase::getEnzymeRules(){
   return enzyme;
+}
+
+int MDatabase::getMaxPepLen(double mass){
+  for(int a=60;a>6;a--){
+    if(mass>minMass[a]) return a;
+  }
+  return 6;
 }
 
 mPeptide& MDatabase::getPeptide(int index){

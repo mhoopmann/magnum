@@ -113,10 +113,14 @@ typedef struct mEnzymeRules{
 } mEnzymeRules;
 
 typedef struct mParams {
+  int     eValDepth;
   int     instrument;     //0=Orbi, 1=FTICR
   int     isotopeError;
   int     maxMods;
   int     maxPeaks;
+  int     maxPepLen;
+  int     minPeaks;
+  int     minPepLen;
   int     miscleave;
   int     ms1Centroid;
   int     ms2Centroid;
@@ -159,10 +163,14 @@ typedef struct mParams {
   std::vector<mMass>*    fMods;
   std::vector<double>*   rIons;
   mParams(){
+    eValDepth=3000;
     instrument=1;
     isotopeError=1;
     maxMods=0;
     maxPeaks=0;
+    maxPepLen=50;
+    minPeaks=20;
+    minPepLen=6;
     miscleave=2;
     ms1Centroid=0;
     ms2Centroid=0;
@@ -211,10 +219,14 @@ typedef struct mParams {
     rIons = new std::vector<double>;
   }
   mParams(const mParams& p){
+    eValDepth=p.eValDepth;
     instrument=p.instrument;
     isotopeError=p.isotopeError;
     maxMods=p.maxMods;
     maxPeaks=p.maxPeaks;
+    maxPepLen=p.maxPepLen;
+    minPeaks=p.minPeaks;
+    minPepLen=p.minPepLen;
     miscleave=p.miscleave;
     ms1Centroid=p.ms1Centroid;
     ms2Centroid=p.ms2Centroid;
@@ -267,10 +279,14 @@ typedef struct mParams {
   }
   mParams& operator=(const mParams& p){
     if(this!=&p){
+      eValDepth=p.eValDepth;
       instrument=p.instrument;
       isotopeError = p.isotopeError;
       maxMods=p.maxMods;
       maxPeaks=p.maxPeaks;
+      maxPepLen = p.maxPepLen;
+      minPeaks = p.minPeaks;
+      minPepLen = p.minPepLen;
       miscleave=p.miscleave;
       ms1Centroid=p.ms1Centroid;
       ms2Centroid=p.ms2Centroid;
@@ -358,7 +374,7 @@ typedef struct mScoreCard{
     simpleScore=0;
     mass=0;
     massA=0;
-    eVal=0;
+    eVal=1000;
     mods = new std::vector<mPepMod>;
     next = NULL;
     prev = NULL;

@@ -58,12 +58,14 @@ public:
   //Master Functions
   bool doPeptideAnalysis   ();
   bool doEValueAnalysis();
+  bool doEValuePrecalc();
 
 private:
 
   //Thread-start functions
   static void analyzePeptideProc(mAnalysisStruct* s); 
   static void analyzeEValueProc(MSpectrum* s);
+  static void analyzeEValuePrecalcProc(MSpectrum* s);
 
   //Analysis functions
   static bool analyzePeptide(mPeptide* p, int pepIndex, int iIndex);
@@ -74,7 +76,7 @@ private:
   static void  checkXLMotif            (int motifA, char* motifB, vector<int>& v);
   void         deallocateMemory        (int threads);
   static void  scoreSingletSpectra     (int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex);
-  static void  scoreSpectra            (vector<int>& index, int sIndex, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex);
+  static void  scoreSpectra            (vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex);
   static float magnumScoring           (int specIndex, double modMass, int sIndex, int iIndex, int z=0);
   static void  setBinList              (kMatchSet* m, int iIndex, int charge, double preMass, mPepMod* mods, char modLen);
 

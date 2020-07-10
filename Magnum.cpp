@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
     cout << "  Error opening database file: " << params.dbFile << endl;
     return -1;
   }
-  db.buildPeptides(params.minPepMass,params.maxPepMass,params.miscleave);
+  db.buildPeptides(params.minPepMass,params.maxPepMass,params.miscleave,params.minPepLen,params.maxPepLen);
 
 
   //Step #3: Read in spectra and map precursors
@@ -108,15 +108,26 @@ int main(int argc, char* argv[]){
     time(&timeNow);
     cout << " Finished transformation: " << ctime(&timeNow) << endl;
 
-    //Step #4: Analyze single peptides, monolinks, and crosslinks
+    //for(size_t a=0;a<spec.size();a++){
+    //  cout << spec[a].getScanNumber() <<"\t" << spec[a].getPrecursor(0).monoMass << "\t" << spec[a].bigMonoMass << "\t" << db.getMaxPepLen(spec[a].bigMonoMass) << endl;
+    //  spec[a].generateXcorrDecoys3(params.minPepLen, db.getMaxPepLen(spec[a].bigMonoMass));
+    //}
+
+    //Step #4: Analyze single peptides with open mods
     MAnalysis anal(params, &db, &spec);
+    time(&timeNow);
+    cout << " Precompute expectation value histograms: " << ctime(&timeNow);
+    cout << "  Iterating spectra ... ";
+    anal.doEValuePrecalc();
+    time(&timeNow);
+    cout << " Finished spectral search: " << ctime(&timeNow) << endl;
 
     time(&timeNow);
     cout << "\n Start spectral search: " << ctime(&timeNow);
     cout << "  Scoring peptides ... ";
     anal.doPeptideAnalysis();
-    cout << "  Calculating e-values ... ";
-    anal.doEValueAnalysis();
+    //cout << "  Calculating e-values ... ";
+    //anal.doEValueAnalysis();
 
     time(&timeNow);
     cout << " Finished spectral search: " << ctime(&timeNow) << endl;

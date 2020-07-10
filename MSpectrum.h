@@ -20,6 +20,7 @@ limitations under the License.
 #include <cmath>
 #include <list>
 #include <vector>
+#include "MHistogram.h"
 #include "MStructs.h"
 #include "MTopPeps.h"
 #include "CometDecoys.h"
@@ -37,6 +38,7 @@ public:
 
   //Constructors & Destructors
   MSpectrum(const int& i, const double& bs, const double& os, const int& th);
+  MSpectrum(mParams& p);
   MSpectrum(const MSpectrum& p);
   ~MSpectrum();
 
@@ -83,6 +85,16 @@ public:
   int histogramCount;
   int histoMaxIndex;
 
+  MHistogram** mHisto;
+  MDecoys* decoys;
+  double computeE(double score, int len);
+  bool ionSeries[6];
+  int maxHistogramCount;
+  double minAdductMass;
+  int maxPepLen;
+  double bigMonoMass;
+  int bigZ;
+
   //Modifiers
   void addPoint               (mSpecPoint& s);
   void addPrecursor           (mPrecursor& p, int sz);
@@ -102,8 +114,14 @@ public:
   void  checkScore(mScoreCard& s, int th);
   void  checkSingletScore (mScoreCard& s);
   bool generateXcorrDecoys(mParams* params, MDecoys& decoys);
+  bool generateXcorrDecoys2(int maxPepLen);
+  bool generateXcorrDecoys3(int minP, int maxP, int depth);
   void linearRegression(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr);
   void linearRegression2(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr, double& rSquared);
+  void linearRegression3(double& slope, double& intercept, double& rSquared);
+  void linearRegression4(int* h, int sz, double& slope, double& intercept, double& rSquared);
+  double makeXCorrB(int decoyIndex, double modMass, int maxZ, int len, int offset=0);
+  double makeXCorrY(int decoyIndex, double modMass, int maxZ, int len, int offset=0);
   void  resetSingletList  ();
   void  sortMZ            ();
   void  xCorrScore        ();

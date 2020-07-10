@@ -493,11 +493,13 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
     fprintf(f, " additional_mass=\"%.4lf\" precursor=\"%d\"/>\n", psm.massA, (int)psm.precursor);
   }
   fprintf(f, "  </results_list>\n");
+  /*
   fprintf(f,"  <histogram count=\"%d\">\n",s.histogramCount);
   for(j=0;j<HISTOSZ;j++){
     fprintf(f,"   <bin id=\"%d\" value=\"%d\"/>\n",j,s.histogram[j]);
   }
   fprintf(f,"  </histogram>\n");
+  */
   fprintf(f, " </scan>\n");
  
 }
@@ -1078,7 +1080,8 @@ bool MData::readSpectra(){
   MSReader   msr;
   Spectrum   s;
   Spectrum   c;
-  MSpectrum  pls(params->topCount,params->binSize,params->binOffset,params->threads);
+  //MSpectrum  pls(params->topCount,params->binSize,params->binOffset,params->threads);
+  MSpectrum pls(*params);
   mSpecPoint sp;
   float      max;
   mPrecursor pre;
@@ -1205,7 +1208,7 @@ bool MData::readSpectra(){
     }
 
     //Add spectrum (if it has enough data points) to data object and read next file
-    if(pls.size()>12) spec.push_back(pls);
+    if(pls.size()>=params->minPeaks) spec.push_back(pls);
 
     for(unsigned int d=0;d<params->diag->size();d++){
       if(pls.getScanNumber()==params->diag->at(d)){

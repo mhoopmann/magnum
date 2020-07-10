@@ -208,6 +208,16 @@ void MParams::parse(char* cmd) {
     else strcpy(params->enzymeName, "Unnamed");
     xmlParams.push_back(xml);
 
+  } else if (strcmp(param, "e_value_depth") == 0){
+    params->eValDepth = atoi(&values[0][0]);
+    if (params->eValDepth<0 || params->eValDepth>15000){
+      warn("ERROR: e_value_depth out of range (0-15000). Reverting to default of 3000.", 3);
+      params->eValDepth = 3000;
+    }
+    xml.name = "e_value_depth";
+    xml.value = values[0];
+    xmlParams.push_back(xml);
+
   } else if(strcmp(param, "export_pepXML")==0 || strcmp(param, "export_pepxml")==0){
     if(atoi(&values[0][0])!=0) params->exportPepXML=true;
     else params->exportPepXML=false;
@@ -342,6 +352,16 @@ void MParams::parse(char* cmd) {
     xml.value = values[0];
     xmlParams.push_back(xml);
 
+  } else if (strcmp(param, "max_peptide_length") == 0){
+    params->maxPepLen = atoi(&values[0][0]);
+    if (params->maxPepLen>70){
+      warn("ERROR: max_peptide_length exceeds limit. Capping at to 70.", 3);
+      params->rIonThreshold = 70;
+    }
+    xml.name = "max_peptide_length";
+    xml.value = values[0];
+    xmlParams.push_back(xml);
+
 	} else if(strcmp(param,"max_peptide_mass")==0){
     params->maxPepMass=atof(&values[0][0]);
     xml.name = "max_peptide_mass";
@@ -360,9 +380,21 @@ void MParams::parse(char* cmd) {
     xml.value = values[0];
     xmlParams.push_back(xml);
 
+  } else if (strcmp(param, "min_peptide_length") == 0){
+    params->minPepLen = atoi(&values[0][0]);
+    xml.name = "min_peptide_length";
+    xml.value = values[0];
+    xmlParams.push_back(xml);
+
 	} else if(strcmp(param,"min_peptide_mass")==0){
     params->minPepMass=atof(&values[0][0]);
     xml.name = "min_peptide_mass";
+    xml.value = values[0];
+    xmlParams.push_back(xml);
+
+  } else if (strcmp(param, "min_spectrum_peaks") == 0){
+    params->minPeaks = atoi(&values[0][0]);
+    xml.name = "min_spectrum_peaks";
     xml.value = values[0];
     xmlParams.push_back(xml);
 

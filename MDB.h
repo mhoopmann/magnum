@@ -38,12 +38,13 @@ public:
 
   //User Functions
   bool  buildDB       (char* fname);                     //Reads FASTA file and populates vDB
-  bool  buildPeptides (double min, double max, int mis); //Make peptide list within mass boundaries and miscleavages.
+  bool  buildPeptides (double min, double max, int mis, int minP, int maxP); //Make peptide list within mass boundaries and miscleavages.
 
   //Accessors & Modifiers
   void                addFixedMod         (char mod, double mass);
   mDB&                at                  (const int& i);
   mEnzymeRules&       getEnzymeRules      ();
+  int                 getMaxPepLen        (double mass);
   mPeptide&           getPeptide          (int index);
   vector<mPeptide>*   getPeptideList      ();
   int                 getPeptideListSize  ();
@@ -56,6 +57,8 @@ public:
   void                setAAMass           (char aa, double mass);
   bool                setEnzyme           (char* str);
   void                setAdductSites      (bool* arr);
+
+  double minMass[100];
 
 private:
   

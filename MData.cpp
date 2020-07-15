@@ -451,7 +451,7 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
         }
         if (char(i) == sc->site) fprintf(f, "[x]");
       }
-      fprintf(f, "\" link_site=\"%d\" score=\"%.4lf\" mass=\"%.4lf\" additional_mass=\"%.4lf\"/>\n", (int)sc->site+1, sc->simpleScore, sc->mass, sc->massA);
+      fprintf(f, "\" link_site=\"%d\" score=\"%.4lf\" mass=\"%.4lf\" matches=\"%d\" con_fragments=\"%d\" additional_mass=\"%.4lf\"/>\n", (int)sc->site+1, sc->simpleScore, sc->mass, sc->match, sc->conFrag, sc->massA);
       sc = sc->next;
     }
     fprintf(f,"   </precursor>\n");

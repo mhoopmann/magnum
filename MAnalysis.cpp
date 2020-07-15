@@ -421,20 +421,26 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   double score=0;
   int i,j;
   int precI;
+  int match;
+  int conFrag;
 
   MSpectrum* s=spec->getSpectrum(index);
   mPrecursor* p;
   MTopPeps* tp;
   int sz=s->sizePrecursor();
   double topScore=0;
+  int topMatch=0;
+  int topConFrag=0;
   for(i=0;i<sz;i++){
     p=s->getPrecursor2(i);
     if(p->monoMass<minMass) continue;
     if(p->monoMass>maxMass) continue;
-    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,p->charge);
+    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);
     if(score==0) continue;
     else if(score>topScore) {
       topScore=score;
+      topMatch=match;
+      topConFrag=conFrag;
       precI=i;
       sc.simpleScore = (float)score;
       sc.pep = pep;
@@ -465,6 +471,8 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     ev = s->computeE(topScore, len);
     Threading::UnlockMutex(mutexSpecScore[index]);
     sc.eVal=ev;
+    sc.match=topMatch;
+    sc.conFrag=topConFrag;
 
     tp = s->getTopPeps(precI);
     Threading::LockMutex(mutexSingletScore[index][precI]);
@@ -502,7 +510,7 @@ void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double mod
       }
     }
     
-    sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,z);
+    sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,sc.match,sc.conFrag,z);
     if(sc.simpleScore==0) {
 
       //Threading::LockMutex(mutexSpecScore[index[a]]);
@@ -561,7 +569,7 @@ void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double mod
 
 //An alternative score uses the XCorr metric from the Comet algorithm
 //This version allows for fast scoring when the cross-linked mass is added.
-float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iIndex, int z) { 
+float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iIndex, int& match, int& conFrag, int z) { 
 
   MSpectrum* s=spec->getSpectrum(specIndex);
   MIonSet* ki=ions[iIndex].at(sIndex);
@@ -579,6 +587,9 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
   int i,j,k;
   int key;
   int pos;
+  int con;
+  match=0;
+  conFrag=0;
 
   //Assign ion series
   double***  ionSeries;
@@ -602,20 +613,62 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
 
     //Iterate through pfFastXcorrData
     for(j=0;j<numIonSeries;j++){
+      con=0;
+
       for(i=0;i<ionCount;i++){
 
         //get key
-        if(ionSeries[j][k][i]<0) mz = params.binSize * (int)((dif-ionSeries[j][k][i])*invBinSize+binOffset);
-        else mz = params.binSize * (int)(ionSeries[j][k][i]*invBinSize+binOffset);
-        key = (int)mz;
-        if(key>=s->kojakBins) break;
-        if(s->kojakSparseArray[key]==NULL) continue;
-        pos = (int)((mz-key)*invBinSize);
-        dXcorr += s->kojakSparseArray[key][pos];
-      }
-    }
+        if(ionSeries[j][k][i]<0) {
+          mz = params.binSize * (int)((dif-ionSeries[j][k][i])*invBinSize+binOffset);
+          key = (int)mz;
+          if (key >= s->kojakBins) {
+            if(con>conFrag) conFrag=con;
+            con=0;
+            break;
+          }
+          if (s->kojakSparseArray[key] == NULL) {
+            if (con>conFrag) conFrag = con;
+            con = 0;
+            continue;
+          }
+          pos = (int)((mz - key)*invBinSize);
+          dXcorr += s->kojakSparseArray[key][pos];
+          if (s->kojakSparseArray[key][pos]>5) {
+            match++;
+            con++;
+          } else {
+            if (con>conFrag) conFrag = con;
+            con = 0;
+          }
 
+        } else {
+          mz = params.binSize * (int)(ionSeries[j][k][i]*invBinSize+binOffset);
+          key = (int)mz;
+          if(key>=s->kojakBins) {
+            if (con>conFrag) conFrag = con;
+            con = 0;
+            break;
+          }
+          if(s->kojakSparseArray[key]==NULL) {
+            if (con>conFrag) conFrag = con;
+            con = 0;
+            continue;
+          }
+          pos = (int)((mz-key)*invBinSize);
+          dXcorr += s->kojakSparseArray[key][pos];
+          if (s->kojakSparseArray[key][pos]>5) {
+            match++;
+            con++;
+          } else {
+            if (con>conFrag) conFrag = con;
+            con = 0;
+          }
+        }
+      }
+      if(con>conFrag) conFrag=con;
+    }
   }
+  
 
   //Scale score appropriately
   if(dXcorr <= 0.0) dXcorr=0.0;

@@ -359,6 +359,8 @@ typedef struct mPepMod{
 typedef struct mScoreCard{
   char    precursor;
   char    site;
+  int     conFrag;
+  int     match;
   int     pep;
   float   simpleScore;
   double  mass;
@@ -370,6 +372,8 @@ typedef struct mScoreCard{
   mScoreCard(){
     precursor=0;
     site=0;
+    match=0;
+    conFrag=0;
     pep=0;
     simpleScore=0;
     mass=0;
@@ -382,6 +386,8 @@ typedef struct mScoreCard{
   mScoreCard(const mScoreCard& p){
     precursor=p.precursor;
     site=p.site;
+    match=p.match;
+    conFrag=p.conFrag;
     pep=p.pep;
     simpleScore=p.simpleScore;
     mass=p.mass;
@@ -398,6 +404,8 @@ typedef struct mScoreCard{
     if(this!=&p){
       precursor=p.precursor;
       site=p.site;
+      match = p.match;
+      conFrag = p.conFrag;
       pep=p.pep;
       simpleScore=p.simpleScore;
       mass=p.mass;

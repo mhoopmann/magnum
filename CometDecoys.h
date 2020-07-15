@@ -6,7 +6,7 @@
 
 typedef struct DecoysStruct
 {
-   char *szPeptide;
+   const char *szPeptide;
    double pdIonsN[MAX_DECOY_PEP_LEN];
    double pdIonsC[MAX_DECOY_PEP_LEN];
 } DecoysStruct;

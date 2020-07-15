@@ -663,7 +663,7 @@ bool MData::outputPercolator(FILE* f, MDatabase& db, kResults& r, int count){
 bool MData::outputResults(MDatabase& db, MParams& par){
   size_t i;
   int j,n,d;
-  char fName[256];
+  char fName[2048];
   char outPath[1024];
   char peptide[256];
   char tmp[16];

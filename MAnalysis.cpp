@@ -458,7 +458,7 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     sc.mass = mass;
     sc.massA = p->monoMass - mass;
     sc.precursor = i;
-    sc.site = 0;
+    sc.site = -99;
     sc.mods->clear();
     iset = ions[iIndex].at(sIndex);
     if (iset->difMass != 0){

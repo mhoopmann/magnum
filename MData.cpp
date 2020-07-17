@@ -546,6 +546,7 @@ int MData::outputPepXML(PXWSpectrumQuery& sq, MDatabase& db, kResults& r){
     }
   }
   if (r.link1>0) sh.modInfo.addMod(r.link1, r.massB + aa.getAAMass(r.peptide1[r.link1 - 1]), r.massB,true, "adduct");
+  else if(r.link1==-99) sh.massdiff=r.massB;
 
   sprintf(score,"%.4lf",r.score);
   sh.addScore("magnum_score",score);
@@ -1842,6 +1843,10 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, doub
       seq += tmp;
     }
   }
+  //if(site=-99){
+  //  sprintf(tmp, "n[%.0lf]", massA);
+  //  seq += tmp;
+  //}
   for (j = 0; j<peptide.size(); j++) {
     seq += peptide[j];
     for (k = 0; k<mod->size(); k++){
@@ -1850,10 +1855,10 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, doub
         seq += tmp;
       }
     }
-    if(j==(size_t)site){
+    /*if(j==(size_t)site){
       sprintf(tmp, "[%.0lf]", massA);
       seq += tmp;
-    }
+    }*/
   }
   for (k = 0; k<mod->size(); k++){ //check for c-terminal peptide mod
     if (mod->at(k).pos > 0 && mod->at(k).term){

@@ -1855,10 +1855,10 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, doub
         seq += tmp;
       }
     }
-    /*if(j==(size_t)site){
+    if(j==(size_t)site){
       sprintf(tmp, "[%.0lf]", massA);
       seq += tmp;
-    }*/
+    }
   }
   for (k = 0; k<mod->size(); k++){ //check for c-terminal peptide mod
     if (mod->at(k).pos > 0 && mod->at(k).term){

@@ -359,10 +359,12 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
     if (k == len - 1 && pep.cTerm){
       if (!adductSites['c'])  continue;
     } else if (k==len-1) {
-      continue;
+      if(!adductSites['%']) continue;
     } else if (!adductSites[pepSeq[k]]) {
       if (k == 0 && pep.nTerm){
         if(!adductSites['n']) continue;
+      } else if (k == 0) {
+        if(!adductSites['$']) continue;
       } else {
         continue;
       }
@@ -431,6 +433,48 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   double topScore=0;
   int topMatch=0;
   int topConFrag=0;
+
+  int code;
+  for(i=0;i<sz;i++){
+    p=s->getPrecursor2(i);
+    if (p->corr<-4) code = 2;
+    else if (p->corr<0)code = 3;
+    else if (p->corr == 0)code = 2;
+    else code = 1;
+    if(code==1) break;
+  }
+  if(i==sz) {
+    i=0;
+    p = s->getPrecursor2(i);
+  }
+  score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge);
+  if(score>0){
+    topScore = score;
+    topMatch = match;
+    topConFrag = conFrag;
+    precI = i;
+    sc.simpleScore = (float)score;
+    sc.pep = pep;
+    sc.mass = mass;
+    sc.massA = p->monoMass - mass;
+    sc.precursor = i;
+    sc.site = 0;
+    sc.mods->clear();
+    iset = ions[iIndex].at(sIndex);
+    if (iset->difMass != 0){
+      for (j = 0; j<ions[iIndex].getIonCount(); j++) {
+        if (iset->mods[j] != 0){
+          if (j == 0 && iset->modNTerm) mod.term = true;
+          else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
+          else mod.term = false;
+          mod.pos = (char)j;
+          mod.mass = iset->mods[j];
+          sc.mods->push_back(mod);
+        }
+      }
+    }
+  }
+
   for(i=0;i<sz;i++){
     p=s->getPrecursor2(i);
     if(p->monoMass<minMass) continue;

@@ -153,7 +153,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
     pm.index=(int)i;
     bNTerm=false;
     bCTerm=false;
-    xlSites=0;
+    if(adductSites['$'] || adductSites['%']) xlSites=1;
+    else xlSites=0;
 
     while(true){
 
@@ -199,7 +200,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
           mass=18.0105633+fixMassPepN;
           bNTerm = false;
           bCTerm = false;
-          xlSites=0;
+          if (adductSites['$'] || adductSites['%']) xlSites = 1;
+          else xlSites = 0;
           next=-1;
           continue;
         } else {
@@ -221,7 +223,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
           mass=18.0105633+fixMassPepN;
           bNTerm = false;
           bCTerm = false;
-          xlSites = 0;
+          if (adductSites['$'] || adductSites['%']) xlSites = 1;
+          else xlSites = 0;
           next=-1;
 
         //Otherwise, continue scanning until it is found
@@ -244,7 +247,8 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
           mass=18.0105633+fixMassPepN;
           bNTerm = false;
           bCTerm = false;
-          xlSites = 0;
+          if (adductSites['$'] || adductSites['%']) xlSites = 1;
+          else xlSites = 0;
           next=-1;
         }  
       } else {

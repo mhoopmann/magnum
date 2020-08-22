@@ -20,8 +20,8 @@ limitations under the License.
 #include "MIons.h"
 #include "MParams.h"
 
-#define VERSION "1.0-dev.6"
-#define BDATE "July 17 2020"
+#define VERSION "1.0-dev.7"
+#define BDATE "Aug 22 2020"
 
 bool getBaseFileName(string& base, char* fName, string& extP);
 

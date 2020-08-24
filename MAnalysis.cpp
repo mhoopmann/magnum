@@ -442,12 +442,14 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     else if (p->corr == 0)code = 2;
     else code = 1;
     if(code==1) break;
+
   }
   if(i==sz) {
     i=0;
     p = s->getPrecursor2(i);
   }
   if(mass>p->monoMass+1) score=0;  //this could be narrowed down to user-defined precursor tolerance.
+  else if(mass+params.maxAdductMass>p->monoMass) score=0;
   else score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge);
   if(score>0){
     topScore = score;

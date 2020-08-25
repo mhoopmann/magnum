@@ -482,6 +482,7 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     p=s->getPrecursor2(i);
     if(p->monoMass<minMass) continue;
     if(p->monoMass>maxMass) continue;
+    if ((p->monoMass - mass)>params.maxAdductMass) continue;
     score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);
     if(score==0) continue;
     else if(score>topScore) {

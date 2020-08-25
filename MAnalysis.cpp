@@ -448,8 +448,8 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     i=0;
     p = s->getPrecursor2(i);
   }
-  if(mass>p->monoMass+1) score=0;  //this could be narrowed down to user-defined precursor tolerance.
-  else if(mass+params.maxAdductMass>p->monoMass) score=0;
+  if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
+  else if((p->monoMass-mass)>params.maxAdductMass) score=0;
   else score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge);
   if(score>0){
     topScore = score;
@@ -483,6 +483,7 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     if(p->monoMass<minMass) continue;
     if(p->monoMass>maxMass) continue;
     if ((p->monoMass - mass)>params.maxAdductMass) continue;
+    if ((p->monoMass - mass)<params.minAdductMass) continue;
     score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);
     if(score==0) continue;
     else if(score>topScore) {

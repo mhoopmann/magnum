@@ -1907,15 +1907,15 @@ void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
     size_t a;
     for(a=0;a<v.size();a++){
       if(v[a].simpleScore==tmpSC.simpleScore && v[a].pep==tmpSC.pep && v[a].mods.size()==tmpSC.mods->size()){
-        size_t b;
-        for(b=0;b<v[a].mods.size();b++){
-          if(v[a].mods[b].mass!=tmpSC.mods->at(b).mass) break;
-          if (v[a].mods[b].pos != tmpSC.mods->at(b).pos) break;
-          if (v[a].mods[b].term != tmpSC.mods->at(b).term) break;
-        }
-        if(b==v[a].mods.size()){ //identical peptides
+        //size_t b;
+        //for(b=0;b<v[a].mods.size();b++){
+        //  if(v[a].mods[b].mass!=tmpSC.mods->at(b).mass) break;
+        //  if (v[a].mods[b].pos != tmpSC.mods->at(b).pos) break;
+        //  if (v[a].mods[b].term != tmpSC.mods->at(b).term) break;
+        //}
+        //if(b==v[a].mods.size()){ //identical peptides
           v[a].sites.push_back(tmpSC.site);
-        } else {
+        /*} else {
           mScoreCard2 sc;
           sc.conFrag=tmpSC.conFrag;
           sc.eVal=tmpSC.eVal;
@@ -1928,7 +1928,7 @@ void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
           sc.sites.push_back(tmpSC.site);
           for(size_t c=0; c<tmpSC.mods->size();c++) sc.mods.push_back(tmpSC.mods->at(c));
           v.push_back(sc);
-        }
+        }*/
         break;
       }
     }

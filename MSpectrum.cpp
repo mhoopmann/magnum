@@ -1892,6 +1892,71 @@ void MSpectrum::linearRegression4(int* h, int sz, double& slope, double& interce
 
 }
 
+void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
+  //cout << "shortResults: ";
+  v.clear();
+  int count=0;
+  int scoreIndex=0;
+  mScoreCard tmpSC = getScoreCard(scoreIndex);
+
+  //iterate over all results
+  while(tmpSC.simpleScore>0){
+    count++;
+
+    //check if this peptide seen in another configuration
+    size_t a;
+    for(a=0;a<v.size();a++){
+      if(v[a].simpleScore==tmpSC.simpleScore && v[a].pep==tmpSC.pep && v[a].mods.size()==tmpSC.mods->size()){
+        size_t b;
+        for(b=0;b<v[a].mods.size();b++){
+          if(v[a].mods[b].mass!=tmpSC.mods->at(b).mass) break;
+          if (v[a].mods[b].pos != tmpSC.mods->at(b).pos) break;
+          if (v[a].mods[b].term != tmpSC.mods->at(b).term) break;
+        }
+        if(b==v[a].mods.size()){ //identical peptides
+          v[a].sites.push_back(tmpSC.site);
+        } else {
+          mScoreCard2 sc;
+          sc.conFrag=tmpSC.conFrag;
+          sc.eVal=tmpSC.eVal;
+          sc.mass=tmpSC.mass;
+          sc.massA=tmpSC.massA;
+          sc.match=tmpSC.match;
+          sc.pep=tmpSC.pep;
+          sc.precursor=tmpSC.precursor;
+          sc.simpleScore=tmpSC.simpleScore;
+          sc.sites.push_back(tmpSC.site);
+          for(size_t c=0; c<tmpSC.mods->size();c++) sc.mods.push_back(tmpSC.mods->at(c));
+          v.push_back(sc);
+        }
+        break;
+      }
+    }
+
+    //add unique results
+    if (a==v.size()){
+      mScoreCard2 sc;
+      sc.conFrag = tmpSC.conFrag;
+      sc.eVal = tmpSC.eVal;
+      sc.mass = tmpSC.mass;
+      sc.massA = tmpSC.massA;
+      sc.match = tmpSC.match;
+      sc.pep = tmpSC.pep;
+      sc.precursor = tmpSC.precursor;
+      sc.simpleScore = tmpSC.simpleScore;
+      sc.sites.push_back(tmpSC.site);
+      for (size_t c = 0; c<tmpSC.mods->size(); c++) sc.mods.push_back(tmpSC.mods->at(c));
+      v.push_back(sc);
+    }
+
+    if(++scoreIndex<20) tmpSC = getScoreCard(scoreIndex);
+    else break;
+  }
+
+  //cout << count << endl;
+
+}
+
 //void MSpectrum::makeXCorrB(int index, double massOffset, double maxMass, int maxZ, int maxIon){
 //  double xcorr=0;
 //  double ion;

@@ -94,6 +94,7 @@ private:
   double      polynomialBestFit (vector<double>& x, vector<double>& y, vector<double>& coeff, int degree=2);
   bool        processPath       (const char* in_path, char* out_path);
   string      processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, double massA, MDatabase& db);
+  string      processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, double massA, MDatabase& db);
 
 };
 

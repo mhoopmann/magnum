@@ -673,8 +673,10 @@ bool MData::outputResults(MDatabase& db, MParams& par){
   mPeptide pep;
   mPeptide pep2;
   mPrecursor precursor;
-  mScoreCard tmpSC;
-  mScoreCard tmpSC2;
+  //mScoreCard tmpSC;
+  //mScoreCard tmpSC2;
+  mScoreCard2 tmpSC;
+  mScoreCard2 tmpSC2;
 
   mEnzymeRules enzyme;
   kResults res;
@@ -805,39 +807,47 @@ bool MData::outputResults(MDatabase& db, MParams& par){
     }
     if(bDiag) outputDiagnostics(fDiag,spec[i],db);
 
+    vector<mScoreCard2> shorts;
+    spec[i].shortResults(shorts);
+    if(shorts.size()==0) {
+      fprintf(fOut, "%d\t%.4f\t0\t0\t0\t0\t0\t0\t999.0\t-\t0\t-\t-\t-\t-\t0\t-\t-\t-\t-\t0\n", res.scanNumber, res.rTime); 
+      continue;
+    }
+    //cout << spec[i].getScanNumber() << "\t" << shorts.size() << endl;
+
     //Iterate over the top hits to find subgroupings.
     //Subgroupings are defined as same sequence, but alternate interpretations
     //Each novel subgroup has the same top score, but a unique sequence
-    typedef struct pepXMLGroup {
-      int shIndex;
-      int pepIndex;
-      vector<int> indexes;
-    } pepXMLGroup;
-    pepXMLGroup px;
-    px.shIndex=-1;
-    vector<pepXMLGroup> pxg;
-    size_t q;
-    topScore=spec[i].getScoreCard(0).simpleScore;
-    if(topScore>0){
-      for(j=0;j<20;j++){
-        tmpSC = spec[i].getScoreCard(j);
-        if(tmpSC.simpleScore<topScore) break;
-        for(q=0;q<pxg.size();q++){
-          if(pxg[q].pepIndex==tmpSC.pep) break;
-        }
-        if(q==pxg.size()) { //add new entry
-          px.pepIndex=tmpSC.pep;
-          px.indexes.clear();
-          px.indexes.push_back(j);
-          pxg.push_back(px);
-        } else {
-          pxg[q].indexes.push_back(j);
-        }
-      }
-    }
+    //typedef struct pepXMLGroup {
+    //  int shIndex;
+    //  int pepIndex;
+    //  vector<int> indexes;
+    //} pepXMLGroup;
+    //pepXMLGroup px;
+    //px.shIndex=-1;
+    //vector<pepXMLGroup> pxg;
+    //size_t q;
+    //topScore=spec[i].getScoreCard(0).simpleScore;
+    //if(topScore>0){
+    //  for(j=0;j<20;j++){
+    //    tmpSC = spec[i].getScoreCard(j);
+    //    if(tmpSC.simpleScore<topScore) break;
+    //    for(q=0;q<pxg.size();q++){
+    //      if(pxg[q].pepIndex==tmpSC.pep) break;
+    //    }
+    //    if(q==pxg.size()) { //add new entry
+    //      px.pepIndex=tmpSC.pep;
+    //      px.indexes.clear();
+    //      px.indexes.push_back(j);
+    //      pxg.push_back(px);
+    //    } else {
+    //      pxg[q].indexes.push_back(j);
+    //    }
+    //  }
+    //}
 
     scoreIndex=0;
-    tmpSC=spec[i].getScoreCard(scoreIndex);
+    tmpSC=shorts[scoreIndex]; //tmpSC=spec[i].getScoreCard(scoreIndex);
     res.scanNumber=spec[i].getScanNumber();
     res.rTime=spec[i].getRTime();
 
@@ -892,7 +902,8 @@ bool MData::outputResults(MDatabase& db, MParams& par){
       //if no other match has the same precursor, just take the lowest score in the list
       n=scoreIndex+1;
       while(n<19){
-        tmpSC2=spec[i].getScoreCard(n++);
+        if(n>=shorts.size()) break;
+        tmpSC2=shorts[n++];   //tmpSC2=spec[i].getScoreCard(n++);
         if(tmpSC2.simpleScore==0) break;
         if(tmpSC2.simpleScore==topScore) continue;
         if(tmpSC2.precursor!=tmpSC.precursor) continue;
@@ -929,13 +940,14 @@ bool MData::outputResults(MDatabase& db, MParams& par){
       res.mods1.clear();
       res.cTerm1 = pep.cTerm;
       res.nTerm1 = pep.nTerm;
-      for(j=0;j<tmpSC.mods->size();j++) res.mods1.push_back(tmpSC.mods->at(j));
+      //for(j=0;j<tmpSC.mods->size();j++) res.mods1.push_back(tmpSC.mods->at(j));
+      for (j = 0; j<tmpSC.mods.size(); j++) res.mods1.push_back(tmpSC.mods[j]);
       res.peptide2 = "";
-      res.modPeptide1 = processPeptide(pep,tmpSC.mods,tmpSC.site,tmpSC.massA,db);
+      res.modPeptide1 = processPeptide(pep,tmpSC.mods,(int)tmpSC.sites[0],tmpSC.massA,db);
       res.modPeptide2 = "";
 
       //Get the link positions - relative to the peptide
-      res.link1 = tmpSC.site;
+      res.link1 = tmpSC.sites[0];
       if(res.link1>=0) res.link1++;
 
       //set link type
@@ -1051,8 +1063,9 @@ bool MData::outputResults(MDatabase& db, MParams& par){
       //if(bDupe) scoreIndex+=iDupe;
       //else scoreIndex++;
       scoreIndex++;
-      if(scoreIndex>=20) break;
-      tmpSC=spec[i].getScoreCard(scoreIndex);
+      //if(scoreIndex>=20) break;
+      if(scoreIndex>=shorts.size())break;
+      tmpSC=shorts[scoreIndex];//tmpSC=spec[i].getScoreCard(scoreIndex);
     }
 
     if(params->exportPepXML)p.writeSpectrumQuery(sq);
@@ -1863,6 +1876,55 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, doub
   for (k = 0; k<mod->size(); k++){ //check for c-terminal peptide mod
     if (mod->at(k).pos > 0 && mod->at(k).term){
       sprintf(tmp, "c[%.0lf]", mod->at(k).mass);
+      seq += tmp;
+    }
+  }
+  if (pep.cTerm && aa.getFixedModMass('%') != 0) {
+    sprintf(tmp, "c[%.0lf]", aa.getFixedModMass('%'));
+    seq += tmp;
+  }
+
+  return seq;
+}
+
+string MData::processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, double massA, MDatabase& db){
+  char tmp[32];
+  size_t j, k;
+  string seq = "";
+  string peptide;
+
+  db.getPeptideSeq(pep.map->at(0).index, pep.map->at(0).start, pep.map->at(0).stop, peptide);
+
+  if (pep.nTerm && aa.getFixedModMass('$') != 0) {
+    sprintf(tmp, "n[%.0lf]", aa.getFixedModMass('$'));
+    seq += tmp;
+  }
+  for (k = 0; k<mod.size(); k++){ //check for n-terminal peptide mod
+    if (mod[k].pos == 0 && mod[k].term){
+      sprintf(tmp, "n[%.0lf]", mod[k].mass);
+      seq += tmp;
+    }
+  }
+  //if(site=-99){
+  //  sprintf(tmp, "n[%.0lf]", massA);
+  //  seq += tmp;
+  //}
+  for (j = 0; j<peptide.size(); j++) {
+    seq += peptide[j];
+    for (k = 0; k<mod.size(); k++){
+      if (j == (unsigned int)mod[k].pos && !mod[k].term){
+        sprintf(tmp, "[%.0lf]", mod[k].mass);
+        seq += tmp;
+      }
+    }
+    if (j == (size_t)site){
+      sprintf(tmp, "[%.0lf]", massA);
+      seq += tmp;
+    }
+  }
+  for (k = 0; k<mod.size(); k++){ //check for c-terminal peptide mod
+    if (mod[k].pos > 0 && mod[k].term){
+      sprintf(tmp, "c[%.0lf]", mod[k].mass);
       seq += tmp;
     }
   }

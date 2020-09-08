@@ -420,6 +420,19 @@ typedef struct mScoreCard{
   }
 } mScoreCard;
 
+typedef struct mScoreCard2{
+  char    precursor;
+  int     conFrag;
+  int     match;
+  int     pep;
+  float   simpleScore;
+  double  mass;
+  double  massA;
+  double  eVal;
+  std::vector<mPepMod> mods;
+  std::vector<char> sites;
+} mScoreCard2;
+
 /*
 typedef struct mPeptideScoreCard{
   char                len;

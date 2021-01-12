@@ -1,6 +1,6 @@
 # Magnum
 
-Adduct detection
+Adduct detection 
 
 ## License
 

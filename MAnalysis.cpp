@@ -382,7 +382,9 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
       if (!spec->getBoundaries(minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, scanIndex, scanBuffer[iIndex])) continue;
 
       for(j=0;j<scanIndex.size();j++){
+        //cout << "before score" << endl;
         scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex);
+        //cout << "after score" << endl;
       }
     }
 
@@ -480,11 +482,14 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
 
   for(i=0;i<sz;i++){
     p=s->getPrecursor2(i);
+    //cout << i << " of " << sz << "\t" << p->monoMass << "\t" << minMass << "\t" << maxMass << "\t" << mass << endl;
     if(p->monoMass<minMass) continue;
     if(p->monoMass>maxMass) continue;
     if ((p->monoMass - mass)>params.maxAdductMass) continue;
     if ((p->monoMass - mass)<params.minAdductMass) continue;
+    //cout << "Before magnumScoring" << endl;
     score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);
+    //cout << score << endl;
     if(score==0) continue;
     else if(score>topScore) {
       topScore=score;
@@ -515,21 +520,26 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   }
 
   if(topScore>0){
+    //cout << "Topper " << topScore << endl;
     double ev = 1000;
     Threading::LockMutex(mutexSpecScore[index]);
     ev = s->computeE(topScore, len);
+    //cout << "DoneE " << ev << endl;
     Threading::UnlockMutex(mutexSpecScore[index]);
     sc.eVal=ev;
     sc.match=topMatch;
     sc.conFrag=topConFrag;
 
     tp = s->getTopPeps(precI);
+    //cout << "GotTopPeps" << endl;
     Threading::LockMutex(mutexSingletScore[index][precI]);
     tp->checkPeptideScore(sc);
+    //cout << "CheckPepScore" << endl;
     Threading::UnlockMutex(mutexSingletScore[index][precI]);
   
     Threading::LockMutex(mutexSpecScore[index]);
     s->checkScore(sc,iIndex);
+    //cout << "CheckScore" << endl;
     Threading::UnlockMutex(mutexSpecScore[index]);
   }
 
@@ -655,6 +665,8 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
   //However, don't analyze past the 3+ series
   if(maxCharge>4) maxCharge=4;
 
+  bool hardStop=false;
+
   //Iterate all series
   for(k=1;k<maxCharge;k++){
 
@@ -669,6 +681,10 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
         //get key
         if(ionSeries[j][k][i]<0) {
           mz = params.binSize * (int)((dif-ionSeries[j][k][i])*invBinSize+binOffset);
+          if(mz<0) {
+            hardStop=true;
+            break;
+          }
           key = (int)mz;
           if (key >= s->kojakBins) {
             if(con>conFrag) conFrag=con;
@@ -714,13 +730,15 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
           }
         }
       }
+      if(hardStop) break;
       if(con>conFrag) conFrag=con;
     }
+    if (hardStop) break;
   }
   
 
   //Scale score appropriately
-  if(dXcorr <= 0.0) dXcorr=0.0;
+  if(hardStop || dXcorr <= 0.0) dXcorr=0.0;
   else dXcorr *= 0.005;
 
   //Clean up memory

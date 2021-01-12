@@ -101,8 +101,8 @@ MSpectrum::MSpectrum(mParams& p){
   maxHistogramCount=3000;
   minAdductMass=p.minAdductMass;
   maxPepLen=p.maxPepLen;
-  mHisto=new MHistogram*[maxPepLen];
-  for(int j=0;j<p.maxPepLen;j++)mHisto[j]=NULL;
+  mHisto=new MHistogram*[maxPepLen+1];
+  for(int j=0;j<p.maxPepLen+1;j++)mHisto[j]=NULL;
 
   for(int j=0;j<6;j++) ionSeries[j]=p.ionSeries[j];
 
@@ -150,8 +150,8 @@ MSpectrum::MSpectrum(const MSpectrum& p){
   maxHistogramCount = p.maxHistogramCount;
   minAdductMass = p.minAdductMass;
   maxPepLen = p.maxPepLen;
-  mHisto = new MHistogram*[maxPepLen];
-  for (int j = 0; j<p.maxPepLen; j++)mHisto[j] = NULL;
+  mHisto = new MHistogram*[maxPepLen+1];
+  for (int j = 0; j<p.maxPepLen+1; j++)mHisto[j] = NULL;
   for (int j = 0; j<6; j++) ionSeries[j] = p.ionSeries[j];
 
   cc=p.cc;
@@ -225,7 +225,7 @@ MSpectrum::~MSpectrum(){
 
   delete [] hp;
 
-  for (j = 0; j<maxPepLen; j++){
+  for (j = 0; j<maxPepLen+1; j++){
     if (mHisto[j] != NULL) delete mHisto[j];
   }
   delete[] mHisto;
@@ -268,7 +268,7 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
     histogramCount = p.histogramCount;
     histoMaxIndex = p.histoMaxIndex;
 
-    for(i=0;i<maxPepLen;i++){
+    for(i=0;i<maxPepLen+1;i++){
       if(mHisto[i]!=NULL) delete mHisto[i];
     }
     delete [] mHisto;
@@ -276,8 +276,8 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
     maxHistogramCount = p.maxHistogramCount;
     minAdductMass = p.minAdductMass;
     maxPepLen = p.maxPepLen;
-    mHisto = new MHistogram*[maxPepLen];
-    for (int j = 0; j<p.maxPepLen; j++)mHisto[j] = NULL;
+    mHisto = new MHistogram*[maxPepLen+1];
+    for (int j = 0; j<p.maxPepLen+1; j++)mHisto[j] = NULL;
     for (int j = 0; j<6; j++) ionSeries[j] = p.ionSeries[j];
 
     cc = p.cc;
@@ -614,7 +614,7 @@ void MSpectrum::checkSingletScore(mScoreCard& s){
 double MSpectrum::computeE(double score, int len){
   //if we haven't computed a histogram yet, do it now
   if(mHisto[len]==NULL){
-    cout << "Compute Histo: " << scanNumber << "\t" << len << endl;
+    //cout << "Compute Histo: " << scanNumber << "\t" << len << endl;
     //Clear histogram
     for (int j = 0; j<HISTOSZ; j++) histogram[j] = 0;
     histogramCount = 0;
@@ -627,6 +627,7 @@ double MSpectrum::computeE(double score, int len){
 
     mHisto[len]=new MHistogram();
     linearRegression3(mHisto[len]->slope, mHisto[len]->intercept, mHisto[len]->rSq);
+    //cout << "linReg3 success" << endl;
     mHisto[len]->slope*=10;
 
     if (mHisto[len]->slope>=0){
@@ -1045,13 +1046,16 @@ bool MSpectrum::generateXcorrDecoys2(int maxPepLen) {
   bool bAdduct;
   int ac;
 
+
+  
+
   // DECOY_SIZE is the minimum # of decoys required or else this function isn't
   // called.  So need to generate iLoopMax more xcorr scores for the histogram.
   int iLoopMax = DECOY_SIZE;
   int seed = scanNumber % DECOY_SIZE; //don't always start at the top, but not random either; remains reproducible across threads
   int decoyIndex;
 
-  
+  //cout << "generateXcorrDecoys2 " << iLoopMax << "\t" << precursor->size() << endl;
 
   j = 0;
   for (i = 0; i<iLoopMax; i++) { // iterate through required # decoys
@@ -1068,6 +1072,7 @@ bool MSpectrum::generateXcorrDecoys2(int maxPepLen) {
     bAdduct=true;
     ac=3;
     oMass=precursor->at(r).monoMass-110.5822*maxPepLen;
+    //cout << "oMass: " << oMass << "\t" << minAdductMass << "\t" << precursor->at(r).monoMass << endl;
     if(oMass<minAdductMass) {
       oMass=0;
       bAdduct=false;
@@ -1108,7 +1113,7 @@ bool MSpectrum::generateXcorrDecoys2(int maxPepLen) {
             mz = binSize * (int)(mz*invBinSize + binOffset);
             key = (int)mz;
             if (key >= kojakBins) break;
-            if (kojakSparseArray[key] == NULL) continue;
+            if (key<0 || kojakSparseArray[key] == NULL) continue;
             pos = (int)((mz - key)*invBinSize);
             dXcorr[x] += kojakSparseArray[key][pos];
           }
@@ -1128,6 +1133,7 @@ bool MSpectrum::generateXcorrDecoys2(int maxPepLen) {
     if (histogramCount == maxHistogramCount) break;
   }
 
+  //cout << "success" << endl;
   return true;
 }
 
@@ -1223,7 +1229,7 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
           m = binSize * (int)(m*invBinSize + binOffset);
           key = (int)m;
           if (key >= kojakBins) break;
-          if (kojakSparseArray[key] == NULL) continue;
+          if (key<0 || kojakSparseArray[key] == NULL) continue;
           pos = (int)((m - key)*invBinSize);
           //cout << (int)kojakSparseArray[key][pos] << endl;
           if (b<3) xcorrB += kojakSparseArray[key][pos];

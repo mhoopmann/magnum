@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Magnum Source Code</title>
+    <meta name="description" content="Kojak Description">
+
+    <!-- Bootstrap core CSS -->
+	<link href="./css/bootstrap.min.css" rel="stylesheet">
+	
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Lato" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/magnum.css" rel="stylesheet">
+	<link href="./css/pygments.css" rel="stylesheet">
+	
+	<!--
+	<link href="./css/font-awesome.min.css" rel="stylesheet">
+	-->
+	
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+			
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-54512021-2', 'auto');
+	  ga('send', 'pageview');
+
+	</script>
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	
+  </head>
+
+  <body>
+
+   <header>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+     <a class="navbar-brand" href="./index.html"><img src="./images/stache.png"></a>
+     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+     </button>
+	  
+	 <div class="collapse navbar-collapse" id="navbarCollapse">
+      <ul class="navbar-nav mr-auto">
+	   <li class="nav-item "><a class="nav-link" href="./news/index.html">News</a></li>
+	   <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle" href="./docs/index.html" data-toggle="dropdown" role="button" aria-expanded="false">Documentation <span class="caret"></span></a>
+        <div class="dropdown-menu" role="menu">
+         <a class="dropdown-item " href="./docs/index.html">Instructions</a>
+         <a class="dropdown-item " href="./param/index.html">Parameters</a>
+         <a class="dropdown-item " href="./notes.html">Release Notes</a>
+	     <div class="dropdown-divider"></div>
+	     <a class="dropdown-item " href="./cite.html">Citing & Publications</a>
+        </div>
+	   </li>
+       <li class="nav-item "><a class="nav-link" href="./download.html">Download</a></li>
+	   <li class="nav-item active"><a class="nav-link" href="./source.html">Source</a></li>
+	   <li class="nav-item "><a class="nav-link" href="./contact/">Contact</a></li>
+	   <li class="nav-item"><a href="https://isbscience.org/" target="_blank"><img src="./images/ISB-Symbol.png" width="40"></a></li>
+      </ul>
+     </div>
+	 
+    </nav>
+   </header>
+  
+<main role="main">
+
+  <div class="container padded">
+    <h1 id="magnum-source-code">Magnum Source Code</h1>
+
+<div class="inner">
+
+	<section id="downloads" class="clearfix">
+		<a id="download-zip" class="button" href="https://github.com/mhoopmann/magnum/zipball/master"><span>Download .zip</span></a>
+		<a id="download-tar-gz" class="button" href="https://github.com/mhoopmann/magnum/tarball/master"><span>Download .tar.gz</span></a>
+		<a id="view-on-github" target="new" class="button" href="https://github.com/mhoopmann/magnum"><span>View on GitHub</span></a>
+	</section>
+	
+</div>
+
+<p>Magnum is provided open source for free. Advanced users may wish to compile the source code for their custom system, 
+or modify it for their own purposes. Below are instructions for installation on a Linux-based system using the 
+command-line. It is assumed that version control software is already installed on the system. Magnum can also be compiled for 
+other operating systems/development environments including, but not limited to, Microsoft Visual Studio for Windows. 
+Specific development environment instructions are outside the scope of this document, as it is assumed users of those 
+environments are already familiar with them.</p>
+
+<hr />
+
+<h2 id="building-magnum">Building Magnum</h2>
+
+<h4 id="step-1-check-out-the-magnum-repository">Step 1: Check out the Magnum repository</h4>
+
+<p>Obtain the source code from any of the three options presented above.</p>
+
+<h4 id="step-2-check-out-the-supporting-software-libraries">Step 2: Check out the supporting software libraries</h4>
+
+<ol>
+  <li><a href="https://github.com/mhoopmann/mstoolkit" target="new">MSToolkit</a> - used to support multiple file formats.</li>
+  <li><a href="https://github.com/mhoopmann/hardklor" target="new">Hardklor</a> - used for spectral processing functions.</li>
+</ol>
+
+<p>Both of these software tools have their own source repositories, applications, and instructions for use. For compiling Magnum from source, they simply need to be compiled on the system you are using.</p>
+
+<h4 id="step-3-build-support-software">Step 3: Build support software</h4>
+
+<p>Both MSToolkit and Hardklor come with Makefiles. Compile MSToolkit first. Go into the MSToolkit directory 
+and execute the Makefile. For example:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">MSToolkit&gt; make</code></pre></figure>
+
+<p>When MSToolkit has finished building, compile Hardklor. To do so, change to the Hardklor directory. Open 
+the Makefile first and set the path to your MSToolkit directory.</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">LIBPATH <span class="o">=</span> /yourpath/MSToolkit</code></pre></figure>
+
+<p>Save the Makefile. Then make Hardklor by typing ‘make’ on the command line.</p>
+
+<h4 id="step-4-update-paths-in-the-magnum-makefile">Step 4: Update paths in the Magnum Makefile</h4>
+
+<p>Navigate to your Magnum directory. Open Makefile with any text editor. Edit ‘MSTOOLKITPATH’ and ‘HARDKLORPATH’ to 
+the location of your MSToolkit and Hardklor directories:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">MSTOOLKITPATH <span class="o">=</span> /yourpath/MSToolkit
+HARDKLORPATH <span class="o">=</span> /yourpath/Hardklor</code></pre></figure>
+
+<p>Save the changes in the Makefile.</p>
+
+<h4 id="step-5-make-magnum">Step 5: Make Magnum</h4>
+
+<p>Type ‘make’ from the command line.</p>
+
+  </div>
+
+    
+ </main>
+
+	<footer class="footer fixed-bottom">
+	 <div class="container">
+      <p class="float-right"><a href="#">Back to top</a></p>
+      <p>&copy; 2021 <a class="text-muted2" target="new" href="https://isbscience.org">ISB</a></p>
+	 </div>
+    </footer>
+	
+	<!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="./js/bootstrap.min.js"></script>
+
+  </body>
+</html>

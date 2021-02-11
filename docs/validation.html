@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Validating PSMs</title>
+    <meta name="description" content="Kojak Description">
+
+    <!-- Bootstrap core CSS -->
+	<link href="../css/bootstrap.min.css" rel="stylesheet">
+	
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Lato" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="../css/magnum.css" rel="stylesheet">
+	<link href="../css/pygments.css" rel="stylesheet">
+	
+	<!--
+	<link href="../css/font-awesome.min.css" rel="stylesheet">
+	-->
+	
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+			
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-54512021-2', 'auto');
+	  ga('send', 'pageview');
+
+	</script>
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	
+  </head>
+
+  <body>
+
+   <header>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+     <a class="navbar-brand" href="../index.html"><img src="../images/stache.png"></a>
+     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+     </button>
+	  
+	 <div class="collapse navbar-collapse" id="navbarCollapse">
+      <ul class="navbar-nav mr-auto">
+	   <li class="nav-item "><a class="nav-link" href="../news/index.html">News</a></li>
+	   <li class="nav-item dropdown active">
+        <a class="nav-link dropdown-toggle" href="./index.html" data-toggle="dropdown" role="button" aria-expanded="false">Documentation <span class="caret"></span></a>
+        <div class="dropdown-menu" role="menu">
+         <a class="dropdown-item active" href="./index.html">Instructions</a>
+         <a class="dropdown-item " href="../param/index.html">Parameters</a>
+         <a class="dropdown-item " href="../notes.html">Release Notes</a>
+	     <div class="dropdown-divider"></div>
+	     <a class="dropdown-item " href="../cite.html">Citing & Publications</a>
+        </div>
+	   </li>
+       <li class="nav-item "><a class="nav-link" href="../download.html">Download</a></li>
+	   <li class="nav-item "><a class="nav-link" href="../source.html">Source</a></li>
+	   <li class="nav-item "><a class="nav-link" href="/">Contact</a></li>
+	   <li class="nav-item"><a href="https://isbscience.org/" target="_blank"><img src="../images/ISB-Symbol.png" width="40"></a></li>
+      </ul>
+     </div>
+	 
+    </nav>
+   </header>
+  
+<main role="main">
+
+<div class="container padded">
+ <div class="row">
+  <div class="col-md-9">
+   <h2 id="validating-magnum-psms">Validating Magnum PSMs</h2>
+
+<p>The Magnum results are a list of the best peptide-spectrum match (PSM) for each spectrum analyzed. Each PSM is simply
+the best theoretical sequence match to the observed spectrum peaks, and not necessarily the correct sequence match. There are
+many reasons why the correct PSM may not have been found (e.g. the sequence was not in your database, the peptide contains
+an unknown PTM, poor spectrum quality, etc.), and thus the observed PSMs must be statistically validated.</p>
+
+<p>Magnum results come pre-formatted for use with <a href="https://github.com/percolator/percolator/releases">Percolator</a>, a semi-supervised machine learning
+algorithm for validating PSMs at a user-defined false discovery rate. Percolator is developed and maintained by the Käll
+Lab at KTH, and can be downloaded for free <a href="https://github.com/percolator/percolator">here</a>. Extensive discussion
+of Percolator and its features is beyond the scope of these instructions; however, basic instructions are provided below.</p>
+
+<div class="alert alert-warning">
+<h4>Advanced Users</h4>
+<p class="hint">There are many alternatives to Percolator for validating PSMs. If you prefer an alternative, all the parameters
+and scoring metrics from the Magnum algorithm are provided in the basic Magnum results file. These results should be parsed
+and formatted for your algorithm of choice.</p>
+</div>
+
+<hr />
+
+<h4 id="running-percolator">Running Percolator</h4>
+
+<p>Percolator is run from a command line. The command line syntax and available options change with each version. These
+instructions describe using Percolator version 2.08. Descriptions of command line options are found when executing
+Percolator with the <code class="highlighter-rouge">-h</code> option.</p>
+
+<p>Run Percolator from the directory containing your Magnum results. To validate Magnum results, provide the Percolator-formatted
+file as input, and redirect output to a new file:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ /usr/bin/percolator data_set1.perc.intra.txt &gt; data_set1.intra.validated.txt
+</code></pre></div></div>
+
+<p>In the above example, intra-protein cross-linked PSMs from Magnum are analyzed with Percolator to obtain a non-redundant
+list of unique cross-linked peptides. All these unique peptide cross-links have q-values that are used to filter for a
+given false discovery rate.</p>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">Magnum formats and partitions all PSMs into subsets designed for Percolator analysis. These
+subsets are labeled with <b>perc</b> to indicate they are input for Percolator. Additionally, they are labeled with 
+<b>inter</b>, <b>intra</b>, <b>loop</b>, and <b>single</b> to describe which type of PSM is contained in the files.
+<table class="table table-bordered table-hint">
+<thead>
+<tr>
+<th class="success">Label</th>
+<th class="success">Description</th>
+</tr>
+</thead>
+<tr>
+<td>inter</td>
+<td>inter-protein cross-linked PSMs</td>
+</tr><tr>
+<td>intra</td>
+<td>intra-protein cross-linked PSMs</td>
+</tr><tr>
+<td>loop</td>
+<td>loop-linked PSMs</td>
+</tr><tr>
+<td>single</td>
+<td>non-linked PSMs (i.e. typical shotgun PSMs)</td>
+</tr>
+</table>
+</p>
+</div>
+
+<hr />
+
+<h4 id="interpreting-percolator-results">Interpreting Percolator Results</h4>
+
+<p>Percolator results are tab-delimited and can be viewed with spreadsheet software. Detailed instructions are found
+in the <a href="./percresults.html">Percolator Results</a> section.</p>
+
+<hr />
+
+<h4 id="additional-information">Additional Information</h4>
+
+<p>Percolator trains its parameters on a subset of the input PSMs. If the number of input PSMs is low (e.g. less than 100),
+then the train and test procedure may fail. An error message will be reported to the user. If the train and test
+procedure passes despite a low number of input PSMs, the results may not accurately model the true error distribution.
+A warning may be issued by Percolator. It may be necessary to use alternative forms of validation in the case of low
+numbers of PSMs in the input.</p>
+
+<p>Percolator requires that the input PSMs contain both target and decoy labels. Thus, it is essential that Magnum was
+used with decoy protein sequences in the database. Additionally, the <a href="../param/decoy_filter.html">decoy_filter</a>
+parameter must be correctly set to a tag that is contained in the descriptions of all decoy protein sequences.
+Additional details can be found in the <a href="./config.html">Configuration</a> instructions. Failure to operate Magnum in
+this manner will result in failure of Percolator to assign q-values to each PSM.</p>
+
+   </div>
+   <div class="col-md-3">
+    <nav class="nav flex-column sidebar-module sidebar-module-inset">
+     <h5 class="sidebar-header">Basics</h5>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/index.html">Overview</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 
+	 <h5 class="sidebar-header">Explore in Detail</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/installation.html">Installation</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/config.html">Configuration</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/running.html">Running Magnum</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/validation.html">Validating PSMs</a>
+     
+	 <h5 class="sidebar-header">Tutorials</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/percresults.html">Using Percolator</a>
+     
+    </nav>
+   </div>
+  </div>
+ </div>
+</div>
+
+    
+ </main>
+
+	<footer class="footer fixed-bottom">
+	 <div class="container">
+      <p class="float-right"><a href="#">Back to top</a></p>
+      <p>&copy; 2021 <a class="text-muted2" target="new" href="https://isbscience.org">ISB</a></p>
+	 </div>
+    </footer>
+	
+	<!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="../js/bootstrap.min.js"></script>
+
+  </body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Using Percolator Tutorial</title>
+    <meta name="description" content="Kojak Description">
+
+    <!-- Bootstrap core CSS -->
+	<link href="../css/bootstrap.min.css" rel="stylesheet">
+	
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Lato" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="../css/magnum.css" rel="stylesheet">
+	<link href="../css/pygments.css" rel="stylesheet">
+	
+	<!--
+	<link href="../css/font-awesome.min.css" rel="stylesheet">
+	-->
+	
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+			
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-54512021-2', 'auto');
+	  ga('send', 'pageview');
+
+	</script>
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	
+  </head>
+
+  <body>
+
+   <header>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+     <a class="navbar-brand" href="../index.html"><img src="../images/stache.png"></a>
+     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+     </button>
+	  
+	 <div class="collapse navbar-collapse" id="navbarCollapse">
+      <ul class="navbar-nav mr-auto">
+	   <li class="nav-item "><a class="nav-link" href="../news/index.html">News</a></li>
+	   <li class="nav-item dropdown active">
+        <a class="nav-link dropdown-toggle" href="./index.html" data-toggle="dropdown" role="button" aria-expanded="false">Documentation <span class="caret"></span></a>
+        <div class="dropdown-menu" role="menu">
+         <a class="dropdown-item active" href="./index.html">Instructions</a>
+         <a class="dropdown-item " href="../param/index.html">Parameters</a>
+         <a class="dropdown-item " href="../notes.html">Release Notes</a>
+	     <div class="dropdown-divider"></div>
+	     <a class="dropdown-item " href="../cite.html">Citing & Publications</a>
+        </div>
+	   </li>
+       <li class="nav-item "><a class="nav-link" href="../download.html">Download</a></li>
+	   <li class="nav-item "><a class="nav-link" href="../source.html">Source</a></li>
+	   <li class="nav-item "><a class="nav-link" href="/">Contact</a></li>
+	   <li class="nav-item"><a href="https://isbscience.org/" target="_blank"><img src="../images/ISB-Symbol.png" width="40"></a></li>
+      </ul>
+     </div>
+	 
+    </nav>
+   </header>
+  
+<main role="main">
+
+<div class="container padded">
+ <div class="row">
+  <div class="col-md-9">
+   <h2 id="percolator-results">Percolator Results</h2>
+
+<p>Output from Percolator is in tab-delimited ASCII text. The results can be viewed in spreadsheet software.
+Standard output contains PSMs unique by peptide sequence (including modifications) and all redundancies are
+removed (e.g. alternative charge states are not represented). It is possible to alter the contents and
+representation of the results via command line options when running Percolator; however, these alternatives
+are beyond the scope of this documentation. Below are descriptions for the Percolator output.</p>
+
+<hr />
+
+<h4 id="validated-psm-information">Validated PSM Information</h4>
+
+<table class="table table-bordered table-magnum">
+<thead>
+<tr>
+<th class="success">Result</th>
+<th class="success">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PSMId</td>
+<td>Unique identifier that contains tracking information (input file name, scan number, retention time) to 
+cross-reference the Percolator result with the original Kojak result.</td>
+</tr>
+<tr>
+<td>score</td>
+<td>A Percolator-specific score representation of the PSM. This value has no relation to the Kojak score.</td>
+</tr>
+<tr>
+<td>q-value</td>
+<td>The value that is used to determine a false discovery rate threshold. For example, a 1% FDR threshold
+would accept all PSMs with a q-value of 0.01 or less.</td>
+</tr>
+<tr>
+<td>posterior_error_prob</td>
+<td>This value is the probability that the PSM is a false positive. Lower numbers are better.</td>
+</tr>
+<tr>
+<td>peptide</td>
+<td>The unique PSM sequence. Cross-linked peptides are separated with a double dash, '--'. The sites of linkage
+are represented in parentheses after each peptide. For loop-links, both sites are represented with a single
+set of parentheses. Modification masses (other than the cross-linker) are represented inside square brackets, '[]',
+after the amino acid that contains them. Modifications include mono-linked representations of the chemical
+cross-linker.</td>
+<tr>
+<td>proteinIds</td>
+<td>All proteins represented by the peptide(s) in the previous field are tab-delimited for the remainder of the
+line. The order of the proteins is alphabetic, and thus does not reflect the order of the peptides represented
+in cross-links.</td>
+</tr>
+</tr>
+</tbody>
+</table>
+
+<hr />
+
+<h4 id="additional-information">Additional Information</h4>
+
+<p>Percolator represents proteins in alphabetical order. Thus, the proteins are not listed in the same order as the
+peptides in a cross-link. The proper peptide-protein associations can be cross-referenced in the Kojak results.</p>
+
+<p>If decoy labels appear in the Percolator results it is either because the peptide sequence is shared between
+target and decoy protein sequences, or the decoy_filter label was not set properly during Kojak analysis.</p>
+
+   </div>
+   <div class="col-md-3">
+    <nav class="nav flex-column sidebar-module sidebar-module-inset">
+     <h5 class="sidebar-header">Basics</h5>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/index.html">Overview</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 
+	 <h5 class="sidebar-header">Explore in Detail</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/installation.html">Installation</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/config.html">Configuration</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/running.html">Running Magnum</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/validation.html">Validating PSMs</a>
+     
+	 <h5 class="sidebar-header">Tutorials</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/percresults.html">Using Percolator</a>
+     
+    </nav>
+   </div>
+  </div>
+ </div>
+</div>
+
+    
+ </main>
+
+	<footer class="footer fixed-bottom">
+	 <div class="container">
+      <p class="float-right"><a href="#">Back to top</a></p>
+      <p>&copy; 2021 <a class="text-muted2" target="new" href="https://isbscience.org">ISB</a></p>
+	 </div>
+    </footer>
+	
+	<!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="../js/bootstrap.min.js"></script>
+
+  </body>
+</html>

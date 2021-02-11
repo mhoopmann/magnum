@@ -1,0 +1,336 @@
+/* Globals */
+@import url("https://fonts.googleapis.com/css?family=Roboto:400,500,700");
+html {
+ font-family: sans-serif;
+ position: relative;
+ min-height: 100%;
+} 
+body {
+ font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+ padding-top: 3.5rem;
+ margin-bottom: 24px;
+ background-color: #222;
+ color:#fff
+}
+a{
+ color:#e74c3c;
+ text-decoration:none
+}
+a:hover,a:focus{
+ color:#e12e1c;
+ text-decoration:underline
+}
+
+/* Buttons */
+.btn-primary {
+  color: #fff;
+  background-color: #c80000;
+  border-color: #c80000;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: #7b7971;
+  border-color: #74726b;
+}
+
+.btn-primary:focus, .btn-primary.focus {
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(81, 117, 154, 0.5);
+          box-shadow: 0 0 0 0.2rem rgba(81, 117, 154, 0.5);
+}
+
+.btn-primary.disabled, .btn-primary:disabled {
+  color: #fff;
+  background-color: #c80000;
+  border-color: ##c80000;
+}
+
+.btn-primary:not(:disabled):not(.disabled):active, .btn-primary:not(:disabled):not(.disabled).active,.show > .btn-primary.dropdown-toggle {
+  color: #fff;
+  background-color: #244463;
+  border-color: #213d59;
+}
+
+.btn-primary:not(:disabled):not(.disabled):active:focus, .btn-primary:not(:disabled):not(.disabled).active:focus,.show > .btn-primary.dropdown-toggle:focus {
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(81, 117, 154, 0.5);
+          box-shadow: 0 0 0 0.2rem rgba(81, 117, 154, 0.5);
+}
+
+.btn-secondary {
+  color: #fff;
+  background-color: #8E8C84;
+  border-color: #8E8C84;
+}
+
+.btn-secondary:hover {
+  color: #fff;
+  background-color: #7b7971;
+  border-color: #74726b;
+}
+
+.btn-secondary:focus, .btn-secondary.focus {
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(159, 157, 150, 0.5);
+          box-shadow: 0 0 0 0.2rem rgba(159, 157, 150, 0.5);
+}
+
+.btn-secondary.disabled, .btn-secondary:disabled {
+  color: #fff;
+  background-color: #8E8C84;
+  border-color: #8E8C84;
+}
+
+.btn-secondary:not(:disabled):not(.disabled):active, .btn-secondary:not(:disabled):not(.disabled).active,.show > .btn-secondary.dropdown-toggle {
+  color: #fff;
+  background-color: #74726b;
+  border-color: #6e6c65;
+}
+
+.btn-secondary:not(:disabled):not(.disabled):active:focus, .btn-secondary:not(:disabled):not(.disabled).active:focus,.show > .btn-secondary.dropdown-toggle:focus {
+  -webkit-box-shadow: 0 0 0 0.2rem rgba(159, 157, 150, 0.5);
+          box-shadow: 0 0 0 0.2rem rgba(159, 157, 150, 0.5);
+}
+
+/*Jumbotron extras*/
+.jumbotron-magnum {
+ background-image: url(../images/crypto.png);
+ background-position: 115% 0%;
+ background-repeat: no-repeat;
+ background-size:625px;
+ background-color: #1D1D1D;
+ min-height:550px;
+ padding:100px 0;
+}
+
+.jumbotron-ISB {
+ background-color:#002664;
+ color:#ffffff;
+ margin:0px;
+}
+
+.magnum-title{
+ font-family: 'Racing Sans One', cursive;
+ font-size: 6.0rem;
+ font-weight: 100;
+ line-height: 1.2;
+}
+
+hr {
+  border-top: 1px solid #c80000;
+}
+
+/* Featurettes */
+.featurette-divider {
+  margin: 5rem 0; /* Space out the Bootstrap <hr> more */
+  border-top: 1px solid #c80000;
+}
+
+.featurette-heading {
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -.05rem;
+}
+
+/* Mini-Featurettes */
+.mini-featurette .col-lg-4 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.mini-featurette h2 {
+  font-weight: 400;
+}
+.mini-featurette .col-lg-4 p {
+  margin-right: .75rem;
+  margin-left: .75rem;
+}
+
+/* Sidebar modules for boxing content */
+.sidebar-module {
+  padding: 15px;
+  margin: 0 -15px 15px;
+}
+.sidebar-module-inset {
+  padding: 15px;
+  background-color: #444444;
+  border-radius: 4px;
+}
+.sidebar-module-inset p:last-child,
+.sidebar-module-inset ul:last-child,
+.sidebar-module-inset ol:last-child {
+  margin-bottom: 0;
+}
+.sidebar-link {
+ margin: 0px;
+ padding: 0px;
+ color:#e74c3c;
+}
+.sidebar-link:hover,.sidebar-link:focus {
+ color:#e12e1c;
+ text-decoration:underline;
+}
+.sidebar-header{
+ padding:0px;
+ margin:0px;
+ margin-top:10px;
+}
+
+/* Source page links*/
+.inner {
+  width: 620px;
+  margin: 0 auto;
+}
+
+a.button {
+  display: block;
+  float: left;
+  width: 197px;
+  padding: 12px 8px 12px 8px;
+  margin-right: 14px;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 25px;
+  color: #303030;
+  text-decoration: none;
+  background: #fdfdfd; /* Old browsers */
+  background: -moz-linear-gradient(top,  #fdfdfd 0%, #f2f2f2 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fdfdfd), color-stop(100%,#f2f2f2)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top,  #fdfdfd 0%,#f2f2f2 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top,  #fdfdfd 0%,#f2f2f2 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top,  #fdfdfd 0%,#f2f2f2 100%); /* IE10+ */
+  background: linear-gradient(top,  #fdfdfd 0%,#f2f2f2 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fdfdfd', endColorstr='#f2f2f2',GradientType=0 ); /* IE6-9 */
+  border-top: solid 1px #cbcbcb;
+  border-right: solid 1px #b7b7b7;
+  border-bottom: solid 1px #b3b3b3;
+  border-left: solid 1px #b7b7b7;
+  border-radius: 30px;
+  -webkit-box-shadow: 10px 10px 5px #888;
+  -moz-box-shadow: 10px 10px 5px #888;
+  box-shadow: 0px 1px 5px #e8e8e8;
+  -moz-border-radius: 30px;
+  -webkit-border-radius: 30px;
+}
+a.button:hover {
+  text-decoration: none;
+  background: #fafafa; /* Old browsers */
+  background: -moz-linear-gradient(top,  #fdfdfd 0%, #f6f6f6 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fdfdfd), color-stop(100%,#f6f6f6)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top,  #fdfdfd 0%,#f6f6f6 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top,  #fdfdfd 0%,#f6f6f6 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top,  #fdfdfd 0%,#f6f6f6 100%); /* IE10+ */
+  background: linear-gradient(top,  #fdfdfd 0%,#f6f6f6, 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fdfdfd', endColorstr='#f6f6f6',GradientType=0 ); /* IE6-9 */
+  border-top: solid 1px #b7b7b7;
+  border-right: solid 1px #b3b3b3;
+  border-bottom: solid 1px #b3b3b3;
+  border-left: solid 1px #b3b3b3;
+}
+
+a.button span {
+  display: block;
+  height: 23px;
+  padding-left: 50px;
+}
+
+#downloads {
+  margin-bottom: 40px;
+  margin-top: 30px;
+}
+
+#download-zip span {
+  background: transparent url(../images/zip-icon.png) 12px 50% no-repeat;
+}
+#download-tar-gz span {
+  background: transparent url(../images/tar-gz-icon.png) 12px 50% no-repeat;
+}
+#view-on-github span {
+  background: transparent url(../images/octocat-icon.png) 12px 50% no-repeat;
+}
+#view-on-github {
+  margin-right: 0;
+}
+
+.clearfix {display: inline-block;}
+* html .clearfix {height: 1%;}
+.clearfix {display: block;}
+
+/* Code blocks */
+pre{
+ display:block;
+ padding:9.5px;
+ margin:0 0 10px;
+ font-size:13px;
+ line-height:1.42857143;
+ word-break:break-all;
+ word-wrap:break-word;
+ color:#8e8c84;
+ background-color:#f5f5f5;
+ border:1px solid #cccccc;
+ border-radius:4px
+}
+	
+pre code{
+ padding:0;
+ font-size:inherit;
+ color:inherit;
+ white-space:pre-wrap;
+ background-color:transparent;
+ border-radius:0
+}
+
+/* Colors */
+.bg-primary {
+  background-color: #222222 !important;
+}
+
+a.bg-primary:hover, a.bg-primary:focus,
+button.bg-primary:hover,
+button.bg-primary:focus {
+  background-color: #244463 !important;
+}
+
+.bg-dark {
+  background-color: #c80000 !important;
+}
+
+a.bg-dark:hover, a.bg-dark:focus,
+button.bg-dark:hover,
+button.bg-dark:focus {
+  background-color: #242422 !important;
+}
+
+/* Other */
+.footer {
+ width: 100%;
+ height: 24px;
+ background-color: #3e3f3a;
+ color:#ffffff;
+ margin:0px;
+}
+
+.padded{
+ padding-top: 1rem;
+}
+
+.table-magnum{
+ color:#fff;
+}
+
+/* RESPONSIVE CSS */
+
+@media (min-width: 40em) {
+  .featurette-heading {
+    font-size: 50px;
+  }
+}
+
+@media (min-width: 62em) {
+  .featurette-heading {
+    margin-top: 5rem;
+  }
+}
+
+/* ISB colors */
+.ISB-midnight {
+ background-color:#002664;
+ color:#ffffff;
+}

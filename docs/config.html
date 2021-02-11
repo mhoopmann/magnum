@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Kojak Configuration</title>
+    <meta name="description" content="Kojak Description">
+
+    <!-- Bootstrap core CSS -->
+	<link href="../css/bootstrap.min.css" rel="stylesheet">
+	
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Lato" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="../css/magnum.css" rel="stylesheet">
+	<link href="../css/pygments.css" rel="stylesheet">
+	
+	<!--
+	<link href="../css/font-awesome.min.css" rel="stylesheet">
+	-->
+	
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+			
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-54512021-2', 'auto');
+	  ga('send', 'pageview');
+
+	</script>
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	
+  </head>
+
+  <body>
+
+   <header>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+     <a class="navbar-brand" href="../index.html"><img src="../images/stache.png"></a>
+     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+     </button>
+	  
+	 <div class="collapse navbar-collapse" id="navbarCollapse">
+      <ul class="navbar-nav mr-auto">
+	   <li class="nav-item "><a class="nav-link" href="../news/index.html">News</a></li>
+	   <li class="nav-item dropdown active">
+        <a class="nav-link dropdown-toggle" href="./index.html" data-toggle="dropdown" role="button" aria-expanded="false">Documentation <span class="caret"></span></a>
+        <div class="dropdown-menu" role="menu">
+         <a class="dropdown-item active" href="./index.html">Instructions</a>
+         <a class="dropdown-item " href="../param/index.html">Parameters</a>
+         <a class="dropdown-item " href="../notes.html">Release Notes</a>
+	     <div class="dropdown-divider"></div>
+	     <a class="dropdown-item " href="../cite.html">Citing & Publications</a>
+        </div>
+	   </li>
+       <li class="nav-item "><a class="nav-link" href="../download.html">Download</a></li>
+	   <li class="nav-item "><a class="nav-link" href="../source.html">Source</a></li>
+	   <li class="nav-item "><a class="nav-link" href="/">Contact</a></li>
+	   <li class="nav-item"><a href="https://isbscience.org/" target="_blank"><img src="../images/ISB-Symbol.png" width="40"></a></li>
+      </ul>
+     </div>
+	 
+    </nav>
+   </header>
+  
+<main role="main">
+
+<div class="container padded">
+ <div class="row">
+  <div class="col-md-9">
+   <h2 id="configuring-kojak">Configuring Kojak</h2>
+
+<p>Due to the large number of parameters used in any Kojak analysis, all parameters are set in a configuration file
+rather than typed out on the command line. A sample configuration file is provided with Kojak, and can also be
+copied from <a href="../docs/sample.html">this example</a>.</p>
+
+<p>Changing parameters should be done from any ASCII text editor, such as <code class="highlighter-rouge">vim</code> in Linux, or <code class="highlighter-rouge">notepad</code> in Windows.
+For ease of reading, parameter names use english words instead of single letters. Notes are defined as any
+text that appears after the <code class="highlighter-rouge">#</code> symbol on each line. Notes are not processed as parameters and are there to
+provide helpful information to users. Feel free to add additional notes as needed for your analysis.</p>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">Make a different configuration file for each analysis you wish to perform. Simply copy an existing configuration
+file, then give it a unique name and adjust the parameters. Thus, you preserve the unique parameter settings
+for each of your analyses.</p>
+</div>
+
+<p>For clarity, the parameters have been divided into six groups by similarity. This page will describe the most
+important parameters within those groups. A complete list of all parameters and their descriptions can be found
+on the <a href="../param/index.html">Parameters</a> page.</p>
+
+<hr />
+
+<h4 id="1-data-io">1. Data I/O</h4>
+
+<p>The Data I/O parameters describe files that will be imported and exported from Kojak during analysis. There are two key
+files for input: your MS data file and a protein sequence database:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>database = polymerase_proteins.fasta
+MS_data_file = my_data.mzML
+</code></pre></div></div>
+
+<p>There are two points worth mentioning in the above example. First, the protein sequence database is an ASCII text
+file of the <code class="highlighter-rouge">FASTA</code> format. It should contain both target proteins (sequences you hope to find) and decoy proteins
+(sequences you know are false). Second, the mass spectrometry data file must be in an approved format. On all systems,
+those formats are <code class="highlighter-rouge">mzML</code> (recommended) and <code class="highlighter-rouge">mzXML</code>. Additionally, <code class="highlighter-rouge">Thermo RAW</code> files may be used on Windows systems
+if the appropriate <a href="http://sjsupport.thermofinnigan.com/public/detail.asp?id=703" target="new">drivers</a> have 
+been installed.</p>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">FASTA sequence database files should contain both target and decoy sequences if you wish to use
+Percolator for results validation. Below is an example of what a target protein sequence and its matching decoy
+sequence might look like:</p>
+<pre>&gt;Protein_1
+MTHISISMYPRTEINSEKWENCE
+&gt;Decoy_1_reverse
+ECNEWKESNIETRPYMSISIHTM</pre>	
+</div>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">Kojak looks for files in the current working directory, i.e. the directory you are in. You can provide relative
+paths to parent- and sub-directories if desired. To ensure input and output is directed from and to a specific location
+no matter which directory you are in, provide an absolute path with your files:</p>
+<pre>database = C:\databases\e_coli.fasta</pre>	
+</div>
+
+<p>The remaining parameters in this group define exported content after Kojak analysis is complete. All output is in tab-delimited
+ASCII text files. The standard output file contains a complete summary of the results in a single file:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>output_file = my_results.txt
+</code></pre></div></div>
+
+<p>The Percolator parameters return the same results, but formatted such that they can be directly imported to Percolator for
+validation of the peptide spectrum matches (PSMs):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>percolator_file = my_results_perc_format
+percolator_version = 2.07
+</code></pre></div></div>
+
+<p>For the <code class="highlighter-rouge">percolator_file</code> parameter, no extension is necessary. The parameter requires only a base name because Kojak will
+automatically divide the Percolator-formatted results into multiple files according to PSM type (e.g. intra-protein cross-links)
+and append a <code class="highlighter-rouge">txt</code> extension. The <code class="highlighter-rouge">percolator_version</code> number should match the version of Percolator you will be using, as input
+formats differ between Percolator versions. Kojak will automatically format the results to match the version you specify.</p>
+
+<hr />
+
+<h4 id="2-data-descriptors">2. Data Descriptors</h4>
+
+<p>The Data Descriptor parameters describe the spectra to be analyzed. Accurate description of the spectra ensures the
+correct spectrum processing is performed during the Kojak analysis.</p>
+
+<p>During Kojak analysis, all profile MS peaks must be converted to centroid MS peaks. Kojak has built-in functionality to
+perform this operation, but requires additional information about the instrument used and the resolution settings.
+Correctly setting these values will produce the most accurate centroid peak conversion. First, identify whether or not
+the spectra are centroided at the MS and MS/MS levels:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MS1_centroid = 0
+MS2_centroid = 1
+</code></pre></div></div>
+
+<p>In the above example, 0 indicates profile peaks and 1 indicates centroid peaks. The parameters thus tell Kojak
+that the MS spectra are profile, and the MS/MS spectra are centroid. As a result, only the MS peaks will be converted
+to centroid values during the analysis. However, Kojak will need additional information about the peaks, such as
+what instrument they were acquired on, and at what resolution:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>instrument = 0
+MS1_resolution = 55000
+</code></pre></div></div>
+
+<p>Here, the 0 for <code class="highlighter-rouge">instrument</code> indicates an orbitrap mass analyzer. The resolution is approximated at 400 m/z, which
+may differ from m/z value the manufacturer reports. Make sure you report the resolution at 400 m/z. <code class="highlighter-rouge">MS2_resolution</code>
+is not used in this example, because we set <code class="highlighter-rouge">MS2_centroid = 1</code>, and thus any value for that parameter is ignored
+during analysis.</p>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">Don't want to worry about setting the correct parameters to convert profile peaks to centroid? Simply give
+Kojak a data file where all the peaks are already centroided. With the right tool, such as <i>msconvert</i> from
+<a href="http://proteowizard.sourceforge.net/" class="alert-link" target="new">ProteoWizard</a>, you can do this 
+when converting your raw data to an mzML file.</p>
+</div>
+
+<p>The <code class="highlighter-rouge">enrichment</code> parameter is always set to 0, unless you performed peptide c-terminus labeling during the enzymatic
+digestion step of your sample prep. Details of how and when to use this parameter are found on the 
+<a href="../param/index.html">Parameters</a> page.</p>
+
+<hr />
+
+<h4 id="3-cross-links">3. Cross-links</h4>
+
+<p>Although there are only two parameters in this category, they have special syntax that allow for analysis of data
+cross-linked with a large, diverse set of chemicals.</p>
+
+<p>Chemical cross-linkers are assumed to be bifunctional. This means that they have two reactive groups that may bind
+to the same (homobifunctional) or different (heterobifunctional) moieties. Cross-linkers also have different spacer arm
+compositions that influence their mass. As an example, here is the parameter you would set if you used either DSS
+(or BS3) as your cross-linker:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742
+</code></pre></div></div>
+
+<p>There are three values for the parameter. The first two values indicate the reaction targets on both ends of the
+cross-linker. DSS is homobifunctional and specifically targets primary amines (lysine residues or the n-terminus).
+Thus, the first two values are both 1, which is the <a href="../param/cross_link.html">chemical code</a> for primary amines.
+The third value is the amount of additional mass the spacer arm adds to the mass of two cross-linked peptides.</p>
+
+<p>It is also common for cross-linkers to produce partial linkages. These occur when one side of the cross-linker
+binds to a protein, but the other side becomes inert through hydrolysis. The resulting peptide remains unlinked,
+but with a differential modification equal to the hydrolyzed cross-linker at the target moiety:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mono_link = 1 156.0786
+</code></pre></div></div>
+
+<p>Similar to the <code class="highlighter-rouge">cross_link</code> parameter, the <code class="highlighter-rouge">mono_link</code> parameter requires a reaction target, albeit only one. The
+differential mass is different as well, to reflect the different atomic composition of the incompletely linked
+spacer arm.</p>
+
+<p>Often, you will use both the <code class="highlighter-rouge">cross_link</code> and <code class="highlighter-rouge">mono_link</code> parameters in the same configuration file. However,
+some cross-linkers may not produce partial links, and thus the <code class="highlighter-rouge">mono_link</code> lines can be deleted or commented out
+using the note <code class="highlighter-rouge">#</code> character. Also, as is the case for zero-length cross-linkers, the differential mass may be
+negative if there is no corresponding spacer arm and instead the target residues are linked in a hydrolysis reaction.</p>
+
+<p>It is also possible to add multiple <code class="highlighter-rouge">cross_link</code> and <code class="highlighter-rouge">mono_link</code> parameter lines to a configuration file if you
+used more than one cross-linker in your sample preparation, or there is more than one outcome for the reactions.
+For example, if you used a light-heavy labeled combination of BS3, your parameters may look like this:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742  #normal BS3
+cross_link = 1 1 150.143404  #heavy isotope-labeled BS3
+mono_link = 1 156.0786       #normal
+mono_link = 1 168.15393      #heavy
+</code></pre></div></div>
+
+<p>Or perhaps you used two cross-linkers of different chemistries. Your parameters may look like this:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742  #DSS
+cross_link = 1 2 -18.010595  #EDC
+mono_link = 1 156.0786       #DSS half-reaction
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="4-modifications">4. Modifications</h4>
+
+<p>The Modifications parameters refer to amino acid modifications that are independent of the cross-linking reactions.
+These occur naturally (e.g. post-translational modifications) or as a result of sample preparation 
+(e.g. carbamidomethylcysteine):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fixed_modification = C 57.02146
+modification = M 15.9949
+max_mods_per_peptide = 2
+</code></pre></div></div>
+
+<p>The <code class="highlighter-rouge">fixed_modification</code> and <code class="highlighter-rouge">modification</code> parameters each require two values: a target and a mass. The
+<code class="highlighter-rouge">fixed_modification</code> parameter specifies a static mass that is added to the normal mass of the indicated peptide. The
+<code class="highlighter-rouge">modification</code> parameter specifies a mass that may or may not be on the peptide. Because each <code class="highlighter-rouge">modification</code> exponentially
+increases search time, you can limit the number of differential <code class="highlighter-rouge">modifications</code> to a practical number. You can also
+specify multiple <code class="highlighter-rouge">fixed_modification</code> and <code class="highlighter-rouge">modification</code> parameter lines to indication multiple different mass modifications
+you expect to find in your analysis.</p>
+
+<div class="alert alert-info">
+<h4>Helpful Hint</h4>
+<p class="hint">You can specify multiple differential modifications for the same amino acid. Place each modification on a separate
+line, but indicate the same amino acid with a different mass.</p>
+</div>
+
+<hr />
+
+<h4 id="5-scoring-algorithm">5. Scoring Algorithm</h4>
+
+<p>The Scoring Algorithm parameters describe the tolerances applied to the scoring algorithm for analyzing MS/MS spectra
+of different resolutions and mass accuracy. High-resolution MS/MS have a really small mass tolerance and no mass offset.
+Below is an example of values appropriate for high-resolution (e.g. orbitrap) MS/MS spectra:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fragment_bin_size = 0.03
+fragment_bin_offset = 0.0
+</code></pre></div></div>
+
+<p>Low-resolution (e.g. ion trap) MS/MS spectra need a much wider mass tolerance, and an offset to make sure the peak values
+are most likely to fall within the center of the mass tolerance. For low-resolution MS/MS spectra, the following
+parameter values are recommended:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fragment_bin_size = 1.0005
+fragment_bin_offset = 0.4
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="6-analysis">6. Analysis</h4>
+
+<p>The Analysis parameters are the largest set of parameters, but are easy to understand and use. Not all parameters are
+listed in these examples. You can find the complete list on the <a href="../param/index.html">Parameters</a> page.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>enzyme = [KR]|{P}
+max_miscleavages = 2
+</code></pre></div></div>
+
+<p>The above two parameters indicate the trypsin enzyme cleavage rule and the number of missed cleavages allowed. The missed
+cleavages include those caused by cross-linkers binding to the enzyme target residues.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>min_peptide_mass = 500.0
+max_peptide_mass = 6000.0
+</code></pre></div></div>
+
+<p>The peptide mass boundaries shown above are important to understand, but once set, you probably will use the same values
+for all Kojak analyses. These parameters determine the smallest and largest peptides to be searched, by mass in Daltons,
+not by number of amino acids. Setting a low <code class="highlighter-rouge">min_peptide_mass</code> will allow you to search for cross-links to small peptides,
+for example, peptides with just three amino acids. Although links to small peptides do happen, they are not likely to be 
+seen after validation because there would be very few fragment ion peaks to contribute to the score of the PSM. Thus, a 
+more practical value such as 500.0 Daltons is recommended. For <code class="highlighter-rouge">max_peptide_mass</code>, consider that cross-linkers binding 
+to enzymatic cleavage sites will produce a larger number of long peptides. As a result, it might make sense to use a 
+large value, such as 6000.0 Daltons, for a Kojak analysis, although such a number might be considered excessive in a 
+typical shotgun database search.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ppm_tolerance_pre = 25.0
+prefer_precursor_pred = 1
+</code></pre></div></div>
+
+<p>These two parameters help define the search space for each spectrum. <code class="highlighter-rouge">ppm_tolerance_pre</code> defines the tolerance around
+the precursor mass, in parts per million, that a PSM is allowed to have to be accepted. Setting a value similar to your
+instrument mass accuracy is recommended, but there are various reasons to use much larger or smaller values that are
+outside the scope of this manual. Sometimes, such as with <code class="highlighter-rouge">Thermo RAW</code> data, a suggested monoisotopic precursor mass
+is provided for a spectrum. It is often helpful to use this value, which is indicated by setting <code class="highlighter-rouge">prefer_precursor_pred</code>
+to 1. If you set the value to 0, then Kojak will compute new monoisotopic precursor masses for the spectra. Regardless
+of this parameter setting, if no precursor monoisotopic masses were previously assigned to the spectra, Kronik will compute
+them.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>spectrum_processing = 1
+max_spectrum_peaks = 0
+</code></pre></div></div>
+
+<p>The two parameters above determine if and how MS/MS spectra are processed. <code class="highlighter-rouge">spectrum_processing</code> can be turned off by
+setting the value to 0. As <code class="highlighter-rouge">spectrum_processing</code> is only intended for high-resolution MS/MS, it should be turned off
+for low-resolution MS/MS data. Processing the spectra involves collapsing isotope distributions to the monoisotopic
+peak to facilitate better scoring algorithm performance. Additionally, you can remove presumed noise peaks by limiting
+the number of peaks to analyze after collapsing using the <code class="highlighter-rouge">max_spectrum_peaks</code> parameter. For example, setting this
+parameter to 200 will limit the analysis to only the tallest 200 peaks in the spectrum. Setting the value to 0 will
+cause analysis using all peaks in the spectrum.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>decoy_filter = DECOY
+</code></pre></div></div>
+
+<p>This last parameter is critical for downstream validation using Percolator. It defines a case-sensitive word that is
+found only in the labels of your decoy database sequences. The decoy word can be any that you prefer, but make sure
+it does not appear in the labels of your target sequences, or they will incorrectly be assigned as decoys.</p>
+
+   </div>
+   <div class="col-md-3">
+    <nav class="nav flex-column sidebar-module sidebar-module-inset">
+     <h5 class="sidebar-header">Basics</h5>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/index.html">Overview</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
+	 
+	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 
+	 <h5 class="sidebar-header">Explore in Detail</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/installation.html">Installation</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/config.html">Configuration</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/running.html">Running Magnum</a>
+     
+     <a class="nav-link sidebar-link" href="../docs/validation.html">Validating PSMs</a>
+     
+	 <h5 class="sidebar-header">Tutorials</h5>
+     
+     <a class="nav-link sidebar-link" href="../docs/percresults.html">Using Percolator</a>
+     
+    </nav>
+   </div>
+  </div>
+ </div>
+</div>
+
+    
+ </main>
+
+	<footer class="footer fixed-bottom">
+	 <div class="container">
+      <p class="float-right"><a href="#">Back to top</a></p>
+      <p>&copy; 2021 <a class="text-muted2" target="new" href="https://isbscience.org">ISB</a></p>
+	 </div>
+    </footer>
+	
+	<!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="../js/bootstrap.min.js"></script>
+
+  </body>
+</html>

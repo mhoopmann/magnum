@@ -5,7 +5,7 @@
 #include "MParams.h"
 
 #define VERSION "1.0.0 alpha 1"
-#define BDATE "February 11 2021"
+#define BDATE "March 1 2021"
 
 class MagnumManager {
 public:

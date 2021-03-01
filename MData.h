@@ -19,11 +19,13 @@ limitations under the License.
 
 #include "MDB.h"
 #include "MIons.h"
+#include "MLog.h"
 #include "MParams.h"
 #include "MPrecursor.h"
 #include "MSpectrum.h"
 #include "MSReader.h"
 #include "pepXMLWriter.h"
+#include "NeoPepXMLParser.h"
 #include <iostream>
 #include "CometDecoys.h"
 #include "Threading.h"
@@ -52,19 +54,30 @@ public:
   MSpectrum& at(const int& i);
   MSpectrum* getSpectrum(const int& i);
 
+  void      condenseResults   (vector<mScoreCard2>& v);
+  bool      createDiag        (FILE*& f);
+  NeoPepXMLParser* createPepXML(string& str, MDatabase& db);
+  bool      createPercolator  (FILE*& f);
+  bool      createTXT         (FILE*& f);
   void      diagSinglet       ();
+  void      exportPepXML      (NeoPepXMLParser*& p, vector<mResults>& r);
+  void      exportPercolator  (FILE*& f, vector<mResults>& r);
+  void      exportTXT         (FILE*& f, vector<mResults>& r);
   bool      getBoundaries     (double mass1, double mass2, vector<int>& index, bool* buffer);
   bool      getBoundaries2    (double mass, double prec, vector<int>& index, bool* buffer);
   double    getMaxMass        ();
   double    getMinMass        ();
   bool      mapPrecursors     ();
   void      outputDiagnostics (FILE* f, MSpectrum& s, MDatabase& db);
-  int       outputPepXML      (PXWSpectrumQuery& sq, MDatabase& db, kResults& r);
-  void      outputPepXML2     (PXWSpectrumQuery& sq, int shIndex, kResults& r);
   bool      outputPercolator  (FILE* f, MDatabase& db, kResults& r, int count);
+  bool      outputResults     (MDatabase& db);
   bool      outputResults     (MDatabase& db, MParams& par);
+  void      processPSM        (MSpectrum& s, mScoreCard3& sc, mResults& r);
+  void      processSpectrumInfo (MSpectrum& s, mResults& r);
   bool      readSpectra       ();
-  void      setAdductSites    (char* s);
+  void      setAdductSites    (std::string s);
+  void      setLog            (MLog* c);
+  void      setParams         (MParams* p);
   void      setVersion        (const char* v);
   int       size              ();
   void      xCorr             ();
@@ -79,7 +92,10 @@ private:
   vector<MSpectrum>  spec;
   vector<mMass>      massList;
   mParams*           params;
+  MParams*           parObj;
   MIons              aa;
+  MLog*              mlog;
+  int                pepXMLindex;
 
   bool adductSite[128];
 

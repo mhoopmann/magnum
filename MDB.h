@@ -22,6 +22,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "MLog.h"
 #include "MStructs.h"
 
 using namespace std;
@@ -32,12 +33,13 @@ public:
 
   //Constructors & Destructors
   MDatabase();
+  ~MDatabase();
 
   //Operators
   mDB& operator[ ](const int& i);
 
   //User Functions
-  bool  buildDB       (char* fname);                     //Reads FASTA file and populates vDB
+  bool  buildDB       (const char* fname);                     //Reads FASTA file and populates vDB
   bool  buildPeptides (double min, double max, int mis, int minP, int maxP); //Make peptide list within mass boundaries and miscleavages.
 
   //Accessors & Modifiers
@@ -55,10 +57,12 @@ public:
   mDB&                getProtein          (int index);
   int                 getProteinDBSize    ();
   void                setAAMass           (char aa, double mass);
-  bool                setEnzyme           (char* str);
+  bool                setEnzyme           (const char* str);
+  void                setLog              (MLog* c);
   void                setAdductSites      (bool* arr);
 
   double minMass[100];
+  int adductPepCount;
 
 private:
   
@@ -73,6 +77,8 @@ private:
 
   vector<mDB>      vDB;    //Entire FASTA database stored in memory
   vector<mPeptide> vPep;   //List of all peptides
+
+  MLog* mlog;
 
   void addPeptide(int index, int start, int len, double mass, mPeptide& p, vector<mPeptide>& vP, bool bN, bool bC, char xlSites);
   bool checkAA(size_t i, size_t start, size_t n, size_t seqSize, bool& bN, bool& bC);

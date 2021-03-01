@@ -57,21 +57,10 @@ MTopPeps::~MTopPeps(){
     delete tmp;
   }
   peptideLast = NULL;
-
-  /*
-  if (singletList != NULL){
-    for (size_t j = 0; j<singletBins; j++){
-      if (singletList[j] != NULL) delete singletList[j];
-    }
-    delete[] singletList;
-  }
-  */
 }
 
 MTopPeps& MTopPeps::operator=(const MTopPeps& c){
   if(this!=&c){
-    size_t j;
-
     peptideCount = c.peptideCount;
     peptideMax = c.peptideMax;
     
@@ -96,31 +85,6 @@ MTopPeps& MTopPeps::operator=(const MTopPeps& c){
       }
       peptideLast = sc;
     }
-
-    /*
-    if (singletList != NULL){
-      for (j = 0; j<singletBins; j++){
-        if (singletList[j] != NULL) delete singletList[j];
-      }
-      delete[] singletList;
-    }
-    singletBins = c.singletBins;
-    if (singletBins == 0) singletList = NULL;
-    else {
-      singletList = new list<mSingletScoreCard*>*[singletBins];
-      for (size_t j = 0; j<singletBins; j++){
-        if (c.singletList[j] == NULL) singletList[j] = NULL;
-        else {
-          singletList[j] = new list<mSingletScoreCard*>;
-          list<mSingletScoreCard*>::iterator it = c.singletList[j]->begin();
-          while (it != c.singletList[j]->end()){
-            singletList[j]->emplace_back(*it);
-            it++;
-          }
-        }
-      }
-    }
-    */
   }
   return *this;
 }
@@ -129,25 +93,12 @@ void MTopPeps::checkPeptideScore(mScoreCard& s){
 
   mScoreCard* sc;
   mScoreCard* cur;
-  size_t ind;
 
   //If list is empty, add the score card
   if (peptideCount == 0){
     peptideFirst = new mScoreCard(s);
     peptideLast = peptideFirst;
     peptideCount++;
-
-    /*
-    //add to singlet list
-    ind = (int)(s.mass / 10);
-    cout << s.mass << "\t" << ind << endl;
-    if (singletList[ind] == NULL) {
-      cout << "need to make new list: " << ind << endl;
-      singletList[ind] = new list<mSingletScoreCard*>;
-    }
-    singletList[ind]->emplace_back(singletFirst);
-    cout << "emplaced" << endl;
-    */
     return;
   }
 
@@ -160,13 +111,6 @@ void MTopPeps::checkPeptideScore(mScoreCard& s){
     peptideLast->next->prev = peptideLast;
     peptideLast = peptideLast->next;
     peptideCount++;
-
-    /*
-    //add to singlet list
-    ind = (int)(s.mass / 10);
-    if (singletList[ind] == NULL) singletList[ind] = new list<mSingletScoreCard*>;
-    singletList[ind]->emplace_back(singletLast);
-    */
     return;
   }
 
@@ -176,33 +120,12 @@ void MTopPeps::checkPeptideScore(mScoreCard& s){
     peptideFirst->prev->next = peptideFirst;
     peptideFirst = peptideFirst->prev;
 
-    /*
-    //add to singlet list
-    ind = (int)(s.mass / 10);
-    if (singletList[ind] == NULL) singletList[ind] = new list<mSingletScoreCard*>;
-    singletList[ind]->emplace_back(singletFirst);
-    */
-
     if (peptideCount<peptideMax) {
       peptideCount++;
     } else {
       cur = peptideLast;
       peptideLast = peptideLast->prev;
       peptideLast->next = NULL;
-
-      /*
-      //delete expired singlet from list
-      ind = (int)(cur->mass / 10);
-      if (singletList[ind]->size() == 1) {
-        delete singletList[ind];
-        singletList[ind] = NULL;
-      } else {
-        list<mSingletScoreCard*>::iterator it = singletList[ind]->begin();
-        while (*it != cur) it++;
-        singletList[ind]->erase(it);
-      }
-      */
-
       delete cur;
     }
     return;
@@ -224,32 +147,12 @@ void MTopPeps::checkPeptideScore(mScoreCard& s){
   cur->prev = sc;
   if (sc->prev == NULL) peptideFirst = sc;
 
-  /*
-  //add to singlet list
-  ind = (int)(s.mass / 10);
-  if (singletList[ind] == NULL) singletList[ind] = new list<mSingletScoreCard*>;
-  singletList[ind]->emplace_back(sc);
-  */
-
   if (peptideCount<peptideMax) {
     peptideCount++;
   } else {
     cur = peptideLast;
     peptideLast = peptideLast->prev;
     peptideLast->next = NULL;
-
-    /*
-    //delete expired singlet from list
-    ind = (int)(cur->mass / 10);
-    if (singletList[ind]->size() == 1) {
-      delete singletList[ind];
-      singletList[ind] = NULL;
-    } else {
-      list<mSingletScoreCard*>::iterator it = singletList[ind]->begin();
-      while (*it != cur) it++;
-      singletList[ind]->erase(it);
-    }
-    */
     delete cur;
   }
 

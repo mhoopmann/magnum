@@ -124,6 +124,7 @@ public:
   double makeXCorrY(int decoyIndex, double modMass, int maxZ, int len, int offset=0);
   void  resetSingletList  ();
   void  shortResults(std::vector<mScoreCard2>& v);
+  void  shortResults2(std::vector<mScoreCard3>& v);
   void  sortMZ            ();
   void  xCorrScore        ();
 

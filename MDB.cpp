@@ -47,9 +47,14 @@ MDatabase::MDatabase(){
   fixMassPepN=0;
   fixMassProtC=0;
   fixMassProtN=0;
+  adductPepCount=0;
 
   for(int i=0;i<100;i++) minMass[i]=1e6;
 
+}
+
+MDatabase::~MDatabase(){
+  mlog = NULL;
 }
 
 //==============================
@@ -64,7 +69,7 @@ mDB& MDatabase::operator[ ](const int& i){
 //==============================
 
 //buildDB reads in a FASTA file and stores it in memory.
-bool  MDatabase::buildDB(char* fname) {
+bool  MDatabase::buildDB(const char* fname) {
   char    str[10240];
   char*   tok;
   FILE*   f;
@@ -86,27 +91,40 @@ bool  MDatabase::buildDB(char* fname) {
     if(str[0]=='>') {
       if(d.name.compare("NIL")!=0) {
         if(d.sequence.length()>65000){
-          cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
+          if (mlog != NULL) mlog->addDBWarning(d.name + " has a sequence that is too long. It will be skipped.");
+          else cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
         } else {
           vDB.push_back(d);
         }
       }
-      d.name=&str[1];
+      string st=&str[1];
+      size_t sp=st.find_first_of(' ');
+      d.name=st.substr(0,sp);
+      d.description=st.substr(sp+1,st.size());
       d.sequence="";
     } else {
       for(unsigned int i=0;i<strlen(str);i++){
         c=toupper(str[i]);
-        if(AA[c]==0) cout << "  WARNING: " << &d.name[0] << " has an unexpected amino acid character or errant white space: '" << c << "'" << endl;
+        if(AA[c]==0) {
+          if (mlog != NULL) mlog->addDBWarning(d.name + " has an unexpected amino acid character or errant white space: '" + c + "'");
+          else cout << "  WARNING: " << &d.name[0] << " has an unexpected amino acid character or errant white space: '" << c << "'" << endl;
+        }
         if(c==' ' || c=='\t') continue;
-        if (AA[c] == 0) cout << "  WARNING: Mass of '" << c << "' is currently set to 0. Consider revising with the aa_mass parameter." << endl;
+        if (AA[c] == 0) {
+          if (mlog != NULL) {
+            string tmpStr = "Mass of '";
+            mlog->addDBWarning(tmpStr + c + "' is currently set to 0. Consider revising with the aa_mass parameter.");
+          } else cout << "  WARNING: Mass of '" << c << "' is currently set to 0. Consider revising with the aa_mass parameter." << endl;
+        }
         d.sequence+=c;
       }
     }
   }
   fclose(f);
   if(d.sequence.length()>SIZE_MAX){
-    cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
-   } else {
+    if (mlog != NULL) mlog->addDBWarning(d.name + " has a sequence that is too long. It will be skipped.");
+    else cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
+  } else {
     vDB.push_back(d);
   }
 
@@ -308,6 +326,7 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
 
   cout << "  " << vPep.size() << " peptides to search (" << n << " with binding sites)." << endl;
   qsort(&vPep[0],vPep.size(),sizeof(mPeptide),compareMass);
+  adductPepCount=(int)n;
 
   //Reporting list
   //for (i = 0; i<vPep.size(); i++){
@@ -383,11 +402,15 @@ bool MDatabase::getPeptideSeq(int pepIndex, string& str){
   return true;
 }
 
+int MDatabase::getProteinDBSize(){
+  return (int)vDB.size();
+}
+
 void MDatabase::setAAMass(char aa, double mass){
   AA[aa] = mass;
 }
 
-bool MDatabase::setEnzyme(char* str){
+bool MDatabase::setEnzyme(const char* str){
   bool stateNTerm=false;
   int stateRule=0;
 
@@ -455,6 +478,10 @@ bool MDatabase::setEnzyme(char* str){
 
   return true;
 
+}
+
+void MDatabase::setLog(MLog* c){
+  mlog = c;
 }
 
 void MDatabase::setAdductSites(bool* arr){

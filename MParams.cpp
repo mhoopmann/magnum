@@ -1,5 +1,5 @@
 /*
-Copyright 2014, Michael R. Hoopmann, Institute for Systems Biology
+Copyright 2021, Michael R. Hoopmann, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ using namespace std;
 //  Constructors & Destructors
 //==============================
 MParams::MParams(){
+  log = NULL;
   params = NULL;
 }
 
@@ -30,30 +31,38 @@ MParams::MParams(mParams* p){
 }
 
 MParams::~MParams(){
+  log = NULL;
   params = NULL;
 }
 
 //==============================
 //  Public Functions
 //==============================
-bool MParams::parseConfig(char* fname){
+bool MParams::parseConfig(const char* fname){
   FILE* f;
   char str[512];
 
   if(params==NULL){
-    printf("kParams structure not set in KParams object. No parameters read.\n");
+    printf("mParams structure not set in MParams object. No parameters read.\n");
     return false;
   }
 
   f=fopen(fname,"rt");
   if(f==NULL){
-    printf("Cannot open config file!\n");
+    if (log != NULL) log->addError("Cannot open config file!");
+    else printf("Cannot open config file!\n");
     return false;
   }
 
   while(!feof(f)) {
     if(!fgets(str,512,f)) continue;
+    if (strlen(str) == 0) continue;
     if(str[0]=='#') continue;
+    if (strlen(str)>4096) {
+      if (log != NULL) log->addError("Parameter line too long!");
+      else printf("Parameter line too long!\n");
+      return false;
+    }
     parse(str);
   }
 
@@ -64,7 +73,7 @@ bool MParams::parseConfig(char* fname){
 //==============================
 //  Private Functions
 //==============================
-bool MParams::buildOutput(char* in, char* base, char* ext){
+bool MParams::buildOutput(string in, string base, string ext){
   char cwd[1024];
   char str[1024];
   char outPath[1024];
@@ -74,19 +83,26 @@ bool MParams::buildOutput(char* in, char* base, char* ext){
   FILE* f;
 
   //get current working directory and process input file
-  strcpy(params->msFile, in);
-  strcpy(params->ext, ext);
+  trimPath(base,tmp,params->msBase);
+  params->msFile=in;
+  params->ext=ext;
   getcwd(cwd, 1024);
-  processPath(cwd, in, str);
-  strcpy(params->inFile, str);
+  processPath(cwd, in.c_str(), str);
+  params->inFile=str;
+
+  //expand DB file to full path - only do this once
+  if(params->dbPath.empty()){
+    processPath(cwd,params->dbFile.c_str(),str);
+    params->dbPath=str;
+  }
   
   //process output file
   //if user did not specify output path, use cwd as full path for output
-  if (strlen(params->resPath)==0){
-    processPath(cwd, base, outPath);  
+  if (params->resPath.empty()){
+    processPath(cwd, base.c_str(), outPath);  
   } else {
     if(params->resPath[0]=='.'){
-      processPath(cwd, params->resPath, outPath);
+      processPath(cwd, params->resPath.c_str(), outPath);
       tmp = outPath;
     } else {
       tmp = params->resPath;
@@ -96,30 +112,60 @@ bool MParams::buildOutput(char* in, char* base, char* ext){
     if (i != string::npos) outFile = outFile.substr(i + 1);
     processPath(&tmp[0], &outFile[0], outPath);
   }
-  strcpy(params->outFile, outPath);
+  params->outFile=outPath;
 
-  /*
-  cout << "\nMS_data_file: " << params->msFile << endl;
-  cout << "results_path: " << params->resPath << endl;
-  cout << "input:        " << params->inFile << endl;
-  cout << "output:       " << params->outFile << endl;
-  */
+  //Create Magnum output file to test output paths
+  sprintf(str, "%s.magnum.txt", params->outFile.c_str());
+  f = fopen(str, "wt");
+  if (f == NULL) {
+    if (log != NULL) log->addError("\nERROR: cannot open " + string(str) + " for output. Please ensure path and write permissions are correct.");
+    else cout << "\nERROR: cannot open " << str << " for output. Please ensure path and write permissions are correct." << endl;
+    return false;
+  } else {
+    fclose(f);
+  }
+
+  //Create Magnum log file
+  sprintf(str, "%s.log", params->outFile.c_str());
+  f = fopen(str, "wt");
+  if (f == NULL) {
+    if (log != NULL) log->addError("\nERROR: cannot open " + string(str) + " to log Magnum. Please ensure path and write permissions are correct.");
+    else cout << "\nERROR: cannot open " << str << " to log Magnum. Please ensure path and write permissions are correct." << endl;
+    return false;
+  } else {
+    fclose(f);
+  }
+  logFile = str;
 
   return true;
 }
 
 bool MParams::checkMod(mMass m){
   unsigned int i;
-  for(i=0;i<params->mods->size();i++){
-    if(params->mods->at(i).index == m.index && params->mods->at(i).mass == m.mass && params->mods->at(i).xl == m.xl) return true;
+  for(i=0;i<params->mods.size();i++){
+    if(params->mods[i].index == m.index && params->mods[i].mass == m.mass && params->mods[i].xl == m.xl) return true;
   }
   return false;
 }
 
-void MParams::parse(char* cmd) {
+void MParams::logParam(string name, string value){
+  pxwBasicXMLTag t;
+  t.name = name;
+  t.value = value;
+  if (log != NULL) log->addParameter(t.name + " = " + t.value);
+  xmlParams.push_back(t);
+}
+
+void MParams::logParam(pxwBasicXMLTag& t){
+  if (log != NULL) log->addParameter(t.name + " = " + t.value);
+  xmlParams.push_back(t);
+}
+
+
+void MParams::parse(const char* cmd) {
 
   char *tok;
-
+  char c_cmd[4096];
   char param[32];
   char tmpstr[256];
 
@@ -128,28 +174,29 @@ void MParams::parse(char* cmd) {
   string tstr;
   vector<string> values;
 
-  pxwBasicXMLTag xml;
+  strcpy(c_cmd, cmd);
 
   //Pre-process entire line to remove characters that should not be read
 	//Replace first # with a terminator
-	tok=strstr(cmd,"#");
+	tok=strstr(c_cmd,"#");
 	if(tok!=NULL) strncpy(tok,"\0",1);
 
 	//if we have only white space, exit here
-	strcpy(tmpstr,cmd);
+	strcpy(tmpstr,c_cmd);
 	tok=strtok(tmpstr," \t\n\r");
 	if(tok==NULL) return;
 
 	//Check if we have a parameter (has '=' in it) or lots of random text.
-	tok=strstr(cmd,"=");
+	tok=strstr(c_cmd,"=");
   if(tok==NULL) {
-    printf("Unknown parameter line in config file: %s\n",cmd);
+    if (log != NULL) log->addParameterWarning("Unknown parameter line in config file: " + string(cmd));
+    else printf("Unknown parameter line in config file: %s\n", cmd);
     return;
   }
 
   //Process parameters
 	//Read parameter into param name (before = sign) and value (after = sign)
-	tok=strtok(cmd," \t=\n\r");
+	tok=strtok(c_cmd," \t=\n\r");
 	if(tok==NULL) return;
 	strcpy(param,tok);
 	tok=strtok(NULL," \t=\n\r");
@@ -170,43 +217,39 @@ void MParams::parse(char* cmd) {
     m.mass = atof(&values[1][0]);
     if (values.size() > 2 && values[2][0]!='0') m.xl=true;
     else m.xl=false;
-    params->aaMass->push_back(m);
-    xml.name = "aa_mass";
-    xml.value = values[0] + " " + values[1];
-    xmlParams.push_back(xml);
+    params->aaMass.push_back(m);
+    logParam("aa_mass",values[0] + " " + values[1]);
 
   } else if(strcmp(param,"adduct_sites")==0){
-    strcpy(params->adductSites, &values[0][0]);
-    xml.name = "adduct_sites";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    params->adductSites=values[0];
+    logParam("adduct_sites",values[0]);
 
 	} else if(strcmp(param,"database")==0){
-    strcpy(params->dbFile,&values[0][0]);
-    xml.name = "database";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    params->dbFile=values[0];
+    logParam("database", values[0]);
 
   } else if(strcmp(param,"diagnostic")==0){  //a value of -1 means diagnose all spectra, overriding any existing or following spectrum specifications
-    if (atoi(&values[0][0])==-1) params->diag->clear();
-    params->diag->push_back(atoi(&values[0][0]));
-    xml.name = "diagnostic";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    if (atoi(&values[0][0])==-1) params->diag.clear();
+    params->diag.push_back(atoi(&values[0][0]));
+    logParam("diagnostic",values[0]);
 
 	} else if(strcmp(param,"decoy_filter")==0){
-    strcpy(params->decoy,&values[0][0]);
-    xml.name = "decoy_filter";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    params->decoy=values[0];
+    logParam("decoy_filter",values[0]);
 
   } else if(strcmp(param,"enzyme")==0){
-    strcpy(params->enzyme,&values[0][0]);
+    params->enzyme=values[0];
+    pxwBasicXMLTag xml;
     xml.name = "enzyme";
     xml.value = values[0];
-    if (values.size() > 1) strcpy(params->enzymeName, &values[1][0]);
-    else strcpy(params->enzymeName, "Unnamed");
-    xmlParams.push_back(xml);
+    if (values.size() > 1) {
+      params->enzymeName=values[1];
+      xml.value+=" " +values[1];
+    } else {
+      params->enzymeName="Unnamed";
+      warn("Using deprecated enzyme paramter format. Enzyme name will be set to \"Unnamed\"", 4);
+    }
+    logParam(xml);
 
   } else if (strcmp(param, "e_value_depth") == 0){
     params->eValDepth = atoi(&values[0][0]);
@@ -214,53 +257,39 @@ void MParams::parse(char* cmd) {
       warn("ERROR: e_value_depth out of range (0-15000). Reverting to default of 3000.", 3);
       params->eValDepth = 3000;
     }
-    xml.name = "e_value_depth";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("e_value_depth",values[0]);
 
   } else if(strcmp(param, "export_pepXML")==0 || strcmp(param, "export_pepxml")==0){
     if(atoi(&values[0][0])!=0) params->exportPepXML=true;
     else params->exportPepXML=false;
-    xml.name = "export_pepXML";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("export_pepXML",values[0]);
 
   } else if(strcmp(param,"export_percolator")==0){
     if(atoi(&values[0][0])!=0) params->exportPercolator=true;
     else params->exportPercolator=false;
-    xml.name = "export_percolator";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("export_percolator",values[0]);
 
   } else if(strcmp(param,"fixed_modification")==0){
     m.index=(int)values[0][0];
     m.mass=atof(&values[1][0]);
-    if(m.mass!=0) params->fMods->push_back(m);
-    xml.name = "fixed_modification";
-    xml.value = values[0]+" "+values[1];
-    xmlParams.push_back(xml);
+    if(m.mass!=0) params->fMods.push_back(m);
+    logParam("fixed_modification", values[0]+" "+values[1]);
 
   } else if (strcmp(param, "fixed_modification_protC") == 0){
     m.index = (int)'%';
     m.mass = atof(&values[0][0]);
-    if (m.mass != 0) params->fMods->push_back(m);
-    xml.name = "fixed_modification_protC";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    if (m.mass != 0) params->fMods.push_back(m);
+    logParam("fixed_modification_protC",values[0]);
 
   } else if (strcmp(param, "fixed_modification_protN") == 0){
     m.index = (int)'$';
     m.mass = atof(&values[0][0]);
-    if (m.mass != 0) params->fMods->push_back(m);
-    xml.name = "fixed_modification_protN";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    if (m.mass != 0) params->fMods.push_back(m);
+    logParam("fixed_modification_protN",values[0]);
 
 	} else if(strcmp(param,"fragment_bin_offset")==0){
     params->binOffset=1.0-atof(&values[0][0]);
-    xml.name = "fragment_bin_offset";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("fragment_bin_offset",values[0]);
 
 	} else if(strcmp(param,"fragment_bin_size")==0){
     params->binSize=atof(&values[0][0]);
@@ -268,9 +297,7 @@ void MParams::parse(char* cmd) {
       warn("ERROR: Invalid value for fragment_bin_size parameter. Stopping analysis.",3);
       exit(-5);
     }
-    xml.name = "fragment_bin_size";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("fragment_bin_size",values[0]);
 
 	} else if(strcmp(param,"instrument")==0){
     params->instrument=atoi(&values[0][0]);
@@ -278,51 +305,37 @@ void MParams::parse(char* cmd) {
       warn("ERROR: instrument value out of range for instrument. Stopping analysis.",3);
       exit(-5);
     }
-    xml.name = "instrument";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("instrument",values[0]);
 
   } else if(strcmp(param,"ion_series_A")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[0]=false;
     else params->ionSeries[0]=true;
-    xml.name = "ion_series_A";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_A",values[0]);
 
   } else if(strcmp(param,"ion_series_B")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[1]=false;
     else params->ionSeries[1]=true;
-    xml.name = "ion_series_B";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_B",values[0]);
 
   } else if(strcmp(param,"ion_series_C")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[2]=false;
     else params->ionSeries[2]=true;
-    xml.name = "ion_series_C";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_C",values[0]);
 
   } else if(strcmp(param,"ion_series_X")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[3]=false;
     else params->ionSeries[3]=true;
-    xml.name = "ion_series_X";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_X",values[0]);
 
   } else if(strcmp(param,"ion_series_Y")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[4]=false;
     else params->ionSeries[4]=true;
-    xml.name = "ion_series_Y";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_Y",values[0]);
 
   } else if(strcmp(param,"ion_series_Z")==0){
     if(atoi(&values[0][0])==0) params->ionSeries[5]=false;
     else params->ionSeries[5]=true;
-    xml.name = "ion_series_Z";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ion_series_Z",values[0]);
 
   } else if (strcmp(param, "isotope_error")==0){
     params->isotopeError = atoi(&values[0][0]);
@@ -330,27 +343,19 @@ void MParams::parse(char* cmd) {
       warn("ERROR: isotope_error has invalid value. Stopping analysis.",3);
       exit(-5);
     }
-    xml.name = "isotope_error";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("isotope_error",values[0]);
   
   } else if (strcmp(param, "max_adduct_mass") == 0){
     params->maxAdductMass = atof(&values[0][0]);
-    xml.name = "max_adduct_mass";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_adduct_mass",values[0]);
 
 	} else if(strcmp(param,"max_miscleavages")==0){
     params->miscleave=atoi(&values[0][0]);
-    xml.name = "max_miscleavages";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_miscleavages",values[0]);
 
   } else if(strcmp(param,"max_mods_per_peptide")==0){
     params->maxMods=atoi(&values[0][0]);
-    xml.name = "max_mods_per_peptide";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_mods_per_peptide",values[0]);
 
   } else if (strcmp(param, "max_peptide_length") == 0){
     params->maxPepLen = atoi(&values[0][0]);
@@ -358,144 +363,98 @@ void MParams::parse(char* cmd) {
       warn("ERROR: max_peptide_length exceeds limit. Capping at to 70.", 3);
       params->rIonThreshold = 70;
     }
-    xml.name = "max_peptide_length";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_peptide_length",values[0]);
 
 	} else if(strcmp(param,"max_peptide_mass")==0){
     params->maxPepMass=atof(&values[0][0]);
-    xml.name = "max_peptide_mass";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_peptide_mass",values[0]);
 
   } else if(strcmp(param,"max_spectrum_peaks")==0){
     params->maxPeaks=atoi(&values[0][0]);
-    xml.name = "max_spectrum_peaks";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("max_spectrum_peaks",values[0]);
 
   } else if (strcmp(param, "min_adduct_mass") == 0){
     params->minAdductMass = atof(&values[0][0]);
-    xml.name = "min_adduct_mass";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("min_adduct_mass",values[0]);
 
   } else if (strcmp(param, "min_peptide_length") == 0){
     params->minPepLen = atoi(&values[0][0]);
-    xml.name = "min_peptide_length";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("min_peptide_length",values[0]);
 
 	} else if(strcmp(param,"min_peptide_mass")==0){
     params->minPepMass=atof(&values[0][0]);
-    xml.name = "min_peptide_mass";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("min_peptide_mass",values[0]);
 
   } else if (strcmp(param, "min_spectrum_peaks") == 0){
     params->minPeaks = atoi(&values[0][0]);
-    xml.name = "min_spectrum_peaks";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("min_spectrum_peaks",values[0]);
 
   } else if(strcmp(param,"modification")==0){
     m.xl=false;
     m.index=(int)values[0][0];
     m.mass=atof(&values[1][0]);
-    if(m.mass!=0 && !checkMod(m)) params->mods->push_back(m);
-    xml.name = "modification";
-    xml.value = values[0]+" "+values[1];
-    xmlParams.push_back(xml);
+    if(m.mass!=0 && !checkMod(m)) params->mods.push_back(m);
+    logParam("modification",values[0]+" "+values[1]);
 
   } else if (strcmp(param, "modification_protC") == 0){
     m.xl = false;
     m.index = (int)'%';
     m.mass = atof(&values[0][0]);
     if (m.mass!=0) { //acceptable to use placeholder; don't load it as a parameter
-      if (!checkMod(m)) params->mods->push_back(m);
+      if (!checkMod(m)) params->mods.push_back(m);
     }
-    xml.name = "modification_protC";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("modification_protC",values[0]);
 
   } else if (strcmp(param, "modification_protN") == 0){
     m.xl = false;
     m.index = (int)'$';
     m.mass = atof(&values[0][0]);
     if(m.mass != 0) { //acceptable to use placeholder; don't load it as a parameter
-      if (!checkMod(m)) params->mods->push_back(m);
+      if (!checkMod(m)) params->mods.push_back(m);
     }
-    xml.name = "modification_protN";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("modification_protN",values[0]);
 
 	} else if(strcmp(param,"MS_data_file")==0){
-    strcpy(params->msFile,&values[0][0]);
-    xml.name = "MS_data_file";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    params->msFile=values[0];
+    logParam("MS_data_file",values[0]);
 
   } else if(strcmp(param,"MS1_centroid")==0){
     params->ms1Centroid=atoi(&values[0][0]);
-    xml.name = "MS1_centroid";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("MS1_centroid",values[0]);
 
   } else if(strcmp(param,"MS2_centroid")==0){
     params->ms2Centroid=atoi(&values[0][0]);
-    xml.name = "MS2_centroid";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("MS2_centroid",values[0]);
 
 	} else if(strcmp(param,"MS1_resolution")==0){
     params->ms1Resolution=atoi(&values[0][0]);
-    xml.name = "MS1_resolution";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("MS1_resolution", values[0]);
 
 	} else if(strcmp(param,"MS2_resolution")==0){
 		params->ms2Resolution=atoi(&values[0][0]);
-    xml.name = "MS2_resolution";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
-
-	} else if(strcmp(param,"output_file")==0){
-    warn(param,2);
-
-	} else if(strcmp(param,"percolator_file")==0){
-    warn(param,2);
+    logParam("MS2_resolution",values[0]);
 
   } else if(strcmp(param,"percolator_version")==0){
     params->percVersion=atof(&values[0][0]);
-    xml.name = "percolator_version";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("percolator_version",values[0]);
 
 	} else if(strcmp(param,"ppm_tolerance_pre")==0){
     params->ppmPrecursor=atof(&values[0][0]);
-    xml.name = "ppm_tolerance_pre";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("ppm_tolerance_pre",values[0]);
 
   } else if (strcmp(param, "precursor_refinement") == 0){
     if (atoi(&values[0][0]) == 0) params->precursorRefinement = false;
     else params->precursorRefinement = true;
-    xml.name = "precursor_refinement";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("precursor_refinement",values[0]);
 
   } else if(strcmp(param,"prefer_precursor_pred")==0){
     params->preferPrecursor=atoi(&values[0][0]);
-    xml.name = "prefer_precursor_pred";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("prefer_precursor_pred",values[0]);
 
   } else if (strcmp(param, "reporter_ion") == 0){
-    if (atof(&values[0][0])>0)  params->rIons->push_back(atof(&values[0][0]));
+    if (atof(&values[0][0])>0)  params->rIons.push_back(atof(&values[0][0]));
     else  warn("ERROR: reporter_ion has invalid value. Skipping parameter.", 3);
-    xml.name = "reporter_ion";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("reporter_ion",values[0]);
 
   } else if (strcmp(param, "reporter_ion_threshold") == 0){
     params->rIonThreshold=atof(&values[0][0]);
@@ -503,31 +462,50 @@ void MParams::parse(char* cmd) {
       warn("ERROR: reporter_ion_threshold has invalid value. Defaulting to 10.", 3);
       params->rIonThreshold=10;
     }
-    xml.name = "reporter_ion_threshold";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("reporter_ion_threshold",values[0]);
 
   } else if (strcmp(param, "results_path") == 0){
-    strcpy(params->resPath, &values[0][0]);
-    xml.name = "results_path";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    params->resPath=values[0];
+    logParam("results_path",values[0]);
 
   } else if(strcmp(param,"spectrum_processing")==0) {
     params->specProcess=atoi(&values[0][0]);
-    xml.name = "spectrum_processing";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("spectrum_processing",values[0]);
 
   } else if(strcmp(param,"threads")==0) {
-    params->threads=atoi(&values[0][0]);
-    if(params->threads<1) {
-      warn("WARNING: Invalid threads parameter. Setting to 1.",3);
-      params->threads=1;
+    params->threads = atoi(&values[0][0]);
+    int iCores;
+#ifdef _WIN32
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    iCores = sysinfo.dwNumberOfProcessors;
+#else
+    iCores = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+    if (params->threads == 0){
+      params->threads = iCores;
+      char tst[8];
+      sprintf(tst, "%d", iCores);
+      string ts = "Setting number of threads from 0 to maximum of ";
+      ts += tst;
+      warn(ts, 4);
+    } else if (params->threads<0) {
+      params->threads += iCores;
+      if (params->threads<1) {
+        warn("Net number of threads is less than 1. Forcing thread value of 1.", 4);
+        params->threads = 1;
+      } else {
+        char tst[8];
+        sprintf(tst, "%d", iCores);
+        string ts = "Adjusting number of threads to " + values[0] + " below to maximum of ";
+        sprintf(tst, "%d", iCores);
+        ts += tst;
+        warn(ts, 4);
+      }
+    } else if (params->threads>iCores) {
+      warn("Requested threads exceeds number of CPU cores. Performance may be degraded.", 4);
     }
-    xml.name = "threads";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("threads",values[0]);
 
   } else if(strcmp(param,"top_count")==0) {
     params->topCount=atoi(&values[0][0]);
@@ -538,36 +516,24 @@ void MParams::parse(char* cmd) {
       warn("ERROR: top_count must be greater than zero. Stopping Magnum.", 4);
       params->topCount=1;
     }
-    xml.name = "top_count";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
+    logParam("top_count",values[0]);
 
   } else if(strcmp(param,"truncate_prot_names")==0) {
     params->truncate=atoi(&values[0][0]);
-    xml.name = "truncate_prot_names";
-    xml.value = values[0];
-    xmlParams.push_back(xml);
-
-  } else if (strcmp(param, "turbo_button") == 0){
-    warn(param,2);
-    //if (atoi(&values[0][0]) != 0) params->turbo = true;
-    //else params->turbo = false;
-    //xml.name = "turbo_button";
-    //xml.value = values[0];
-    //xmlParams.push_back(xml);
-
-  } else if(strcmp(param,"use_comet_xcorr")==0){
-    warn(param, 2);
-    //if(atoi(&values[0][0])!=0) params->xcorr=true;
-    //else params->xcorr=false;
-    //xml.name = "use_comet_xcorr";
-    //xml.value = values[0];
-    //xmlParams.push_back(xml);
+    logParam("truncate_prot_names",values[0]);
 
 	} else {
 		warn(param,1);
 	}
 
+}
+
+void MParams::setLog(MLog* c){
+  log = c;
+}
+
+void MParams::setParams(mParams* p){
+  params = p;
 }
 
 void MParams::warn(const char* c, int i){
@@ -592,6 +558,10 @@ void MParams::warn(const char* c, int i){
 			printf("  %s\n",c);
 			break;
 	}
+}
+
+void MParams::warn(string c, int i){
+  warn(c.c_str(), i);
 }
 
 //Takes relative path and finds absolute path
@@ -651,4 +621,16 @@ bool MParams::processPath(const char* cwd, const char* in_path, char* out_path){
   strcpy(out_path, &s[0]);
   return true;
 
+}
+
+//Takes relative path and finds absolute path
+void MParams::trimPath(string in, string& path, string& fname){
+  size_t i = in.find_last_of("/\\");
+  if (i != string::npos) {
+    fname = in.substr(i + 1);
+    path = in.substr(0, i);
+  } else {
+    fname=in;
+    path.clear();
+  }
 }

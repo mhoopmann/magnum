@@ -497,6 +497,7 @@ void MSpectrum::checkScore(mScoreCard& s, int th){
   //fprintf(f,"%.4f\n",s.simpleScore);
   //fclose(f);
 
+  /* no need to develop histograms in real time. histograms were pre-computed
   int index;
   index = (int)(s.simpleScore * 10.0 + 0.5);
   if (index >= HISTOSZ) index = HISTOSZ - 1;
@@ -512,6 +513,7 @@ void MSpectrum::checkScore(mScoreCard& s, int th){
       hp[th].topScore=index;
     }
   }
+  */
 
   //edge case for "reversible" cross-links: check if already matches top hit identically
   //note that such duplications still occur below the top score, but shouldn't influence the final result to the user
@@ -629,15 +631,16 @@ double MSpectrum::computeE(double score, int len){
     linearRegression3(mHisto[len]->slope, mHisto[len]->intercept, mHisto[len]->rSq);
     //cout << "linReg3 success" << endl;
     mHisto[len]->slope*=10;
+  }
 
-    if (mHisto[len]->slope>=0){
-      //handle bad slopes
-      //cout << "Fail regression: " << scanNumber << "\t" << len << endl;
-      //cout << histogramCount << endl;
-      //for (int j = 0; j<HISTOSZ; j++) cout << j << "\t" << histogram[j] << endl;
-      return 1000;
-      //exit(1);
-    }
+  if (mHisto[len]->slope>=0){
+    //handle bad slopes
+    //cout << "Fail regression: " << scanNumber << "\t" << len << endl;
+    //cout << histogramCount << endl;
+    //for (int j = 0; j<HISTOSZ; j++) cout << j << "\t" << histogram[j] << endl;
+    //cout << score << "\t" << len << "\tslope=" << mHisto[len]->slope << endl;
+    return 1000;
+    //exit(1);
   }
 
   //cout << "Compute E: " << scanNumber << "\t" << len << endl;
@@ -1912,7 +1915,7 @@ void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
     //check if this peptide seen in another configuration
     size_t a;
     for(a=0;a<v.size();a++){
-      if(v[a].simpleScore==tmpSC.simpleScore && v[a].pep==tmpSC.pep && v[a].mods.size()==tmpSC.mods->size()){
+      if(v[a].eVal==tmpSC.eVal && v[a].simpleScore==tmpSC.simpleScore && v[a].pep==tmpSC.pep && v[a].mods.size()==tmpSC.mods->size()){
         //size_t b;
         //for(b=0;b<v[a].mods.size();b++){
         //  if(v[a].mods[b].mass!=tmpSC.mods->at(b).mass) break;
@@ -1920,7 +1923,11 @@ void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
         //  if (v[a].mods[b].term != tmpSC.mods->at(b).term) break;
         //}
         //if(b==v[a].mods.size()){ //identical peptides
-          v[a].sites.push_back(tmpSC.site);
+        size_t b;
+        for(b=0;b<v[a].sites.size();b++){
+          if(tmpSC.site==v[a].sites[b]) break;
+        }
+        if(b==v[a].sites.size()) v[a].sites.push_back(tmpSC.site);
         /*} else {
           mScoreCard2 sc;
           sc.conFrag=tmpSC.conFrag;
@@ -1960,6 +1967,59 @@ void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
   }
 
   //cout << count << endl;
+
+}
+
+void MSpectrum::shortResults2(std::vector<mScoreCard3>& v){
+  //cout << "shortResults: ";
+  v.clear();
+  int count = 0;
+  int scoreIndex = 0;
+  mScoreCard tmpSC = getScoreCard(scoreIndex);
+
+  //iterate over all results
+  while (tmpSC.simpleScore>0){
+    count++;
+
+    //check if this peptide seen in another configuration
+    size_t a;
+    for (a = 0; a<v.size(); a++){
+      if (v[a].eVal == tmpSC.eVal && v[a].simpleScore == tmpSC.simpleScore && v[a].pep == tmpSC.pep && v[a].modCount == (int)tmpSC.mods->size()){
+        //alternate version of existing peptide, so append the novel mod positions
+        mPepMod2 pm;
+        for (size_t c = 0; c<tmpSC.mods->size(); c++) {
+          pm.mods.push_back(tmpSC.mods->at(c));
+        }
+        v[a].mSet.push_back(pm);
+        v[a].aSites.push_back(tmpSC.site);
+        break;
+      }
+    }
+
+    //add unique results
+    if (a == v.size()){
+      mScoreCard3 sc;
+      sc.conFrag = tmpSC.conFrag;
+      sc.eVal = tmpSC.eVal;
+      sc.mass = tmpSC.mass;
+      sc.massA = tmpSC.massA;
+      sc.match = tmpSC.match;
+      sc.pep = tmpSC.pep;
+      sc.precursor = tmpSC.precursor;
+      sc.simpleScore = tmpSC.simpleScore;
+      sc.modCount=(int)tmpSC.mods->size();
+      sc.aSites.push_back(tmpSC.site);
+      mPepMod2 pm;
+      for (size_t c = 0; c<tmpSC.mods->size(); c++) {
+        pm.mods.push_back(tmpSC.mods->at(c));
+      }
+      sc.mSet.push_back(pm);
+      v.push_back(sc);
+    }
+
+    if (++scoreIndex<20) tmpSC = getScoreCard(scoreIndex);
+    else break;
+  }
 
 }
 

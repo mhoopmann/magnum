@@ -552,8 +552,8 @@ double MPrecursor::polynomialBestFit(vector<double>& x, vector<double>& y, vecto
 bool MPrecursor::setFile() {
 
   msr.setFilter(MS1);
-  msr.readFile(params->msFile,spec);
-  strcpy(fileName,params->msFile);
+  msr.readFile(params->msFile.c_str(),spec);
+  strcpy(fileName,params->msFile.c_str());
 
   if(spec.getScanNumber()==0) return false;
   lastScan=spec.getScanNumber();

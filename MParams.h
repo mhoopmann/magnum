@@ -1,5 +1,5 @@
 /*
-Copyright 2018, Michael R. Hoopmann, Institute for Systems Biology
+Copyright 2021, Michael R. Hoopmann, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,11 +17,13 @@ limitations under the License.
 #ifndef _MPARAMS_H
 #define _MPARAMS_H
 
+#include "MLog.h"
 #include "MStructs.h"
 #include "pepXMLWriter.h"
 
 #ifdef _MSC_VER
 #include <direct.h>
+#include <Windows.h>
 #define getcwd _getcwd
 #define slashdir '\\'
 #else
@@ -37,17 +39,26 @@ public:
 
   std::vector<pxwBasicXMLTag> xmlParams;
 
-  bool buildOutput(char* in, char* base, char* ext);
-  bool parseConfig(char* fname);
+  bool buildOutput(std::string in, std::string base, std::string ext);
+  void parse(const char* cmd);
+  bool parseConfig(const char* fname);
+  void setLog(MLog* c);
+  void setParams(mParams* p);
+
+  std::string logFile;
  
 private:
 
+  MLog* log;
   mParams* params;
   
   bool checkMod(mMass m);
-  void parse(char* cmd);
+  void logParam(std::string name, std::string value);
+  void logParam(pxwBasicXMLTag& t);
   bool processPath(const char* cwd, const char* in_path, char* out_path);
+  void trimPath(std::string in, std::string& path, std::string& fname);
   void warn(const char* c, int i);
+  void warn(std::string c, int i);
 
 };
 

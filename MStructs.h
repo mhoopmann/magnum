@@ -28,11 +28,12 @@ limitations under the License.
 
 //FASTA database structure
 typedef struct mDB{
-  std::string name;      //FASTA header
-  std::string sequence;  //FASTA sequence
+  std::string description; //FASTA description (header - after first space)
+  std::string name;        //FASTA name (header - before first space)
+  std::string sequence;    //FASTA sequence
 } mDB;
 
-typedef struct kFile{
+typedef struct mFile{
   std::string input;
   std::string base;
   std::string ext;
@@ -147,21 +148,23 @@ typedef struct mParams {
   double  percVersion;
   double  ppmPrecursor;
   double  rIonThreshold;
-  char    adductSites[32];
-  char    dbFile[256];
-  char    decoy[256];
-  char    enzyme[32];
-  char    enzymeName[64];
-  char    ext[32];
-  char    inFile[1024];  //true input file with full path
-  char    msFile[256];   //input file parameter from confic
-  char    outFile[1024];  //true output file with full path
-  char    resPath[1024];
-  std::vector<mMass>*    aaMass;
-  std::vector<int>*      diag;
-  std::vector<mMass>*    mods;
-  std::vector<mMass>*    fMods;
-  std::vector<double>*   rIons;
+  std::string    adductSites;
+  std::string     dbFile;
+  std::string    decoy;
+  std::string     enzyme;
+  std::string     enzymeName;
+  std::string     ext;
+  std::string     inFile;  //true input file with full path
+  std::string     msFile;   //input file parameter from confic
+  std::string     outFile;  //true output file with full path
+  std::string     resPath;
+  std::string     dbPath;
+  std::string     msBase;
+  std::vector<mMass>    aaMass;
+  std::vector<int>      diag;
+  std::vector<mMass>    mods;
+  std::vector<mMass>    fMods;
+  std::vector<double>   rIons;
   mParams(){
     eValDepth=3000;
     instrument=1;
@@ -202,140 +205,9 @@ typedef struct mParams {
     percVersion=2.04;
     ppmPrecursor=25.0;
     rIonThreshold=10;
-    adductSites[0]='\0';
-    strcpy(decoy,"random");
-    dbFile[0]='\0';
-    strcpy(enzyme,"[KR]|{P}");
-    strcpy(enzymeName, "Trypsin");
-    ext[0]='\0';
-    inFile[0]='\0';
-    msFile[0]='\0';
-    outFile[0]='\0';
-    resPath[0]='\0';
-    aaMass = new std::vector<mMass>;
-    diag = new std::vector<int>;
-    mods = new std::vector<mMass>;
-    fMods = new std::vector<mMass>;
-    rIons = new std::vector<double>;
-  }
-  mParams(const mParams& p){
-    eValDepth=p.eValDepth;
-    instrument=p.instrument;
-    isotopeError=p.isotopeError;
-    maxMods=p.maxMods;
-    maxPeaks=p.maxPeaks;
-    maxPepLen=p.maxPepLen;
-    minPeaks=p.minPeaks;
-    minPepLen=p.minPepLen;
-    miscleave=p.miscleave;
-    ms1Centroid=p.ms1Centroid;
-    ms2Centroid=p.ms2Centroid;
-    ms1Resolution=p.ms1Resolution;
-    ms2Resolution=p.ms2Resolution;
-    preferPrecursor=p.preferPrecursor;
-    setA=p.setA;
-    setB=p.setB;
-    specProcess=p.specProcess;
-    threads=p.threads;
-    topCount=p.topCount;
-    truncate=p.truncate;
-    exportPepXML=p.exportPepXML;
-    exportPercolator=p.exportPercolator;
-    precursorRefinement=p.precursorRefinement;
-    xcorr=p.xcorr;
-    binOffset=p.binOffset;
-    binSize=p.binSize;
-    maxPepMass=p.maxPepMass;
-    minPepMass=p.minPepMass;
-    maxAdductMass = p.maxAdductMass;
-    minAdductMass = p.minAdductMass;
-    percVersion=p.percVersion;
-    ppmPrecursor=p.ppmPrecursor;
-    rIonThreshold=p.rIonThreshold;
-    strcpy(adductSites,p.adductSites);
-    strcpy(decoy,p.decoy);
-    strcpy(dbFile,p.dbFile);
-    strcpy(enzyme,p.enzyme);
-    strcpy(enzymeName,p.enzymeName);
-    strcpy(ext,p.ext);
-    strcpy(inFile, p.inFile);
-    strcpy(msFile,p.msFile);
-    strcpy(outFile,p.outFile);
-    strcpy(resPath, p.resPath);
-    aaMass = new std::vector<mMass>(*p.aaMass);
-    diag = new std::vector<int>(*p.diag);
-    mods = new std::vector<mMass>(*p.mods);
-    fMods = new std::vector<mMass>(*p.fMods);
-    rIons = new std::vector<double>(*p.rIons);
-    unsigned int i;
-    for(i=0;i<6;i++) ionSeries[i]=p.ionSeries[i];
-  }
-  ~mParams(){
-    delete aaMass;
-    delete diag;
-    delete mods;
-    delete fMods;
-    delete rIons;
-  }
-  mParams& operator=(const mParams& p){
-    if(this!=&p){
-      eValDepth=p.eValDepth;
-      instrument=p.instrument;
-      isotopeError = p.isotopeError;
-      maxMods=p.maxMods;
-      maxPeaks=p.maxPeaks;
-      maxPepLen = p.maxPepLen;
-      minPeaks = p.minPeaks;
-      minPepLen = p.minPepLen;
-      miscleave=p.miscleave;
-      ms1Centroid=p.ms1Centroid;
-      ms2Centroid=p.ms2Centroid;
-      ms1Resolution=p.ms1Resolution;
-      ms2Resolution=p.ms2Resolution;
-      preferPrecursor=p.preferPrecursor;
-      setA=p.setA;
-      setB=p.setB;
-      specProcess=p.specProcess;
-      threads=p.threads;
-      topCount=p.topCount;
-      truncate=p.truncate;
-      exportPepXML=p.exportPepXML;
-      exportPercolator=p.exportPercolator;
-      precursorRefinement = p.precursorRefinement;
-      xcorr=p.xcorr;
-      binOffset=p.binOffset;
-      binSize=p.binSize;
-      maxPepMass=p.maxPepMass;
-      minPepMass=p.minPepMass;
-      maxAdductMass = p.maxAdductMass;
-      minAdductMass = p.minAdductMass;
-      percVersion=p.percVersion;
-      ppmPrecursor=p.ppmPrecursor;
-      rIonThreshold=p.rIonThreshold;
-      strcpy(adductSites, p.adductSites);
-      strcpy(decoy,p.decoy);
-      strcpy(dbFile,p.dbFile);
-      strcpy(enzyme,p.enzyme);
-      strcpy(enzymeName, p.enzymeName);
-      strcpy(ext,p.ext);
-      strcpy(inFile, p.inFile);
-      strcpy(msFile,p.msFile);
-      strcpy(outFile,p.outFile);
-      strcpy(resPath, p.resPath);
-      delete aaMass;
-      delete diag;
-      delete mods;
-      delete fMods;
-      delete rIons;
-      aaMass = new std::vector<mMass>(*p.aaMass);
-      diag = new std::vector<int>(*p.diag);
-      mods = new std::vector<mMass>(*p.mods);
-      fMods = new std::vector<mMass>(*p.fMods);
-      rIons = new std::vector<double>(*p.rIons);
-      unsigned int i;
-      for(i=0;i<6;i++) ionSeries[i]=p.ionSeries[i];
-    }
-    return (*this);
+    decoy="random";
+    enzyme="[KR]|{P}";
+    enzymeName="Trypsin";
   }
 } mParams;
 
@@ -433,88 +305,25 @@ typedef struct mScoreCard2{
   std::vector<char> sites;
 } mScoreCard2;
 
-/*
-typedef struct mPeptideScoreCard{
-  char                len;
-  int                 pep;
-  char                pre;
-  float               simpleScore;
-  double              mass;
-  char                modLen;
-  char                site;
-  mPepMod*            mods;
-  mPeptideScoreCard*  next;
-  mPeptideScoreCard*  prev;
-  mPeptideScoreCard(){
-    len=0;
-    pep=0;
-    pre=0;
-    simpleScore=0;
-    mass=0;
-    modLen=0;
-    site=0;
-    mods=NULL;
-    next=NULL;
-    prev=NULL;
-  }
-  mPeptideScoreCard(const mPeptideScoreCard& k){
-    len=k.len;
-    pep=k.pep;
-    pre=k.pre;
-    simpleScore=k.simpleScore;
-    mass=k.mass;
-    modLen=k.modLen;
-    site=k.site;
-    mods=NULL;
-    if(modLen>0){
-      mods=new mPepMod[modLen];
-      for(char i=0;i<modLen;i++) mods[i]=k.mods[i];
-    }
-    next=NULL;
-    prev=NULL;
-  }
-  ~mPeptideScoreCard(){
-    if(mods!=NULL) delete [] mods;
-    next=NULL;
-    prev=NULL;
-  }
-  mPeptideScoreCard& operator=(const mPeptideScoreCard& k){
-    if(this!=&k){
-      len=k.len;
-      pep=k.pep;
-      pre=k.pre;
-      simpleScore=k.simpleScore;
-      mass=k.mass;
-      modLen=k.modLen;
-      site=k.site;
-      if(mods!=NULL) {
-        delete [] mods;
-        mods=NULL;
-      }
-      if(modLen>0){
-        mods=new mPepMod[modLen];
-        for(char i=0;i<modLen;i++) mods[i]=k.mods[i];
-      }
-      next=NULL;
-      prev=NULL;
-    }
-    return *this;
-  }
-} mPeptideScoreCard;
-*/
-/*
-typedef struct kSingletScoreCardPlus{
-  char    len;
-  bool    linkable;
-  char    k1;
-  double  mass;
-  char    motif[20];
-  int     pep1;
-  int     rank;
+typedef struct mPepMod2{
+  std::vector<mPepMod> mods;
+} mPepMod2;
+
+typedef struct mScoreCard3{
+  char    precursor;
+  int     conFrag;
+  int     match;
+  int     pep;
+  int     modCount;
   float   simpleScore;
-  int     target;
-} kSingletScoreCardPlus;
-*/
+  double  mass;
+  double  massA;
+  double  eVal;
+  std::vector<mPepMod2> mSet;
+  std::vector<char> aSites;
+} mScoreCard3;
+
+
 
 typedef struct mPrecursor{ 
   int     charge;
@@ -528,6 +337,61 @@ typedef struct mPrecursor{
     monoMass=0;
   }
 } mPrecursor;
+
+typedef struct rMods{
+  double mass;
+  char pos;
+  bool term;
+  bool variable;
+  bool adduct;
+} rMods;
+
+typedef struct rMods2{
+  std::vector<rMods> mods;
+} rMods2;
+
+typedef struct mProtRes{
+  std::string protein;
+  char prevAA;
+  char nextAA;
+  int startPos;
+} mProtRes;
+
+typedef struct mResults{
+  bool    decoy;
+  int     charge;
+  int     psmID;
+  int     scanNumber;
+  float   rTimeSec;
+  double  eValue;
+  double  monoMass;
+  double  ppm;
+  double  psmMass;
+  double  scoreDelta;
+  double  scoreMagnum;
+  double  selectedMZ;
+  std::vector<std::string>  modPeptide;
+  std::string  mods;
+  std::string  openMod;
+  std::string  peptide;
+  std::string  percPeptide;
+  std::vector<rMods2> vMods;
+  std::vector<mProtRes> proteins;
+  std::vector<double> rIon;
+  mResults(){
+    decoy=false;
+    charge=0;
+    psmID=0;
+    scanNumber=0;
+    rTimeSec=0;
+    eValue=0;
+    monoMass=0;
+    ppm=0;
+    scoreDelta=0;
+    scoreMagnum=0;
+    selectedMZ=0;
+  }
+} mResults;
 
 typedef struct kResults{
   bool    decoy;

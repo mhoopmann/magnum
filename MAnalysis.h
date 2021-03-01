@@ -57,14 +57,12 @@ public:
 
   //Master Functions
   bool doPeptideAnalysis   ();
-  bool doEValueAnalysis();
   bool doEValuePrecalc();
 
 private:
 
   //Thread-start functions
   static void analyzePeptideProc(mAnalysisStruct* s); 
-  static void analyzeEValueProc(MSpectrum* s);
   static void analyzeEValuePrecalcProc(MSpectrum* s);
 
   //Analysis functions

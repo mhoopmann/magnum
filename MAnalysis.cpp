@@ -59,9 +59,9 @@ MAnalysis::MAnalysis(mParams& p, MDatabase* d, MData* dat){
   ions=NULL;
   allocateMemory(params.threads);
   for(j=0;j<params.threads;j++){
-    for(i=0;i<params.fMods->size();i++) ions[j].addFixedMod((char)params.fMods->at(i).index,params.fMods->at(i).mass);
-    for(i=0;i<params.mods->size();i++) ions[j].addMod((char)params.mods->at(i).index,params.mods->at(i).xl,params.mods->at(i).mass);
-    for(i=0;i<params.aaMass->size();i++) ions[j].setAAMass((char)params.aaMass->at(i).index, params.aaMass->at(i).mass);
+    for(i=0;i<params.fMods.size();i++) ions[j].addFixedMod((char)params.fMods[i].index,params.fMods[i].mass);
+    for(i=0;i<params.mods.size();i++) ions[j].addMod((char)params.mods[i].index,params.mods[i].xl,params.mods[i].mass);
+    for(i=0;i<params.aaMass.size();i++) ions[j].setAAMass((char)params.aaMass[i].index, params.aaMass[i].mass);
     ions[j].setMaxModCount(params.maxMods);
   }
 
@@ -167,49 +167,6 @@ bool MAnalysis::doPeptideAnalysis(){
   return true;
 }
 
-bool MAnalysis::doEValueAnalysis(){
-  int i;
-  int iPercent;
-  int iTmp;
-
-  ThreadPool<MSpectrum*>* threadPool = new ThreadPool<MSpectrum*>(analyzeEValueProc, params.threads, params.threads, 1);
-
-  //Set progress meter
-  iPercent = 0;
-  printf("%2d%%", iPercent);
-  fflush(stdout);
-
-  //Iterate the peptide for the first pass
-  for (i = 0; i<spec->size(); i++){
-
-    threadPool->WaitForQueuedParams();
-
-    MSpectrum* a = &spec->at(i);
-    threadPool->Launch(a);
-
-    //Update progress meter
-    iTmp = (int)((double)i / spec->size() * 100);
-    if (iTmp>iPercent){
-      iPercent = iTmp;
-      printf("\b\b\b%2d%%", iPercent);
-      fflush(stdout);
-    }
-  }
-
-  threadPool->WaitForQueuedParams();
-  threadPool->WaitForThreads();
-
-  //Finalize progress meter
-  printf("\b\b\b100%%");
-  cout << endl;
-
-  //clean up memory & release pointers
-  delete threadPool;
-  threadPool = NULL;
-
-  return true;
-}
-
 bool MAnalysis::doEValuePrecalc(){
   int i;
   int iPercent;
@@ -281,11 +238,6 @@ void MAnalysis::analyzePeptideProc(mAnalysisStruct* s){
   analyzePeptide(s->pep,s->pepIndex,i);
   delete s;
   s=NULL;
-}
-
-void MAnalysis::analyzeEValueProc(MSpectrum* s){
-  s->calcEValue(&params,decoys);
-  s = NULL;
 }
 
 void MAnalysis::analyzeEValuePrecalcProc(MSpectrum* s){
@@ -452,7 +404,7 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   }
   if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
   else if((p->monoMass-mass)>params.maxAdductMass) score=0;
-  else score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge);
+  else score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
   if(score>0){
     topScore = score;
     topMatch = match;
@@ -488,10 +440,10 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     if ((p->monoMass - mass)>params.maxAdductMass) continue;
     if ((p->monoMass - mass)<params.minAdductMass) continue;
     //cout << "Before magnumScoring" << endl;
-    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);
+    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);  //open mod with localization
     //cout << score << endl;
     if(score==0) continue;
-    else if(score>topScore) {
+    else if(score>topScore) { //replace the previous peptide scores, if this version of the peptide scores better.
       topScore=score;
       topMatch=match;
       topConFrag=conFrag;

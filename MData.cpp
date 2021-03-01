@@ -23,18 +23,21 @@ MData::MData(){
   bScans=NULL;
   params=NULL;
   for(int i=0;i<128;i++) adductSite[i]=false;
+  pepXMLindex=0;
 }
 
 MData::MData(mParams* p){
   bScans=NULL;
   params=p;
   size_t i;
-  for(i=0;i<p->fMods->size();i++) aa.addFixedMod((char)p->fMods->at(i).index,p->fMods->at(i).mass);
+  for(i=0;i<p->fMods.size();i++) aa.addFixedMod((char)p->fMods[i].index,p->fMods[i].mass);
   for (i = 0; i<128; i++) adductSite[i] = false;
+  pepXMLindex = 0;
 }
 
 MData::~MData(){
   params=NULL;
+  parObj=NULL;
   if(bScans!=NULL) delete[] bScans;
 }
 
@@ -50,6 +53,232 @@ MSpectrum& MData::operator [](const int& i){
 /*============================
   Functions
 ============================*/
+//This function takes ambiguous results (same sequence, alternate mod orientation) and condenses
+//them to a single entry (the first orientation - i.e. most n-terminal position for all mods).
+void MData::condenseResults(vector<mScoreCard2>& v){
+  vector<mScoreCard2> n; //new results
+  double* m = new double[params->maxPepLen];
+  double nterm;
+  double cterm;
+  vector<double> mm;
+
+  for(size_t a=0; a<v.size();a++){
+    if(v[a].simpleScore<0) continue;
+    
+    for (size_t b = 0; b<params->maxPepLen; b++) m[b] = 0; //reset data
+    nterm = 0;
+    cterm = 0;
+    mm.clear();
+
+    bool bMatch=false;
+    for(size_t b=a+1; b<v.size();b++){
+      if(v[b].eVal==v[a].eVal && v[b].simpleScore==v[a].simpleScore && v[b].pep==v[a].pep && v[b].massA==v[a].massA){
+        //same peptide, different orientation.
+        size_t c;
+        for(c=0;c<v[a].mods.size();c++){
+          if(v[a].mods[c].term){
+            if (v[a].mods[c].pos == 0) v[a].mods[c].mass++;
+            else cterm = v[a].mods[c].mass;
+          } else {
+            m[v[a].mods[c].pos]=v[a].mods[c].mass;
+          }
+          mm.push_back(v[a].mods[c].mass);
+        }
+        for (c = 0; c<v[b].mods.size(); c++){
+          if (v[b].mods[c].term){
+            if (v[b].mods[c].pos == 0) v[b].mods[c].mass++;
+            else cterm = v[b].mods[c].mass;
+          } else {
+            m[v[b].mods[c].pos] = v[b].mods[c].mass;
+          }
+        }
+        v[b].simpleScore=-1; //mark this peptide
+        bMatch=true;
+      }
+    }
+
+    //if this is a unique peptide, move to the next one
+    if(!bMatch){
+      n.push_back(v[a]);
+      continue;
+    }
+
+    //the new mods
+    mScoreCard2 sc=v[a];
+    sc.mods.clear();
+    for(size_t c=0;c<mm.size();c++){
+      if(nterm==mm[c]){
+        mPepMod pm;
+        pm.mass = mm[c];
+        pm.pos = 0;
+        pm.term = true;
+        sc.mods.push_back(pm);
+        continue;
+      }
+      size_t d;
+      for(d=0;d<params->maxPepLen;d++){
+        if(m[d]==mm[c]){
+          mPepMod pm;
+          pm.mass=mm[c];
+          pm.pos=d;
+          pm.term=false;
+          sc.mods.push_back(pm);
+          break;
+        }
+      }
+      if(d<params->maxPepLen) continue;
+      if (cterm == mm[c]){
+        mPepMod pm;
+        pm.mass = mm[c];
+        pm.pos = d-1;
+        pm.term = true;
+        sc.mods.push_back(pm);
+        continue;
+      }
+      cout << "Error in condensing." << endl;
+    }
+    n.push_back(sc);
+  }
+
+  //replace the list with the shorter one.
+  v.clear(); 
+  for(size_t a=0;a<n.size();a++) v.push_back(n[a]);
+  delete [] m;
+}
+
+bool MData::createDiag(FILE*& f){
+  string fName=params->outFile;
+  fName+=".diag.xml";
+  f = fopen(fName.c_str(), "wt");
+  if (f == NULL) {
+    cout << "ERROR: Cannot open: " << fName << endl;
+    return false;
+  }
+  return true;
+}
+
+NeoPepXMLParser* MData::createPepXML(string& str, MDatabase& db){
+  str = params->outFile;
+  str += ".pep.xml";
+  FILE* f = fopen(str.c_str(), "wt");
+  if (f == NULL) {
+    cout << "ERROR: Cannot open: " << str << endl;
+    return false;
+  }
+  fclose(f);
+  
+  NeoPepXMLParser* p = new NeoPepXMLParser();
+  CnpxMSMSPipelineAnalysis pa;
+  time_t timeNow;
+  time(&timeNow);
+  tm local_tm = *localtime(&timeNow);
+  pa.date.date.year = local_tm.tm_year+1900;
+  pa.date.date.month = local_tm.tm_mon + 1;
+  pa.date.date.day = local_tm.tm_mday;
+  pa.date.time.hour = local_tm.tm_hour;
+  pa.date.time.minute = local_tm.tm_min;
+  pa.date.time.second = local_tm.tm_sec;
+  pa.summary_xml=str;
+
+  CnpxMSMSRunSummary rs;
+  rs.base_name=params->inFile;
+  rs.raw_data_type="raw";
+  rs.raw_data=params->ext;
+
+  CnpxSampleEnzyme se;
+  se.name = params->enzymeName;
+  CnpxSpecificity sp;
+  mEnzymeRules enzyme = db.getEnzymeRules();
+  for (int i = 65; i < 90; i++){
+    if (enzyme.cutC[i]) sp.cut += (char)i;
+    if (enzyme.exceptN[i]) sp.no_cut += (char)i;
+  }
+  if (sp.cut.size()>0) sp.sense = "C";
+  else {
+    sp.sense = "N";
+    for (int i = 65; i < 90; i++){
+      if (enzyme.cutN[i]) sp.cut += (char)i;
+      if (enzyme.exceptC[i]) sp.no_cut += (char)i;
+    }
+  }
+  se.specificity.push_back(sp);
+  rs.sample_enzyme.push_back(se);
+  
+  CnpxSearchSummary ss;
+  ss.base_name=params->outFile;
+  ss.search_engine="Magnum";
+  ss.search_engine_version=version;
+  ss.precursor_mass_type="monoisotopic";
+  ss.fragment_mass_type="monoisotopic";
+  ss.search_id=1;
+  for(size_t a=0;a<params->mods.size();a++){
+    CnpxAminoAcidModification aam;
+    aam.aminoacid=(char)params->mods[a].index;
+    aam.massdiff=params->mods[a].mass;
+    aam.mass = aam.massdiff + aa.getAAMass(params->mods[a].index);
+    aam.variable="Y";
+    ss.aminoacid_modification.push_back(aam);
+  }
+  for (size_t a = 0; a<params->fMods.size(); a++){
+    CnpxAminoAcidModification aam;
+    aam.aminoacid = (char)params->fMods[a].index;
+    aam.massdiff = params->fMods[a].mass;
+    aam.mass = aa.getAAMass(params->fMods[a].index);
+    aam.variable = "N";
+    ss.aminoacid_modification.push_back(aam);
+  }
+
+  for (size_t a = 0; a<parObj->xmlParams.size(); a++){
+    CnpxParameter p;
+    p.name=parObj->xmlParams[a].name;
+    p.value=parObj->xmlParams[a].value;
+    ss.parameter.push_back(p);
+  }
+
+  CnpxSearchDatabase sdb;
+  sdb.local_path=params->dbPath;
+  sdb.type="AA";
+  
+  ss.search_database.push_back(sdb);
+  rs.search_summary.push_back(ss);
+  pa.msms_run_summary.push_back(rs);
+  p->msms_pipeline_analysis.push_back(pa);
+  pepXMLindex=0;
+  return p;
+}
+
+bool MData::createPercolator(FILE*& f){
+  string sPercName = params->outFile;
+  sPercName += ".perc.txt";
+  f = fopen(sPercName.c_str(), "wt");
+  if (f == NULL) {
+    cout << "ERROR: Cannot open: " << sPercName << endl;
+    return false;
+  }
+  fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
+  fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
+  fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
+  fprintf(f, "\tMass\tPPM\tLength");
+  fprintf(f, "\tPeptide\tProteins\n");
+  return true;
+}
+
+bool MData::createTXT(FILE*& f){
+  string sTXTName = params->outFile;
+  sTXTName += ".magnum.txt";
+  f = fopen(sTXTName.c_str(), "wt");
+  if (f == NULL) {
+    cout << "ERROR: Cannot open: " << sTXTName << endl;
+    return false;
+  }
+  fprintf(f,"ScanNumber\tPSMID\tRTsec\tSelectedMZ\tMonoisotopicMass");
+  fprintf(f,"\tCharge\tPSMmass\tPPM\tEvalue");
+  fprintf(f,"\tMscore\tDscore\tReporterIons");
+  fprintf(f,"\tModifications\tOpenMod\tPeptide");
+  fprintf(f,"\tPeptideA\tDecoy\tProteins\n");
+  return true;
+}
+
 bool* MData::getAdductSites(){
   return &adductSite[0];
 }
@@ -97,6 +326,185 @@ void MData::diagSinglet(){
   cout << "  Two fold " << twoCount << " of " << bigCount << endl;
   cout << "  Biggest Score: " << bigScore << "  Mass: " << bigMass << endl;
   cout << endl;
+}
+
+void MData::exportPercolator(FILE*& f, vector<mResults>& r){
+  for (size_t a = 0; a<r.size(); a++){
+    if (r[a].decoy) {
+      fprintf(f, "D-%d-%.2f", r[a].scanNumber, r[a].rTimeSec / 60);
+      if(a>0) fprintf(f,"-%d",(int)a+1);
+      fprintf(f, "\t-1");
+    } else {
+      fprintf(f, "T-%d-%.2f", r[a].scanNumber, r[a].rTimeSec / 60);
+      if (a>0) fprintf(f, "-%d", (int)a + 1);
+      fprintf(f, "\t1");
+    }
+    fprintf(f, "\t%d", r[a].scanNumber);
+    fprintf(f, "\t%.4lf", r[a].scoreMagnum);
+    fprintf(f, "\t%.4lf", r[a].scoreDelta);
+    fprintf(f, "\t%.6lf", -log10(r[a].eValue));
+    for(int b=1;b<r[a].charge;b++) fprintf(f,"\t0");
+    fprintf(f,"\t1");
+    for (int b = r[a].charge + 1; b<7; b++) fprintf(f, "\t0");
+    fprintf(f, "\t%.4lf", r[a].psmMass);
+    fprintf(f, "\t%.4lf", r[a].ppm);
+    fprintf(f, "\t%d", r[a].peptide.size());
+    fprintf(f, "\t-.%s.-", r[a].modPeptide[0].c_str());
+    for(size_t b=0;b<r[a].proteins.size();b++){
+      fprintf(f, "\t%s", r[a].proteins[b].protein.c_str());
+    }
+    fprintf(f, "\n");
+  }
+}
+
+void MData::exportTXT(FILE*& f, vector<mResults>& r){
+  for(size_t a=0;a<r.size();a++){
+    fprintf(f,"%d",r[a].scanNumber);
+    fprintf(f, "\t%d", r[a].psmID);
+    fprintf(f, "\t%.2f", r[a].rTimeSec);
+    fprintf(f,"\t%.6lf",r[a].selectedMZ);
+    fprintf(f, "\t%.6lf", r[a].monoMass);
+    fprintf(f,"\t%d",r[a].charge);
+    fprintf(f, "\t%.6lf", r[a].psmMass);
+    fprintf(f, "\t%.4lf", r[a].ppm);
+    fprintf(f, "\t%.4e", r[a].eValue);
+    fprintf(f, "\t%.2lf", r[a].scoreMagnum);
+    fprintf(f, "\t%.2lf", r[a].scoreDelta);
+    if(r[a].rIon.size()==0) fprintf(f,"\t");
+    else {
+      fprintf(f,"\t%.3lf",r[a].rIon[0]);
+      for(size_t b=1;b<r[a].rIon.size();b++) fprintf(f,";%.3lf",r[a].rIon[b]);
+    }
+    fprintf(f, "\t%s", r[a].mods.c_str());
+    fprintf(f, "\t%s", r[a].openMod.c_str());
+    fprintf(f, "\t%s", r[a].peptide.c_str());
+    fprintf(f, "\t%s", r[a].modPeptide[0].c_str());
+    if(r[a].decoy) fprintf(f, "\t1");
+    else fprintf(f,"\t0");
+    fprintf(f, "\t%s", r[a].proteins[0].protein.c_str());
+    for(size_t b=1;b<r[a].proteins.size();b++){
+      fprintf(f, ";%s", r[a].proteins[b].protein.c_str());
+    }
+    fprintf(f,"\n");
+  }
+}
+
+void MData::exportPepXML(NeoPepXMLParser*& p, vector<mResults>& r){
+  if(r.size()==0) return;
+  
+  CnpxSpectrumQuery s;
+  char str[256];
+  sprintf(str,"%s.%d.%d.%d",params->msBase.c_str(),r[0].scanNumber,r[0].scanNumber,r[0].charge);
+  s.spectrum=str;
+  s.start_scan=r[0].scanNumber;
+  s.end_scan=r[0].scanNumber;
+  s.precursor_neutral_mass=r[0].monoMass;
+  s.assumed_charge=r[0].charge;
+  s.retention_time_sec=r[0].rTimeSec;
+  s.index=++pepXMLindex;
+  
+  CnpxSearchResult sr;
+  for (size_t a = 0; a<r.size(); a++){
+    for(size_t x=0;x<r[a].vMods.size();x++){ //to export EVERY alternate arrangement of mods for this PSM
+      CnpxSearchHit sh;
+      sh.hit_rank=1;
+      sh.peptide=r[a].peptide;
+      sh.protein=r[a].proteins[0].protein;
+      sh.peptide_prev_aa=r[a].proteins[0].prevAA;
+      sh.peptide_next_aa=r[a].proteins[0].nextAA;
+      sh.peptide_start_pos = r[a].proteins[0].startPos;
+      for(size_t b=1;b<r[a].proteins.size();b++){
+        CnpxAlternativeProtein ap;
+        ap.protein=r[a].proteins[b].protein;
+        ap.peptide_prev_aa = r[a].proteins[b].prevAA;
+        ap.peptide_next_aa = r[a].proteins[b].nextAA;
+        ap.peptide_start_pos = r[a].proteins[b].startPos;
+        sh.alternative_protein.push_back(ap);
+      }
+      sh.num_tot_proteins=(int)r[a].proteins.size();
+      sh.calc_neutral_pep_mass=r[a].psmMass;
+
+      //Add scores
+      sprintf(str,"%.4lf",r[a].scoreMagnum);
+      sh.addSearchScore("Mscore",string(str));
+      sprintf(str, "%.4lf", r[a].scoreDelta);
+      sh.addSearchScore("Dscore", string(str));
+      sprintf(str, "%.4lf", r[a].ppm);
+      sh.addSearchScore("ppm_error", string(str));
+      sprintf(str, "%.3e", r[a].eValue);
+      sh.addSearchScore("Evalue", string(str));
+      for(size_t b=0;b<r[a].rIon.size(); b++){
+        sprintf(str, "%.4lf", r[a].rIon[b]);
+        sh.addSearchScore("reporter_ion", string(str));
+      }
+
+      //check modifications
+      CnpxModificationInfo mi;
+      //check n-term
+      for(size_t b=0;b<r[a].vMods[x].mods.size();b++){
+        if (r[a].vMods[x].mods[b].term && r[a].vMods[x].mods[b].pos == 0 && !r[a].vMods[x].mods[b].adduct){
+          sprintf(str, "n[%d]", (int)(r[a].vMods[x].mods[b].mass + 0.5));
+          mi.modified_peptide+=str;
+          mi.mod_nterm_mass = r[a].vMods[x].mods[b].mass + 1.00782503;
+          break;
+        }
+      }
+      //check all amino acids
+      for(size_t b=0;b<r[a].peptide.size();b++){
+        mi.modified_peptide+=r[a].peptide[b];
+        //check fixed mods
+        if(aa.getFixedModMass(r[a].peptide[b])!=0){
+          char c = r[a].peptide[b];
+          sprintf(str, "[%d]", (int)(aa.getAAMass(c) + 0.5));
+          mi.modified_peptide += str;
+          CnpxModAminoAcidMass mam;
+          mam.position = (int)b + 1;
+          mam.mass = aa.getAAMass(r[a].peptide[b]);
+          mam.staticMass = aa.getFixedModMass(c);
+          mam.source = "param";
+          mi.mod_aminoacid_mass.push_back(mam);
+        }
+        //check variable mods
+        for (size_t c = 0; c<r[a].vMods[x].mods.size(); c++){
+          if (r[a].vMods[x].mods[c].pos == b && !r[a].vMods[x].mods[c].term){
+            sprintf(str, "[%d]", (int)(r[a].vMods[x].mods[c].mass + 0.5));
+            mi.modified_peptide += str;
+            CnpxModAminoAcidMass mam;
+            mam.position = (int)r[a].vMods[x].mods[c].pos + 1;
+            mam.mass = aa.getAAMass(r[a].peptide[b]) + r[a].vMods[x].mods[c].mass;
+            if (r[a].vMods[x].mods[c].variable) mam.variable = r[a].vMods[x].mods[c].mass;
+            else mam.staticMass = r[a].vMods[x].mods[c].mass;
+            if (r[a].vMods[x].mods[c].adduct) mam.source = "adduct";
+            else mam.source="param";
+            mi.mod_aminoacid_mass.push_back(mam);
+            break;
+          }
+        }
+      }
+      //check c-term
+      for (size_t b = 0; b<r[a].vMods[x].mods.size(); b++){
+        if (r[a].vMods[x].mods[b].term && r[a].vMods[x].mods[b].pos > 0 && !r[a].vMods[x].mods[b].adduct){
+          sprintf(str, "c[%d]", (int)(r[a].vMods[x].mods[b].mass + 0.5));
+          mi.modified_peptide += str;
+          mi.mod_cterm_mass = r[a].vMods[x].mods[b].mass + 17.00273963;
+          break;
+        }
+      }
+      if(mi.mod_aminoacid_mass.size()>0 || mi.mod_cterm_mass!=0 || mi.mod_nterm_mass!=0) sh.modification_info=mi;
+
+      //check for open modifications (adducts)
+      for (size_t b = 0; b<r[a].vMods[x].mods.size(); b++){
+        if (r[a].vMods[x].mods[b].adduct && r[a].vMods[x].mods[b].term){
+          sh.massdiff = r[a].vMods[x].mods[b].mass;
+        }
+      }
+
+      sr.search_hit.push_back(sh);
+    }
+  }
+  s.search_result.push_back(sr);
+
+  p->msms_pipeline_analysis.back().msms_run_summary.back().spectrum_query.push_back(s);
 }
 
 bool MData::getBoundaries(double mass1, double mass2, vector<int>& index, bool* buffer){
@@ -451,7 +859,7 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
         }
         if (char(i) == sc->site) fprintf(f, "[x]");
       }
-      fprintf(f, "\" link_site=\"%d\" score=\"%.4lf\" mass=\"%.4lf\" matches=\"%d\" con_fragments=\"%d\" additional_mass=\"%.4lf\"/>\n", (int)sc->site+1, sc->simpleScore, sc->mass, sc->match, sc->conFrag, sc->massA);
+      fprintf(f, "\" adduct_site=\"%d\" evalue=\"%.3e\" score=\"%.4lf\" mass=\"%.4lf\" matches=\"%d\" con_fragments=\"%d\" additional_mass=\"%.4lf\"/>\n", (int)sc->site+1, sc->eVal, sc->simpleScore, sc->mass, sc->match, sc->conFrag, sc->massA);
       sc = sc->next;
     }
     fprintf(f,"   </precursor>\n");
@@ -502,104 +910,6 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
   */
   fprintf(f, " </scan>\n");
  
-}
-
-int MData::outputPepXML(PXWSpectrumQuery& sq, MDatabase& db, kResults& r){
-  unsigned int i;
-  unsigned int j;
-
-  char c;
-  char n;
-  char score[32];
-
-  string peptide;
-  string protein;
-  string sequence;
-  string tStr;
-
-  mPeptide pep;
-  mScoreCard sc;
-
-  PXWSearchHit sh;
-
-  int siteA;
-
-  sh.hit_rank=1;
-  sh.peptide=r.peptide1;
-  sh.calc_neutral_pep_mass=r.psmMass;
-  sh.massdiff=r.psmMass-r.obsMass;
-  
-  for(i=0;i<r.mods1.size();i++){
-    if (r.mods1[i].pos == 0 && r.mods1[i].term) sh.modInfo.mod_nterm_mass = r.mods1[i].mass;
-    else if (r.mods1[i].pos == r.peptide1.length() - 1 && r.mods1[i].term) sh.modInfo.mod_cterm_mass = r.mods1[i].mass;
-    else sh.modInfo.addMod((int)r.mods1[i].pos + 1, r.mods1[i].mass + aa.getAAMass(r.peptide1[r.mods1[i].pos]), r.mods1[i].mass, true, "param");
-  }
-  if (r.nTerm1 && aa.getFixedModMass('$')!=0)sh.modInfo.mod_nterm_mass += aa.getFixedModMass('$');
-  if (r.cTerm1 && aa.getFixedModMass('%')!=0)sh.modInfo.mod_cterm_mass += aa.getFixedModMass('%');
-  sh.modInfo.mod_nterm_mass += aa.getFixedModMass('n');
-  sh.modInfo.mod_cterm_mass += aa.getFixedModMass('c');
-  if(sh.modInfo.mod_nterm_mass!=0) sh.modInfo.mod_nterm_mass+=1.00782503;
-  if(sh.modInfo.mod_cterm_mass!=0) sh.modInfo.mod_cterm_mass+=17.00273963;
-  for(i=0;i<r.peptide1.size();i++){
-    if(aa.getFixedModMass(r.peptide1[i])>0) {
-      sh.modInfo.addMod(i + 1, aa.getAAMass(r.peptide1[i]), aa.getFixedModMass(r.peptide1[i]),false,"param");
-    }
-  }
-  if (r.link1>0) sh.modInfo.addMod(r.link1, r.massB + aa.getAAMass(r.peptide1[r.link1 - 1]), r.massB,true, "adduct");
-  else if(r.link1==-99) sh.massdiff=r.massB;
-
-  sprintf(score,"%.4lf",r.score);
-  sh.addScore("magnum_score",score);
-  sprintf(score,"%.4lf",r.scoreDelta);
-  sh.addScore("delta_score",score);
-  sprintf(score,"%.4lf",r.ppm);
-  sh.addScore("ppm_error",score);
-  sprintf(score, "%.3e", r.eVal);
-  sh.addScore("e_value", score);
-  sh.addScore("reporter_ions",r.rIon.c_str());
-
-  //Get proteins
-  pep = db.getPeptide(r.pep1);
-  sh.num_tot_proteins=(int)pep.map->size();
-  for(j=0;j<pep.map->size();j++){
-    protein="";
-    for(i=0;i<db[pep.map->at(j).index].name.size();i++){
-      if(params->truncate>0 && i==params->truncate) break;
-      protein+=db[pep.map->at(j).index].name[i];
-    }
-    if(pep.map->at(j).start<1) n='-';
-    else n=db[pep.map->at(j).index].sequence[pep.map->at(j).start-1];
-    if(pep.map->at(j).stop+1==db[pep.map->at(j).index].sequence.size()) c='-';
-    else c=db[pep.map->at(j).index].sequence[pep.map->at(j).stop+1];
-    siteA = pep.map->at(j).start+r.link1;
-    sh.addProtein(protein, c, n, siteA);
-  }
-    
-  sq.addSearchHit(&sh,NULL,NULL,NULL);
-  return (int)sq.sizeSearchHits()-1;
-}
-
-void MData::outputPepXML2(PXWSpectrumQuery& sq, int shIndex, kResults& r){
-  size_t i;
-  PXWModInfo m;
-  for (i = 0; i<r.mods1.size(); i++){
-    if (r.mods1[i].pos == 0 && r.mods1[i].term) m.mod_nterm_mass = r.mods1[i].mass;
-    else if (r.mods1[i].pos == r.peptide1.length() - 1 && r.mods1[i].term) m.mod_cterm_mass = r.mods1[i].mass;
-    else m.addMod((int)r.mods1[i].pos + 1, r.mods1[i].mass + aa.getAAMass(r.peptide1[r.mods1[i].pos]), r.mods1[i].mass, true, "param");
-  }
-  if (r.nTerm1 && aa.getFixedModMass('$') != 0) m.mod_nterm_mass += aa.getFixedModMass('$');
-  if (r.cTerm1 && aa.getFixedModMass('%') != 0) m.mod_cterm_mass += aa.getFixedModMass('%');
-  m.mod_nterm_mass += aa.getFixedModMass('n');
-  m.mod_cterm_mass += aa.getFixedModMass('c');
-  if (m.mod_nterm_mass != 0) m.mod_nterm_mass += 1.00782503;
-  if (m.mod_cterm_mass != 0) m.mod_cterm_mass += 17.00273963;
-  for (i = 0; i<r.peptide1.size(); i++){
-    if (aa.getFixedModMass(r.peptide1[i])>0) {
-      m.addMod(i + 1, aa.getAAMass(r.peptide1[i]), aa.getFixedModMass(r.peptide1[i]), false, "param");
-    }
-  }
-  if (r.link1>0) m.addMod(r.link1, r.massB + aa.getAAMass(r.peptide1[r.link1 - 1]), r.massB, true, "adduct");
-  sq.getSearchHit(shIndex).a->addAltModInfo(m);
 }
 
 bool MData::outputPercolator(FILE* f, MDatabase& db, kResults& r, int count){
@@ -658,6 +968,140 @@ bool MData::outputPercolator(FILE* f, MDatabase& db, kResults& r, int count){
   fprintf(f,"\n");
 
   return true;
+}
+
+bool MData::outputResults(MDatabase& db){
+  FILE* fTXT=NULL;
+  FILE* fPerc=NULL;
+  FILE* fDiag=NULL;
+  string fXML;
+  NeoPepXMLParser* pepxml;
+
+  //Create output files
+  if(!createTXT(fTXT)) return false;
+  if(params->diag.size()>0) {
+    if(!createDiag(fDiag)) return false;
+  }
+  if(params->exportPepXML){
+    pepxml=createPepXML(fXML,db);
+    if(pepxml==NULL) return false;
+  }
+  if(params->exportPercolator){
+    if(!createPercolator(fPerc)) return false;
+  }
+  
+  //iterate over all spectra to create exportable results
+  //Output top score for each spectrum
+  //Must iterate through all possible precursors for that spectrum
+  for (size_t a = 0; a<spec.size(); a++) {
+
+    //Check if we need to output diagnostic information
+    bool bDiag = false;
+    if (params->diag.size()>0){
+      if (params->diag[0] == -1) bDiag = true;
+      else {
+        for (size_t b = 0; b<params->diag.size(); b++){
+          if (spec[a].getScanNumber() == params->diag[b]){
+            bDiag = true;
+            break;
+          }
+        }
+      }
+    }
+    if (bDiag) outputDiagnostics(fDiag, spec[a], db);
+
+    //Default score card
+    vector<mResults> vRes;
+    vector<mScoreCard3> shorts;
+    spec[a].shortResults2(shorts);
+    //condenseResults(shorts);
+    if (shorts.size() > 0) { //figure out how many results need reporting
+      double topScore=shorts[0].eVal;
+      size_t scoreIndex=0;
+      while(shorts[0].simpleScore>0 && shorts[scoreIndex].eVal==topScore){
+        mResults res;
+
+        res.psmID=(int)scoreIndex+1;
+        processSpectrumInfo(spec[a],res);
+        processPSM(spec[a],shorts[scoreIndex],res);
+
+        //delta score
+        size_t n = scoreIndex + 1;
+        while (n<shorts.size()){
+          if (shorts[n].simpleScore == 0) break;
+          if (shorts[n].eVal == topScore) {
+            n++;
+            continue;
+          }
+          if (shorts[n].precursor != shorts[scoreIndex].precursor) {
+            n++;
+            continue;
+          }
+          res.scoreDelta=res.scoreMagnum-shorts[n].simpleScore;
+          break;
+        }
+        if(res.scoreDelta==0 && n>0) res.scoreDelta=res.scoreMagnum-shorts[n-1].simpleScore;
+
+        //peptide sequence
+        mPeptide pep = db.getPeptide(shorts[scoreIndex].pep);
+        db.getPeptideSeq(pep.map->at(0).index, pep.map->at(0).start, pep.map->at(0).stop, res.peptide);
+        for(size_t b=0;b<shorts[scoreIndex].mSet.size();b++){
+          string spep=processPeptide(pep, shorts[scoreIndex].mSet[b].mods, (int)shorts[scoreIndex].aSites[b], shorts[scoreIndex].massA, db);
+          res.modPeptide.push_back(spep);
+        }
+
+        //Determine if target or decoy
+        bool bTarget = false;
+        for (size_t b = 0; b<pep.map->size(); b++) if (db[pep.map->at(b).index].name.find(params->decoy) == string::npos) bTarget = true;
+        if (bTarget) res.decoy = false;
+        else res.decoy = true;
+
+        //proteins
+        for (size_t b = 0; b<pep.map->size(); b++){
+          mProtRes pr;
+          pr.protein = db[pep.map->at(b).index].name;
+          if(pep.map->at(b).start==0) pr.prevAA='-';
+          else pr.prevAA = db[pep.map->at(b).index].sequence[pep.map->at(b).start-1];
+          if (pep.map->at(b).stop + 1 >= db[pep.map->at(b).index].sequence.size()) pr.nextAA = '-';
+          else pr.nextAA = db[pep.map->at(b).index].sequence[pep.map->at(b).stop + 1];
+          pr.startPos = pep.map->at(b).start+1;
+          res.proteins.push_back(pr);
+        }
+
+        //Check for Reporter Ions
+        for (size_t b = 0; b<params->rIons.size(); b++){
+          if (spec[a].checkReporterIon(params->rIons[b], params)){
+            res.rIon.push_back(params->rIons[b]);
+          }
+        }
+
+        vRes.push_back(res);
+        scoreIndex++;
+        if(scoreIndex==shorts.size()) break;
+      }
+    }
+    //Uncomment this to report spectra with null results
+    //if(vRes.size()==0){
+    //  mResults res;
+    //  vRes.push_back(res);
+    //}
+
+    exportTXT(fTXT, vRes);
+    if(params->exportPepXML) exportPepXML(pepxml,vRes);
+    if(params->exportPercolator) exportPercolator(fPerc,vRes);
+
+  }
+
+  fclose(fTXT);
+  if(pepxml!=NULL) {
+    pepxml->write(fXML.c_str(),true);
+    delete pepxml;
+  }
+  if(fPerc!=NULL) fclose(fPerc);
+  if(fDiag!=NULL) fclose(fDiag);
+
+  return true;
+
 }
 
 //Function deprecated. Should be excised.
@@ -730,7 +1174,7 @@ bool MData::outputResults(MDatabase& db, MParams& par){
     ss.base_name=rs.base_name;
     ss.search_engine="Magnum";
     ss.search_engine_version=version;
-    processPath(params->dbFile,outPath);
+    processPath(params->dbFile.c_str(),outPath);
     ss.search_database=outPath;
     for(i=0;i<par.xmlParams.size();i++){
       ss.parameters->push_back(par.xmlParams[i]);
@@ -758,7 +1202,7 @@ bool MData::outputResults(MDatabase& db, MParams& par){
     if(!p.createPepXML(fName,rs,&enz,&ss)) bBadFiles=true;
   }
   
-  if (params->diag->size()>0){ //create diagnostic file if needed
+  if (params->diag.size()>0){ //create diagnostic file if needed
     sprintf(fName, "%s.diag.xml", params->outFile);
     fDiag = fopen(fName, "wt");
     if (fDiag == NULL) bBadFiles = true;
@@ -793,12 +1237,12 @@ bool MData::outputResults(MDatabase& db, MParams& par){
 
     //Check if we need to output diagnostic information
     bDiag=false;
-    if(params->diag->size()>0){
-      if(params->diag->at(0)==-1) {
+    if(params->diag.size()>0){
+      if(params->diag[0]==-1) {
         bDiag=true;
       } else {
-        for (d = 0; d<params->diag->size(); d++){
-          if (spec[i].getScanNumber() == params->diag->at(d)){
+        for (d = 0; d<params->diag.size(); d++){
+          if (spec[i].getScanNumber() == params->diag[d]){
             bDiag=true;
             break;
           }
@@ -860,15 +1304,15 @@ bool MData::outputResults(MDatabase& db, MParams& par){
     if(params->exportPepXML){
       sq.clear();
       sq.end_scan=res.scanNumber;
-      sq.retention_time_sec=res.rTime;
+      sq.retention_time_sec=res.rTime*60;
       sq.start_scan=res.scanNumber;
     }
 
     //Check for Reporter Ions
     res.rIon.clear();
-    for(j=0;j<params->rIons->size();j++){
-      if(spec[i].checkReporterIon(params->rIons->at(j),params)){
-        sprintf(tmp, "%.3lf", params->rIons->at(j));
+    for(j=0;j<params->rIons.size();j++){
+      if(spec[i].checkReporterIon(params->rIons[j],params)){
+        sprintf(tmp, "%.3lf", params->rIons[j]);
         if(res.rIon.size()>0) res.rIon+=",";
         res.rIon+=tmp;
       }
@@ -1057,7 +1501,7 @@ bool MData::outputResults(MDatabase& db, MParams& par){
           break;
         }
       }*/
-      if (params->exportPepXML) outputPepXML(sq, db, res);
+      //if (params->exportPepXML) outputPepXML(sq, db, res);
 
       //Get the next entry - it must also be exported if it has the same score
       //if(bDupe) scoreIndex+=iDupe;
@@ -1117,7 +1561,7 @@ bool MData::readSpectra(){
   printf("%2d%%", iPercent);
   fflush(stdout);
 
-  if(!msr.readFile(params->msFile,s)) return false;
+  if(!msr.readFile(params->msFile.c_str(),s)) return false;
   while(s.getScanNumber()>0){
 
     totalScans++;
@@ -1224,10 +1668,10 @@ bool MData::readSpectra(){
     //Add spectrum (if it has enough data points) to data object and read next file
     if(pls.size()>=params->minPeaks) spec.push_back(pls);
 
-    for(unsigned int d=0;d<params->diag->size();d++){
-      if(pls.getScanNumber()==params->diag->at(d)){
+    for(unsigned int d=0;d<params->diag.size();d++){
+      if(pls.getScanNumber()==params->diag[d]){
         char diagStr[256];
-        sprintf(diagStr,"diagnostic_spectrum_%d.txt",params->diag->at(d));
+        sprintf(diagStr,"diagnostic_spectrum_%d.txt",params->diag[d]);
         FILE* f=fopen(diagStr,"wt");
         fprintf(f,"Scan: %d\t%d\n",pls.getScanNumber(),pls.size());
         for(int k=0;k<pls.size();k++) fprintf(f,"%.6lf\t%.0f\n",pls[k].mass,pls[k].intensity);
@@ -1259,8 +1703,16 @@ bool MData::readSpectra(){
 	return true;
 }
 
-void MData::setAdductSites(char* s){
-  for(size_t i=0;i<strlen(s);i++) adductSite[s[i]]=true;
+void MData::setAdductSites(string s){
+  for(size_t i=0;i<s.size();i++) adductSite[s[i]]=true;
+}
+
+void MData::setLog(MLog* c){
+  mlog = c;
+}
+
+void MData::setParams(MParams* p){
+  parObj=p;
 }
 
 void MData::setVersion(const char* v){
@@ -1905,8 +2357,9 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, doub
       seq += tmp;
     }
   }
-  //if(site=-99){
-  //  sprintf(tmp, "n[%.0lf]", massA);
+  //uncomment to display open, unlocalized mod on the n-terminus
+  //if(massA!=0 && site==-99){
+  //  sprintf(tmp, "o[%.0lf]", massA);
   //  seq += tmp;
   //}
   for (j = 0; j<peptide.size(); j++) {
@@ -1917,10 +2370,11 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, doub
         seq += tmp;
       }
     }
-    if (j == (size_t)site){
-      sprintf(tmp, "[%.0lf]", massA);
-      seq += tmp;
-    }
+    //uncomment to display the open, localized mod in the peptide sequence
+    //if (j == (size_t)site){
+    //  sprintf(tmp, "[%.0lf]", massA);
+    //  seq += tmp;
+    //}
   }
   for (k = 0; k<mod.size(); k++){ //check for c-terminal peptide mod
     if (mod[k].pos > 0 && mod[k].term){
@@ -1934,4 +2388,198 @@ string MData::processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, doub
   }
 
   return seq;
+}
+
+void MData::processPSM(MSpectrum& s, mScoreCard3& sc, mResults& r){
+  mPrecursor p=s.getPrecursor(sc.precursor);
+  r.monoMass=p.monoMass;
+  r.charge=p.charge;
+
+  r.psmMass=sc.mass+sc.massA;
+  r.ppm=(r.monoMass-r.psmMass)/r.psmMass*1e6;
+  r.eValue=sc.eVal;
+  r.scoreMagnum=sc.simpleScore;
+
+  //temporary structure for holding mod info
+  typedef struct m2{
+    double mass;
+    int count;
+    vector<char> pos;
+  } m2;
+
+  //iterate over all peptide variants
+  vector<m2> mods;
+  for(size_t a=0; a<sc.mSet.size(); a++){
+    //iterate over all mods in this variant
+    for(size_t b=0;b<sc.mSet[a].mods.size();b++){
+      
+      //convert mod pos
+      char pos;
+      if(sc.mSet[a].mods[b].term){
+        if(sc.mSet[a].mods[b].pos>0) pos=127;
+        else pos=126;
+      } else pos = sc.mSet[a].mods[b].pos;
+
+      //iterate over processed mods to find alternate positions
+      size_t c;
+      for(c=0;c<mods.size();c++){
+        if(mods[c].mass==sc.mSet[a].mods[b].mass){
+          if(a==0) mods[c].count++;
+          size_t d;
+          for(d=0;d<mods[c].pos.size();d++){            
+            if(mods[c].pos[d]==sc.mSet[a].mods[b].pos) break;
+          }
+          if(d==mods[c].pos.size()) mods[c].pos.push_back(sc.mSet[a].mods[b].pos);
+          break;
+        }
+      }
+      if(c==mods.size()){ //add new mod
+        m2 m;
+        m.mass=sc.mSet[a].mods[b].mass;
+        m.count=1;
+        m.pos.push_back(sc.mSet[a].mods[b].pos);
+        mods.push_back(m);
+      }
+    }
+  }
+
+  //process mod string
+  for(size_t a=0;a<mods.size();a++){
+    if (a>0) r.mods += ";";
+    char str[512];
+    sprintf(str, "%.6lf[%d;", mods[a].mass,mods[a].count);
+    string st = str;
+    for (size_t b = 0; b<mods[a].pos.size(); b++){
+      if (b>0) st += ",";
+      if (mods[a].pos[b] == 126) st += "n";
+      else if (mods[a].pos[b] == 127) st += "c";
+      else {
+        sprintf(str, "%d", (int)mods[a].pos[b]+1);
+        st += str;
+      }
+    }
+    st += "]";
+    r.mods += st;
+  }
+
+  //if open modification
+  if(sc.massA!=0){
+    vector<char> vs;
+    for (size_t a = 0; a<sc.aSites.size(); a++){
+      size_t b;
+      for(b=0;b<vs.size();b++){
+        if(vs[b]==sc.aSites[a]) break;
+      }
+      if(b==vs.size()) vs.push_back(sc.aSites[a]);
+    }
+
+    char str[32];
+    sprintf(str,"%.6lf[%d;",sc.massA,vs.size());
+    r.openMod=str;
+    for(size_t a=0;a<vs.size();a++){
+      if(a>0) r.openMod+=",";
+      if(sc.aSites[a]==-99) r.openMod+="0";
+      else {
+        sprintf(str,"%d",(int)vs[a]+1);
+        r.openMod+=str;
+      }
+    }
+    r.openMod+="]";
+  }
+
+  //convert all mods to pepxml mods
+  for (size_t a = 0; a<sc.mSet.size(); a++){
+    rMods2 modset;
+    for(size_t b=0;b<sc.mSet[a].mods.size();b++){
+      rMods rm;
+      rm.mass=sc.mSet[a].mods[b].mass;
+      rm.variable=true;
+      rm.adduct=false;
+      rm.term=false;
+      if(sc.mSet[a].mods[b].term){
+        rm.term=true;
+        if(sc.mSet[a].mods[b].pos==0) {
+          rm.pos='n';
+          if (aa.getFixedModMass('n') == rm.mass || aa.getFixedModMass('$') == rm.mass) rm.variable = false;
+        } else {
+          rm.pos='c';
+          if (aa.getFixedModMass('c') == rm.mass || aa.getFixedModMass('%') == rm.mass) rm.variable = false;
+        }
+      } else {
+        rm.pos=sc.mSet[a].mods[b].pos;
+        if(aa.getFixedModMass(r.peptide[rm.pos])==rm.mass) rm.variable=false;
+      }
+      modset.mods.push_back(rm);
+    }
+    //add adduct (if any)
+    if (sc.massA != 0){
+      rMods rm;
+      rm.mass = sc.massA;
+      rm.variable = true;
+      rm.adduct = true;
+      rm.pos = sc.aSites[a];
+      if(rm.pos<0) rm.term=true;
+      else rm.term=false;
+      modset.mods.push_back(rm);
+    }
+    r.vMods.push_back(modset);
+  }
+
+  /*
+  //convert open mod to rMod
+  if(sc.massA!=0){
+    rMods rm;
+    rm.mass=sc.massA;
+    rm.variable=true;
+    rm.adduct=true;
+    rm.pos=127;
+    for (size_t a = 0; a<sc.sites.size(); a++){
+      if(sc.sites[a]<rm.pos) rm.pos=sc.sites[a];
+    }
+    r.vMods.push_back(rm);
+  }
+
+  //ugly code to convert all mods into a tidy string array
+  vector<mPepMod> m=sc.mods;
+  for(size_t a=0;a<m.size();a++){
+    if(m[a].pos<0) continue;
+    double mass=m[a].mass;
+    vector<char> pos;
+    if(m[a].pos==0 && m[a].term) pos.push_back(126);
+    else if(m[a].pos>0 && m[a].term) pos.push_back(127);
+    else pos.push_back(m[a].pos+1);
+    for(size_t b=a+1;b<m.size();b++){
+      if(m[b].pos<0) continue;
+      if(m[b].mass==mass){
+        if (m[b].pos == 0 && m[b].term) pos.push_back(126);
+        else if (m[b].pos>0 && m[b].term) pos.push_back(127);
+        else pos.push_back(m[b].pos + 1);
+        if(m[b].pos==0) m[b].pos=-100;
+        else m[b].pos=-m[b].pos;
+      }
+    }
+    if(r.mods.size()>0) r.mods+=";";
+    char str[512];
+    sprintf(str,"%.6lf",mass);
+    string st=str;
+    st+="[";
+    for(size_t b=0;b<pos.size();b++){
+      if(b>0) st+=",";
+      if(pos[b]==126) st+="n";
+      else if(pos[b]==127) st+="c";
+      else {
+        sprintf(str,"%d",(int)pos[b]);
+        st+=str;
+      }
+    }
+    st+="]";
+    r.mods+=st;
+  }
+  */
+}
+
+void MData::processSpectrumInfo(MSpectrum& s, mResults& r){
+  r.scanNumber=s.getScanNumber();
+  r.rTimeSec=s.getRTime()*60;
+  r.selectedMZ=s.getMZ();
 }

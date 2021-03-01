@@ -163,7 +163,7 @@ NeoPepXMLParser* MData::createPepXML(string& str, MDatabase& db){
   FILE* f = fopen(str.c_str(), "wt");
   if (f == NULL) {
     cout << "ERROR: Cannot open: " << str << endl;
-    return false;
+    return NULL;
   }
   fclose(f);
   
@@ -348,7 +348,7 @@ void MData::exportPercolator(FILE*& f, vector<mResults>& r){
     for (int b = r[a].charge + 1; b<7; b++) fprintf(f, "\t0");
     fprintf(f, "\t%.4lf", r[a].psmMass);
     fprintf(f, "\t%.4lf", r[a].ppm);
-    fprintf(f, "\t%d", r[a].peptide.size());
+    fprintf(f, "\t%d", (int)r[a].peptide.size());
     fprintf(f, "\t-.%s.-", r[a].modPeptide[0].c_str());
     for(size_t b=0;b<r[a].proteins.size();b++){
       fprintf(f, "\t%s", r[a].proteins[b].protein.c_str());
@@ -1151,11 +1151,11 @@ bool MData::outputResults(MDatabase& db, MParams& par){
 
   //Open all the required output files.
   bBadFiles=false;
-  sprintf(fName,"%s.magnum.txt",params->outFile);
+  sprintf(fName,"%s.magnum.txt",params->outFile.c_str());
   fOut=fopen(fName,"wt");
   if(fOut==NULL) bBadFiles=true;
   if(params->exportPercolator) {
-    sprintf(fName,"%s.perc.single.txt",params->outFile);
+    sprintf(fName, "%s.perc.single.txt", params->outFile.c_str());
     fSingle=fopen(fName,"wt");
     if(fSingle==NULL) bBadFiles=true;
   }
@@ -1198,12 +1198,12 @@ bool MData::outputResults(MDatabase& db, MParams& par){
         if (enzyme.exceptC[i]) enz.no_cut += (char)i;
       }
     }
-    sprintf(fName, "%s.pep.xml", params->outFile);
+    sprintf(fName, "%s.pep.xml", params->outFile.c_str());
     if(!p.createPepXML(fName,rs,&enz,&ss)) bBadFiles=true;
   }
   
   if (params->diag.size()>0){ //create diagnostic file if needed
-    sprintf(fName, "%s.diag.xml", params->outFile);
+    sprintf(fName, "%s.diag.xml", params->outFile.c_str());
     fDiag = fopen(fName, "wt");
     if (fDiag == NULL) bBadFiles = true;
   }
@@ -2474,7 +2474,7 @@ void MData::processPSM(MSpectrum& s, mScoreCard3& sc, mResults& r){
     }
 
     char str[32];
-    sprintf(str,"%.6lf[%d;",sc.massA,vs.size());
+    sprintf(str,"%.6lf[%d;",sc.massA,(int)vs.size());
     r.openMod=str;
     for(size_t a=0;a<vs.size();a++){
       if(a>0) r.openMod+=",";

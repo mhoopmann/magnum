@@ -250,9 +250,11 @@ void MData::exportPercolator(FILE*& f, vector<mResults>& r){
     fprintf(f, "\t%.4lf", r[a].scoreMagnum);
     fprintf(f, "\t%.4lf", r[a].scoreDelta);
     fprintf(f, "\t%.6lf", -log10(r[a].eValue));
-    for(int b=1;b<r[a].charge;b++) fprintf(f,"\t0");
+    int z=r[a].charge;
+    if(z>6) z=6;
+    for(int b=1;b<z;b++) fprintf(f,"\t0");
     fprintf(f,"\t1");
-    for (int b = r[a].charge + 1; b<7; b++) fprintf(f, "\t0");
+    for (int b = z + 1; b<7; b++) fprintf(f, "\t0");
     fprintf(f, "\t%.4lf", r[a].psmMass);
     fprintf(f, "\t%.4lf", r[a].ppm);
     fprintf(f, "\t%d", (int)r[a].peptide.size());

@@ -24,7 +24,6 @@ limitations under the License.
 #include "MPrecursor.h"
 #include "MSpectrum.h"
 #include "MSReader.h"
-#include "pepXMLWriter.h"
 #include "NeoPepXMLParser.h"
 #include <iostream>
 #include "CometDecoys.h"
@@ -32,16 +31,6 @@ limitations under the License.
 #include "ThreadPool.h"
 
 using namespace MSToolkit;
-
-/*
-#ifdef _MSC_VER
-#include <direct.h>
-#define getcwd _getcwd
-#define slashdir '\\'
-#else
-#define slashdir '/'
-#endif
-*/
 
 class MData {
 public:
@@ -54,7 +43,6 @@ public:
   MSpectrum& at(const int& i);
   MSpectrum* getSpectrum(const int& i);
 
-  void      condenseResults   (vector<mScoreCard2>& v);
   bool      createDiag        (FILE*& f);
   NeoPepXMLParser* createPepXML(string& str, MDatabase& db);
   bool      createPercolator  (FILE*& f);
@@ -69,9 +57,7 @@ public:
   double    getMinMass        ();
   bool      mapPrecursors     ();
   void      outputDiagnostics (FILE* f, MSpectrum& s, MDatabase& db);
-  bool      outputPercolator  (FILE* f, MDatabase& db, kResults& r, int count);
   bool      outputResults     (MDatabase& db);
-  bool      outputResults     (MDatabase& db, MParams& par);
   void      processPSM        (MSpectrum& s, mScoreCard3& sc, mResults& r);
   void      processSpectrumInfo (MSpectrum& s, mResults& r);
   bool      readSpectra       ();
@@ -109,7 +95,6 @@ private:
   int         getCharge         (Spectrum& s, int index, int next);
   double      polynomialBestFit (vector<double>& x, vector<double>& y, vector<double>& coeff, int degree=2);
   bool        processPath       (const char* in_path, char* out_path);
-  string      processPeptide(mPeptide& pep, vector<mPepMod>* mod, int site, double massA, MDatabase& db);
   string      processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, double massA, MDatabase& db);
 
 };

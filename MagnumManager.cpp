@@ -122,11 +122,11 @@ int MagnumManager::run(){
     cout << "  Iterating spectra ... ";
     anal.doEValuePrecalc();
     time(&timeNow);
-    cout << " Finished spectral search: " << ctime(&timeNow) << endl;
+    cout << " Finished precompute expectation value histograms: " << ctime(&timeNow) << endl;
 
     log.addMessage("Start spectral search.", true);
     time(&timeNow);
-    cout << "\n Start spectral search: " << ctime(&timeNow);
+    cout << " Start spectral search: " << ctime(&timeNow);
     log.addMessage("Scoring peptides.", true);
     cout << "  Scoring peptides ... ";
     anal.doPeptideAnalysis();
@@ -138,7 +138,6 @@ int MagnumManager::run(){
     //Step #5: Output results
     log.addMessage("Exporting results.", true);
     cout << " Exporting Results." << endl;
-    //spec.outputResults(db, param_obj);
     spec.outputResults(db);
 
     log.addMessage("Finished Magnum analysis.", true);
@@ -149,8 +148,6 @@ int MagnumManager::run(){
   return 0;
 
 }
-
-
 
 bool MagnumManager::getBaseFileName(string& base, string& fName, string& extP) {
   char file[256];

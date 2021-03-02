@@ -491,30 +491,6 @@ void MSpectrum::checkScore(mScoreCard& s, int th){
   unsigned int i;
   unsigned int j;
 
-  //char str[256];
-  //sprintf(str,"%d.txt",scanNumber);
-  //FILE* f=fopen(str,"at");
-  //fprintf(f,"%.4f\n",s.simpleScore);
-  //fclose(f);
-
-  /* no need to develop histograms in real time. histograms were pre-computed
-  int index;
-  index = (int)(s.simpleScore * 10.0 + 0.5);
-  if (index >= HISTOSZ) index = HISTOSZ - 1;
-  if(hp[th].pepIndex!=s.pep){ //first score
-    histogram[index]++;
-    histogramCount++;
-    hp[th].pepIndex=s.pep;
-    hp[th].topScore=index;
-  } else {
-    if(index>hp[th].topScore){
-      histogram[hp[th].topScore]--;
-      histogram[index]++;
-      hp[th].topScore=index;
-    }
-  }
-  */
-
   //edge case for "reversible" cross-links: check if already matches top hit identically
   //note that such duplications still occur below the top score, but shouldn't influence the final result to the user
   int k=0;
@@ -1196,7 +1172,7 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
   double monoMass=bigMonoMass;
   double ionB,ionY;
   double dFragmentIonMass;
-  double xcorr,xcorr2,xcorr2B, xcorr2Y;
+  double xcorr,xcorr2B, xcorr2Y;
   double m;
   int maxZ=bigZ;
   if (maxZ>4) maxZ = 4;
@@ -1335,15 +1311,9 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
   }
           
   for(int a=minP;a<maxP+1;a++){
-    double slope;
-    double intercept;
-    double rSq;
     mHisto[a] = new MHistogram();
     linearRegression4(histoX[a],histoXCount[a],mHisto[a]->slope, mHisto[a]->intercept, mHisto[a]->rSq);
     mHisto[a]->slope *= 10;
-    //linearRegression4(histoX[a],histoXCount[a], slope, intercept, rSq);
-    //slope *= 10;
-    //cout << a << " slope: " << slope << "\tintercept: " << intercept << "\trSq: "<< rSq << "\t" << histoXCount[a] << endl;
   }
 
   return true;

@@ -52,7 +52,7 @@ public:
   char**          kojakSparseArray;
   int             kojakBins;
   
-  float lowScore;
+  double lowScore;
 
   int cc;
   int sc;

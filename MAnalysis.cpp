@@ -707,122 +707,6 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
   return float(dXcorr);
 }
 
-void MAnalysis::setBinList(kMatchSet* m, int iIndex, int charge, double preMass, mPepMod* mods, char modLen){
-
-  MIonSet* ki=ions[iIndex].at(0);
-  double** ionSeries;
-  double invBinSize=1.0/params.binSize;
-  double mz;
-  double dif;
-  int key;
-  int ionCount=ions[iIndex].getIonCount();
-  int i,j;
-
-  //set up all modification mass modifiers
-  double* mod;
-  double* modRev;
-  mod = new double[ionCount];
-  modRev = new double[ionCount];
-  for(i=0;i<ionCount;i++){
-    mod[i]=0;
-    modRev[i]=0;
-  }
-  for(i=0;i<(int)modLen;i++){
-    for(j=mods[i].pos;j<ionCount;j++){
-      mod[j]+=mods[i].mass;
-    }
-    for(j=ionCount-mods[i].pos;j<ionCount;j++){
-      modRev[j]+=mods[i].mass;
-    }
-  }
-  
-  if(charge>6) charge=6;
-  m->allocate(ions[iIndex].getIonCount(),charge);
-
-  //populate structure
-  for(i=1;i<charge;i++){
-
-    dif=preMass/i;
-
-    //a-ions
-    if(params.ionSeries[0]) {
-      ionSeries=ki->aIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-mod[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+mod[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->a[i][j].pos = (int)((mz-key)*invBinSize);
-        m->a[i][j].key = key;
-      }
-    }
-
-    //b-ions
-    if(params.ionSeries[1]) {
-      ionSeries=ki->bIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-mod[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+mod[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->b[i][j].pos = (int)((mz-key)*invBinSize);
-        m->b[i][j].key = key;
-      }
-    }
-
-    //c-ions
-    if(params.ionSeries[2]) {
-      ionSeries=ki->cIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-mod[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+mod[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->c[i][j].pos = (int)((mz-key)*invBinSize);
-        m->c[i][j].key = key;
-      }
-    }
-
-    //x-ions
-    if(params.ionSeries[3]) {
-      ionSeries=ki->xIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-modRev[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+modRev[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->x[i][j].pos = (int)((mz-key)*invBinSize);
-        m->x[i][j].key = key;
-      }
-    }
-
-    //y-ions
-    if(params.ionSeries[4]) {
-      ionSeries=ki->yIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-modRev[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+modRev[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->y[i][j].pos = (int)((mz-key)*invBinSize);
-        m->y[i][j].key = key;
-      }
-    }
-
-    //z-ions
-    if(params.ionSeries[5]) {
-      ionSeries=ki->zIons;
-      for(j=0;j<ionCount;j++) {
-        if(ionSeries[i][j]<0) mz = params.binSize * (int)((dif-(ionSeries[i][j]-modRev[j]/i))*invBinSize+params.binOffset);
-        else mz = params.binSize * (int)((ionSeries[i][j]+modRev[j]/i)*invBinSize+params.binOffset);
-        key = (int)mz;
-        m->z[i][j].pos = (int)((mz-key)*invBinSize);
-        m->z[i][j].key = key;
-      }
-    }
-
-  }
-
-  delete [] mod;
-  delete [] modRev;
-
-}
-
 
 /*============================
   Utilities
@@ -832,14 +716,6 @@ int MAnalysis::compareD(const void *p1, const void *p2){
   const double d2 = *(double *)p2;
   if(d1<d2) return -1;
   else if(d1>d2) return 1;
-  else return 0;
-}
-
-int MAnalysis::comparePeptideBMass(const void *p1, const void *p2){
-  const kPeptideB d1 = *(kPeptideB *)p1;
-  const kPeptideB d2 = *(kPeptideB *)p2;
-  if(d1.mass<d2.mass) return -1;
-  else if(d1.mass>d2.mass) return 1;
   else return 0;
 }
 

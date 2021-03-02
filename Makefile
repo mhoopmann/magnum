@@ -6,53 +6,62 @@ FLAGS = -O3 -static -std=c++11 -D_NOSQLITE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BI
 #Paths to supporting software
 MSTOOLKITPATH = ../MSToolkit
 HARDKLORPATH = ../Hardklor
+PEPXMLPATH = ../NeoPepXMLParser
 
 #Do not touch these variables
-LIBPATH = -L$(MSTOOLKITPATH) -L$(HARDKLORPATH)
-LIBS = -lmstoolkitlite -lhardklor -lpthread
-INCLUDE = -I$(MSTOOLKITPATH)/include -I$(HARDKLORPATH)
+LIBPATH = -L$(MSTOOLKITPATH) -L$(HARDKLORPATH) -L$(PEPXMLPATH)
+LIBS = -lmstoolkitlite -lhardklor -lneopepxmlparser -lpthread
+INCLUDE = -I$(MSTOOLKITPATH)/include -I$(HARDKLORPATH) -I$(PEPXMLPATH)
 
 
 #Do not touch these variables
-KOJAK = KParams.o KAnalysis.o KData.o KDB.o KPrecursor.o KSpectrum.o KIons.o KIonSet.o KTopPeps.o Threading.o
+MAGNUM = MagnumManager.o MParams.o MAnalysis.o MData.o MDB.o MLog.o MPrecursor.o MSpectrum.o MIons.o MIonSet.o MTopPeps.o Threading.o CometDecoys.o
 
 
 #Make statements
-kojak : Kojak.cpp $(KOJAK)
-	$(CC) $(FLAGS) $(INCLUDE) $(KOJAK) Kojak.cpp $(LIBPATH) $(LIBS) -o kojak
+magnum : Magnum.cpp $(MAGNUM)
+	$(CC) $(FLAGS) $(INCLUDE) $(MAGNUM) Magnum.cpp $(LIBPATH) $(LIBS) -o magnum
 
 clean:
-	rm *.o kojak
+	rm *.o magnum
 
 
-#Hardklor objects
-KParams.o : KParams.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KParams.cpp -c
+#Magnum objects
+MParams.o : MParams.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MParams.cpp -c
 
-KAnalysis.o : KAnalysis.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KAnalysis.cpp -c
+MAnalysis.o : MAnalysis.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MAnalysis.cpp -c
 
-KData.o : KData.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KData.cpp -c
+MData.o : MData.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MData.cpp -c
 
-KDB.o : KDB.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KDB.cpp -c
+MDB.o : MDB.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MDB.cpp -c
 
-KPrecursor.o : KPrecursor.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KPrecursor.cpp -c
+MLog.o : MLog.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MLog.cpp -c
 
-KSpectrum.o : KSpectrum.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KSpectrum.cpp -c
+MagnumManager.o : MagnumManager.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MagnumManager.cpp -c
 
-KIons.o : KIons.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KIons.cpp -c
-		
-KIonSet.o : KIonSet.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KIonSet.cpp -c
-	
-KTopPeps.o : KTopPeps.cpp
-	$(CC) $(FLAGS) $(INCLUDE) KTopPeps.cpp -c
-		
+MPrecursor.o : MPrecursor.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MPrecursor.cpp -c
+
+MSpectrum.o : MSpectrum.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MSpectrum.cpp -c
+
+MIons.o : MIons.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MIons.cpp -c
+
+MIonSet.o : MIonSet.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MIonSet.cpp -c
+
+MTopPeps.o : MTopPeps.cpp
+	$(CC) $(FLAGS) $(INCLUDE) MTopPeps.cpp -c
+
 Threading.o : Threading.cpp
 	$(CC) $(FLAGS) $(INCLUDE) Threading.cpp -c
 
+CometDecoys.o : CometDecoys.cpp
+	$(CC) $(FLAGS) $(INCLUDE) CometDecoys.cpp -c

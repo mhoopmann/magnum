@@ -1,5 +1,5 @@
 /* Globals */
-@import url("https://fonts.googleapis.com/css?family=Roboto:400,500,700");
+@import url("https://fonts.googleapis.com/css?family=Roboto:200,400,500,700|Roboto+Slab:400,700|Material+Icons");
 html {
  font-family: sans-serif;
  position: relative;
@@ -9,28 +9,28 @@ body {
  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
  padding-top: 3.5rem;
  margin-bottom: 24px;
- background-color: #222;
- color:#fff
+ background-color: #FBFBFB;
+ color:#000
 }
 a{
- color:#e74c3c;
+ color:#82221C;
  text-decoration:none
 }
 a:hover,a:focus{
- color:#e12e1c;
+ color:#F44336;
  text-decoration:underline
 }
 
 /* Buttons */
 .btn-primary {
   color: #fff;
-  background-color: #c80000;
-  border-color: #c80000;
+  background-color: #82221C;
+  border-color: #82221C;
 }
 
 .btn-primary:hover {
   color: #fff;
-  background-color: #7b7971;
+  background-color: #F44336;
   border-color: #74726b;
 }
 
@@ -41,8 +41,8 @@ a:hover,a:focus{
 
 .btn-primary.disabled, .btn-primary:disabled {
   color: #fff;
-  background-color: #c80000;
-  border-color: ##c80000;
+  background-color: #8C8B94;
+  border-color: #8C8B94;
 }
 
 .btn-primary:not(:disabled):not(.disabled):active, .btn-primary:not(:disabled):not(.disabled).active,.show > .btn-primary.dropdown-toggle {
@@ -64,7 +64,7 @@ a:hover,a:focus{
 
 .btn-secondary:hover {
   color: #fff;
-  background-color: #7b7971;
+  background-color: #F44336;
   border-color: #74726b;
 }
 
@@ -90,24 +90,31 @@ a:hover,a:focus{
           box-shadow: 0 0 0 0.2rem rgba(159, 157, 150, 0.5);
 }
 
+.container-jumbo{
+ float:left;
+ margin-left:100px;
+ width:700px;
+}
+
 /*Jumbotron extras*/
 .jumbotron-magnum {
- background-image: url(../images/crypto.png);
- background-position: 115% 0%;
+ background-image: url(../images/jumbo3.png);
+ #background-position: 115% 0%;
  background-repeat: no-repeat;
- background-size:625px;
+ background-size:2045px 550px;
  background-color: #1D1D1D;
  min-height:550px;
  padding:100px 0;
 }
 
 .jumbotron-ISB {
- background-color:#002664;
+ background-color:#15141C;
  color:#ffffff;
  margin:0px;
 }
 
 .magnum-title{
+ color:#FBFBFB;
  font-family: 'Racing Sans One', cursive;
  font-size: 6.0rem;
  font-weight: 100;
@@ -115,13 +122,17 @@ a:hover,a:focus{
 }
 
 hr {
-  border-top: 1px solid #c80000;
+  border-top: 1px solid #82221C;
 }
 
 /* Featurettes */
+.featurette-wrapper{
+ margin-top:120px;
+ margin-bottom:120px;
+}
 .featurette-divider {
   margin: 5rem 0; /* Space out the Bootstrap <hr> more */
-  border-top: 1px solid #c80000;
+  border-top: 1px solid #82221C;
 }
 
 .featurette-heading {
@@ -161,10 +172,10 @@ hr {
 .sidebar-link {
  margin: 0px;
  padding: 0px;
- color:#e74c3c;
+ color:#82221C;
 }
 .sidebar-link:hover,.sidebar-link:focus {
- color:#e12e1c;
+ color:#F44336;
  text-decoration:underline;
 }
 .sidebar-header{
@@ -279,7 +290,7 @@ pre code{
 
 /* Colors */
 .bg-primary {
-  background-color: #222222 !important;
+  background-color: #FBFBFB !important;
 }
 
 a.bg-primary:hover, a.bg-primary:focus,
@@ -289,7 +300,12 @@ button.bg-primary:focus {
 }
 
 .bg-dark {
-  background-color: #c80000 !important;
+  background-color: #15141C !important;
+  color:#F8F4F8 !important;
+}
+
+.bg-nav {
+ background-color: #82221C !important;	
 }
 
 a.bg-dark:hover, a.bg-dark:focus,
@@ -315,6 +331,42 @@ button.bg-dark:focus {
  color:#fff;
 }
 
+.info-horizontal{
+ margin-top:80px;
+ margin-bottom:80px;
+
+}
+
+.heading {
+ margin-top: 6px;
+}
+
+.info-p{
+ min-height:120px;
+}
+
+.info-horizontal .heading {
+ margin-left:10px;
+ text-align: left;
+ font-size:1.3rem;
+ font-weight:1000;
+ color: #15141C;
+}
+
+.icon {
+  float: left;
+  margin-right: 10px;
+}
+.info-horizontal .description {
+  overflow: hidden;
+  text-align: left;
+}
+
+.icon.icon-primary {
+  color: #82221C;
+}
+
+
 /* RESPONSIVE CSS */
 
 @media (min-width: 40em) {
@@ -333,4 +385,104 @@ button.bg-dark:focus {
 .ISB-midnight {
  background-color:#002664;
  color:#ffffff;
+}
+
+.btn.btn-round {
+  border-radius: 30px;
+}
+
+.card-bottom{
+ margin-bottom:15px;
+}
+
+.card-title {
+ color: #82221C;
+ font-weight: 700;
+ font-family: "Roboto Slab", "Times New Roman", serif;
+ text-decoration: none; 
+ text-align:left;
+ margin-left:15px;
+ padding-top:20px;
+}
+
+.card-description{
+ color:#15141C;
+ text-align:left;
+ margin-left:15px;
+ margin-top:20px;
+ font-size:0.9rem;
+ min-height:100px;
+}
+
+.card {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  margin-bottom: 30px;
+  border-radius: 6px;
+  color: rgba(0,0,0, 0.87);
+  background: #fff;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+}
+.card .card-height-indicator {
+  margin-top: 100%;
+}
+.card .card-image {
+  height: 60%;
+  position: relative;
+  overflow: hidden;
+  margin-left: 15px;
+  margin-right: 15px;
+  margin-top: -50px;
+  border-radius: 6px;
+}
+.card .card-image-left {
+ float: left;
+ height: 60%;
+ position: relative;
+ margin-left: -75px;
+ margin-bottom: 25px;
+ margin-top: 25px;
+ border-radius: 6px;
+}
+
+.card .card-image-left img {
+  width: 320px;
+  height: 320px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.card .card-image img {
+  width: 80%;
+  height: 80%;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.card .card-image .card-title {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  color: #fff;
+  font-size: 1.3em;
+  text-shadow: 0 2px 5px rgba(33, 33, 33, 0.5);
+}
+
+.card-blog {
+  margin-top: 30px;
+}
+.card-blog .row .category {
+  margin-bottom: 0;
+}
+.card-blog .card-title {
+  margin-top: 5px;
+}
+.card-blog .card-image + .category {
+  margin-top: 20px;
+}
+
+.color-invert{
+ background-color:#15141C;
+ color:#F8F4F8;
 }

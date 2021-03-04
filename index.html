@@ -15,6 +15,8 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com">
 	<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Lato" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="./css/magnum.css" rel="stylesheet">
@@ -48,7 +50,7 @@
   <body>
 
    <header>
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-nav">
      <a class="navbar-brand" href="./index.html"><img src="./images/stache.png"></a>
      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -78,8 +80,8 @@
   
 <main role="main">
 
- <div class="jumbotron jumbotron-fluid jumbotron-magnum">
-  <div class="container">
+ <div class="jumbotron jumbotron-fluid jumbotron-magnum header-filter">
+  <div class="container container-jumbo">
    <h1 class="magnum-title">Magnum</h1>
    <h2>I know what you're thinking. And you're wrong.</h2>
    <h5><p class="lead"><ul class="text-warning">
@@ -92,34 +94,101 @@
 </p></h5>
   </div>
  </div>
-  
+ 
  <div class="container">
-  <div class="row featurette">
-   <div class="col-md-7">
-    <h2 class="featurette-heading">Current Release</h2> 
+  <div class="row mini-featurette">
+   <div class="col-lg-4">
+    <div class="info info-horizontal">
+	 <div class="icon icon-primary">
+	  <span class="material-icons-outlined">download_for_offline</span>
+	 <!--
+	  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-cloud-download" viewBox="0 0 16 16">
+       <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
+       <path d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z"/>
+      </svg>
+	  -->
+	 </div>
+	 <div class="description">
+	  <h3 class="heading">Download</h3>
+      <p class="info-p">
+	   
+	   Version: 1.0.0 alpha 1<br>
+	   Date: February 10 2021<br>
+	   
+	   Magnum is available in pre-compiled binaries for Microsoft Windows and GNU/Linux (Ubuntu).
+	  </p>
+	  <p>
+	   <a class="btn btn-primary btn-md" href="./download.html" role="button">Get It Now &raquo;</a>
+	  </p>
+     </div>
+    </div>
+   </div><!-- /.col-lg-4 -->
+   
+   <div class="col-lg-4">
+    <div class="info info-horizontal">
+	 <div class="icon icon-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-code-square" viewBox="0 0 16 16">
+       <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+       <path d="M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0zm2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0z"/>
+      </svg>
+	 </div>
+	 <div class="description">
+	  <h3 class="heading">Source Code</h3>
+      <p class="info-p">Magnum is written in C++. The source code is free and open with an Apache 2.0 license. The source code is available on GitHub.</p>
+	  <p>
+	   <a class="btn btn-primary btn-md" href="./source.html" role="button">Details &raquo;</a>
+	  </p>
+     </div>
+    </div>
+   </div><!-- /.col-lg-4 -->
+   
+   <div class="col-lg-4">
+    <div class="info info-horizontal">
+	 <div class="icon icon-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-book-half" viewBox="0 0 16 16">
+       <path d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+      </svg>
+	 </div>
+	 <div class="description">
+	  <h3 class="heading">Publications</h3>
+      <p class="info-p">Follow Magnum in the scientific literature, discover tools and pipelines that use Magnum, and find the latest Magnum publications here.</p>
+	  <p>
+	   <a class="btn btn-primary btn-md" href="./cite.html" role="button">Info &raquo;</a>
+	  </p>
+     </div>
+    </div>
+   </div><!-- /.col-lg-4 -->
+  </div><!-- /.row -->
+ </div>
+ 
+  <div class="row bg-dark">
+  <div class="container">
+   <div class="row featurette featurette-wrapper">
+   <div class="card">
+    <div class="card-image-left">
+     <img class="bd-placeholder-img bd-placeholder-img-lg featurette-image img-fluid mx-auto" width="400" height="400" src="./images/mag1.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
+    </div>
+    <h2 class="featurette-heading">Read the Latest News</h2>
 	
 	<h3>
-	 <span class="text-muted">Version 1.0.0 alpha 1</span>
+	 <span class="text-muted">Site Test</span>
 	</h3>
 	<h4>
-	 <span class="text-muted">Released on February 10 2021</span>
+	 <span class="text-muted">Feb 10 2021</span>
 	</h4>
+    <p class="lead">Website created. ...</p>
 	
-	</h3>
-    <p class="lead">Precompiled binaries provided for Windows and Linux. Free and open source, can be compiled on virtually any operating system including Windows, Linux, and MacOS.</p>
-	<a class="btn btn-primary btn-lg" href="./download.html" role="button">Get It Now &raquo;</a>
-	<a class="btn btn-primary btn-lg" href="./docs/quick.html" role="button">Quick Start Guide &raquo;</a>
-   </div>
-   <div class="col-md-5">
-    <img class="bd-placeholder-img bd-placeholder-img-lg featurette-image img-fluid mx-auto" width="400" height="400" src="./images/mag1.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
+	<a class="btn btn-primary btn-lg btn-round" href="./news/index.html" role="button">Read More &raquo;</a>
    </div>
   </div>
-
-  <hr class="featurette-divider">
-  
-  <div class="row featurette">
+  </div>
+ </div>
+ 
+ <div class="row bg-dark">
+  <div class="container">
+   <div class="row featurette featurette-wrapper">
    <div class="col-md-7 order-md-2">
-    <h2 class="featurette-heading">Read the Latest News</h2>
+    <h2 class="featurette-heading bg-dark">Read the Latest News</h2>
 	
 	<h3>
 	 <span class="text-muted">Site Test</span>
@@ -135,27 +204,61 @@
     <img class="bd-placeholder-img bd-placeholder-img-lg featurette-image img-fluid mx-auto" width="400" height="400" src="./images/mag1.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
    </div>
   </div>
+  </div>
+ </div>
   
-  <hr class="featurette-divider">
+ <div class="container">
   
-  <div class="row mini-featurette">
+  <div class="row mini-featurette featurette-wrapper">
    <div class="col-lg-4">
-    <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature1.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
-    <h2>Kojak Spectrum Viewer</h2>
-    <p>Visualize MS/MS spectral results from Kojak. Multi-platform graphical user interface and publication quality exporter of cross-linked spectral images.</p>
-    <p><a class="btn btn-primary" href="./viewer/index.html" role="button">View details &raquo;</a></p>
+    <div class="card card-blog color-invert">
+     <div class="card-image">
+	  <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature1.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
+	 </div>
+     <h5 class="card-title">
+	  Kojak Spectrum Viewer
+	 </h5>
+     <p class="card-description color-invert">
+	  Visualize MS/MS spectral results from Kojak. Multi-platform graphical user interface and publication quality exporter of cross-linked spectral images.
+	 </p>
+     <div class="card-bottom text-center">
+	   <a class="btn btn-primary btn-round" href="./viewer/index.html" role="button">View details &raquo;</a>
+	 </div>
+	</div>
    </div><!-- /.col-lg-4 -->
+   
    <div class="col-lg-4">
-    <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature2.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
-    <h2>Trans-Proteomic Pipeline</h2>
-    <p>Multi-platform graphical interface for using Kojak, combined with downstream validation tools to estimate probabilities and FDR of Kojak results.</p>
-    <p><a class="btn btn-primary" href="http://tppms.org" target="new" role="button">View details &raquo;</a></p>
+    <div class="card card-blog fill-light">
+     <div class="card-image">
+      <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature2.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
+	 </div>
+     <h5 class="card-title">
+	  Trans-Proteomic Pipeline
+	 </h5>
+     <p class="card-description">
+	  Multi-platform graphical interface for using Kojak, combined with downstream validation tools to estimate probabilities and FDR of Kojak results.
+	 </p>
+     <div class="card-bottom text-center">
+	  <a class="btn btn-primary btn-round" href="http://tppms.org" target="new" role="button">View details &raquo;</a>
+	 </div>
+	</div>
    </div><!-- /.col-lg-4 -->
+   
    <div class="col-lg-4">
-    <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature3.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
-    <h2>ProXL: Protein XL Database</h2>
-    <p>Analyze, visualize, and share your protein cross-linking data. Import Kojak results, combine multiple analyses, mine protein links, and produce 3D protein structure overlays.</p>
-    <p><a class="btn btn-primary" href="http://proxl-ms.org" target="new" role="button">View details &raquo;</a></p>
+    <div class="card card-blog fill-light">
+     <div class="card-image">
+      <img class="bd-placeholder-img rounded-circle" width="140" height="140" src="./images/miniFeature3.png" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"></img>
+	 </div>
+     <h5 class="card-title">
+	  ProXL: Protein XL Database
+	 </h5>
+     <p class="card-description">
+	  Analyze, visualize, and share your protein cross-linking data. Import Kojak results, combine multiple analyses, mine protein links, and produce 3D protein structure overlays.
+	 </p>
+     <div class="card-bottom text-center">
+	  <a class="btn btn-primary btn-round" href="http://proxl-ms.org" target="new" role="button">View details &raquo;</a>
+	 </div>
+	</div>
    </div><!-- /.col-lg-4 -->
   </div><!-- /.row -->
   
@@ -163,7 +266,7 @@
   
  <div class="jumbotron jumbotron-fluid jumbotron-ISB">
   <div class="container">
-   <h2>Magnum is published by the</h2>
+   <h2>Magnum is published by</h2>
     <center>
 	 <a href="https://isbscience.org/" target="new"><img src="./images/ISB_Logo_Tagline_Primary_Reverse_RGB.png"></a>
 	</center>

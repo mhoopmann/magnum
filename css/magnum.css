@@ -1,5 +1,5 @@
 /* Globals */
-@import url("https://fonts.googleapis.com/css?family=Roboto:200,400,500,700|Roboto+Slab:400,700|Material+Icons");
+/* @import url("https://fonts.googleapis.com/css?family=Roboto:200,400,500,700|Roboto+Slab:400,700"); */
 html {
  font-family: sans-serif;
  position: relative;
@@ -7,6 +7,7 @@ html {
 } 
 body {
  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+ font-weight: 200;
  padding-top: 3.5rem;
  margin-bottom: 24px;
  background-color: #FBFBFB;
@@ -98,7 +99,7 @@ a:hover,a:focus{
 
 /*Jumbotron extras*/
 .jumbotron-magnum {
- background-image: url(../images/jumbo3.png);
+ background-image: url(../images/jumbo5.png);
  #background-position: 115% 0%;
  background-repeat: no-repeat;
  background-size:2045px 550px;
@@ -129,6 +130,11 @@ hr {
 .featurette-wrapper{
  margin-top:120px;
  margin-bottom:120px;
+}
+.featurette-narrow{
+ width:80%;
+ margin-right: auto;
+ margin-left: auto;
 }
 .featurette-divider {
   margin: 5rem 0; /* Space out the Bootstrap <hr> more */
@@ -450,14 +456,22 @@ button.bg-dark:focus {
   width: 320px;
   height: 320px;
   border-radius: 6px;
-  pointer-events: none;
 }
 
 .card .card-image img {
   width: 80%;
   height: 80%;
   border-radius: 6px;
-  pointer-events: none;
+}
+
+.img-under {
+  position: absolute;
+  margin-right:20px;
+}
+
+.img-over {
+  position: relative;
+  margin-right:20px;
 }
 
 .card .card-image .card-title {
@@ -467,6 +481,13 @@ button.bg-dark:focus {
   color: #fff;
   font-size: 1.3em;
   text-shadow: 0 2px 5px rgba(33, 33, 33, 0.5);
+}
+
+.card .card-title-left {
+ color: #82221C;
+ font-size:40px;
+ font-weight:700;
+ padding-top:16px;
 }
 
 .card-blog {
@@ -482,7 +503,62 @@ button.bg-dark:focus {
   margin-top: 20px;
 }
 
+.card .card-foot{
+ bottom:25px;
+ left:300px;
+}
+
+.card .card-stamp{
+ color: #82221C;
+ font-size:18px;
+ font-weight:500;
+ float:right;
+ margin-right:50px;
+ margin-top:8px;
+}
+
 .color-invert{
  background-color:#15141C;
  color:#F8F4F8;
 }
+
+.text-subheading{
+ font-size:1.9rem;
+ font-weight:500;
+ padding-top:20px;
+}
+
+.text-news{
+ font-size:1rem;
+ font-weight:200;
+ padding-top:10px;
+ height:140px;
+}
+
+.text-color{
+ color:#15141C;
+}
+
+.text-accent{
+ color:#CE9747;
+}
+
+.text-invert{
+ color:#F8F4F8;
+}
+
+.text-400{
+ font-weight:400;
+}
+
+/* Rules for sizing the icon. */
+.material-icons.md-18 { font-size: 18px; }
+.material-icons.md-24 { font-size: 24px; }
+.material-icons.md-36 { font-size: 36px; }
+.material-icons.md-48 { font-size: 48px; }
+
+/* Rules for sizing the icon. */
+.material-icons-outlined.md-18 { font-size: 18px; }
+.material-icons-outlined.md-24 { font-size: 24px; }
+.material-icons-outlined.md-36 { font-size: 36px; }
+.material-icons-outlined.md-48 { font-size: 48px; }

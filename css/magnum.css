@@ -324,7 +324,7 @@ button.bg-dark:focus {
 .footer {
  width: 100%;
  height: 24px;
- background-color: #3e3f3a;
+ background-color: #15141C;
  color:#ffffff;
  margin:0px;
 }
@@ -372,6 +372,10 @@ button.bg-dark:focus {
   color: #82221C;
 }
 
+.icon.icon-invert {
+  color: #F8F4F8;
+}
+
 
 /* RESPONSIVE CSS */
 
@@ -397,6 +401,10 @@ button.bg-dark:focus {
   border-radius: 30px;
 }
 
+.card-height{
+ min-height:450px;
+}
+
 .card-bottom{
  margin-bottom:15px;
 }
@@ -404,7 +412,7 @@ button.bg-dark:focus {
 .card-title {
  color: #82221C;
  font-weight: 700;
- font-family: "Roboto Slab", "Times New Roman", serif;
+ #font-family: "Roboto Slab", "Times New Roman", serif;
  text-decoration: none; 
  text-align:left;
  margin-left:15px;
@@ -418,6 +426,16 @@ button.bg-dark:focus {
  margin-top:20px;
  font-size:0.9rem;
  min-height:100px;
+}
+
+.card-description-narrow{
+ color:#15141C;
+ text-align:left;
+ padding-left:20px;
+ padding-right:20px;
+ margin-bottom:40px;
+ margin-top:15px;
+ font-size:0.9rem;
 }
 
 .card {
@@ -459,8 +477,8 @@ button.bg-dark:focus {
 }
 
 .card .card-image img {
-  width: 80%;
-  height: 80%;
+  width: 256px;
+  height: 256px;
   border-radius: 6px;
 }
 
@@ -472,6 +490,15 @@ button.bg-dark:focus {
 .img-over {
   position: relative;
   margin-right:20px;
+}
+
+
+.img-under-small {
+  position: absolute;
+}
+
+.img-over-small {
+  position: relative;
 }
 
 .card .card-image .card-title {
@@ -488,6 +515,15 @@ button.bg-dark:focus {
  font-size:40px;
  font-weight:700;
  padding-top:16px;
+}
+
+.card-subtitle{
+ color:#82221C;
+ font-size:20px;
+ font-weight:700;
+ margin-top:40px;
+ padding-left:30px;
+ text-align:left;
 }
 
 .card-blog {
@@ -515,6 +551,11 @@ button.bg-dark:focus {
  float:right;
  margin-right:50px;
  margin-top:8px;
+}
+
+.color-accent{
+ background-color:#797393;
+ color:#F8F4F8;
 }
 
 .color-invert{

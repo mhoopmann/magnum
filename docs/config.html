@@ -5,7 +5,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Kojak Configuration</title>
+    <title>Magnum Configuration</title>
     <meta name="description" content="Kojak Description">
 
     <!-- Bootstrap core CSS -->
@@ -81,10 +81,10 @@
 <div class="container padded">
  <div class="row">
   <div class="col-md-9">
-   <h2 id="configuring-kojak">Configuring Kojak</h2>
+   <h2 id="configuring-magnum">Configuring Magnum</h2>
 
-<p>Due to the large number of parameters used in any Kojak analysis, all parameters are set in a configuration file
-rather than typed out on the command line. A sample configuration file is provided with Kojak, and can also be
+<p>Due to the large number of parameters used in any Magnum analysis, all parameters are set in a configuration file
+rather than typed out on the command line. A sample configuration file is provided with Magnum, and can also be
 copied from <a href="../docs/sample.html">this example</a>.</p>
 
 <p>Changing parameters should be done from any ASCII text editor, such as <code class="highlighter-rouge">vim</code> in Linux, or <code class="highlighter-rouge">notepad</code> in Windows.
@@ -107,7 +107,7 @@ on the <a href="../param/index.html">Parameters</a> page.</p>
 
 <h4 id="1-data-io">1. Data I/O</h4>
 
-<p>The Data I/O parameters describe files that will be imported and exported from Kojak during analysis. There are two key
+<p>The Data I/O parameters describe files that will be imported and exported from Magnum during analysis. There are two key
 files for input: your MS data file and a protein sequence database:</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>database = polymerase_proteins.fasta
@@ -134,13 +134,13 @@ ECNEWKESNIETRPYMSISIHTM</pre>
 
 <div class="alert alert-info">
 <h4>Helpful Hint</h4>
-<p class="hint">Kojak looks for files in the current working directory, i.e. the directory you are in. You can provide relative
+<p class="hint">Magnum looks for files in the current working directory, i.e. the directory you are in. You can provide relative
 paths to parent- and sub-directories if desired. To ensure input and output is directed from and to a specific location
 no matter which directory you are in, provide an absolute path with your files:</p>
 <pre>database = C:\databases\e_coli.fasta</pre>	
 </div>
 
-<p>The remaining parameters in this group define exported content after Kojak analysis is complete. All output is in tab-delimited
+<p>The remaining parameters in this group define exported content after Magnum analysis is complete. All output is in tab-delimited
 ASCII text files. The standard output file contains a complete summary of the results in a single file:</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>output_file = my_results.txt
@@ -153,19 +153,17 @@ validation of the peptide spectrum matches (PSMs):</p>
 percolator_version = 2.07
 </code></pre></div></div>
 
-<p>For the <code class="highlighter-rouge">percolator_file</code> parameter, no extension is necessary. The parameter requires only a base name because Kojak will
-automatically divide the Percolator-formatted results into multiple files according to PSM type (e.g. intra-protein cross-links)
-and append a <code class="highlighter-rouge">txt</code> extension. The <code class="highlighter-rouge">percolator_version</code> number should match the version of Percolator you will be using, as input
-formats differ between Percolator versions. Kojak will automatically format the results to match the version you specify.</p>
+<p>For the <code class="highlighter-rouge">percolator_file</code> parameter, no extension is necessary. The <code class="highlighter-rouge">percolator_version</code> number should match the version of Percolator you will be using, as input
+formats differ between Percolator versions. Magnum will automatically format the results to match the version you specify.</p>
 
 <hr />
 
 <h4 id="2-data-descriptors">2. Data Descriptors</h4>
 
 <p>The Data Descriptor parameters describe the spectra to be analyzed. Accurate description of the spectra ensures the
-correct spectrum processing is performed during the Kojak analysis.</p>
+correct spectrum processing is performed during the Magnum analysis.</p>
 
-<p>During Kojak analysis, all profile MS peaks must be converted to centroid MS peaks. Kojak has built-in functionality to
+<p>During Magnum analysis, all profile MS peaks must be converted to centroid MS peaks. Magnum has built-in functionality to
 perform this operation, but requires additional information about the instrument used and the resolution settings.
 Correctly setting these values will produce the most accurate centroid peak conversion. First, identify whether or not
 the spectra are centroided at the MS and MS/MS levels:</p>
@@ -174,9 +172,9 @@ the spectra are centroided at the MS and MS/MS levels:</p>
 MS2_centroid = 1
 </code></pre></div></div>
 
-<p>In the above example, 0 indicates profile peaks and 1 indicates centroid peaks. The parameters thus tell Kojak
+<p>In the above example, 0 indicates profile peaks and 1 indicates centroid peaks. The parameters thus tell Magnum
 that the MS spectra are profile, and the MS/MS spectra are centroid. As a result, only the MS peaks will be converted
-to centroid values during the analysis. However, Kojak will need additional information about the peaks, such as
+to centroid values during the analysis. However, Magnum will need additional information about the peaks, such as
 what instrument they were acquired on, and at what resolution:</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>instrument = 0
@@ -191,7 +189,7 @@ during analysis.</p>
 <div class="alert alert-info">
 <h4>Helpful Hint</h4>
 <p class="hint">Don't want to worry about setting the correct parameters to convert profile peaks to centroid? Simply give
-Kojak a data file where all the peaks are already centroided. With the right tool, such as <i>msconvert</i> from
+Magnum a data file where all the peaks are already centroided. With the right tool, such as <i>msconvert</i> from
 <a href="http://proteowizard.sourceforge.net/" class="alert-link" target="new">ProteoWizard</a>, you can do this 
 when converting your raw data to an mzML file.</p>
 </div>
@@ -202,62 +200,46 @@ digestion step of your sample prep. Details of how and when to use this paramete
 
 <hr />
 
-<h4 id="3-cross-links">3. Cross-links</h4>
+<h4 id="3-open-modifications-and-adducts">3. Open Modifications and Adducts</h4>
 
-<p>Although there are only two parameters in this category, they have special syntax that allow for analysis of data
-cross-linked with a large, diverse set of chemicals.</p>
+<p>The characteristic features of Magnum are the ability to detect unspecified modification masses on peptides analyzed by
+mass spectrometry, and possibly localize them on the peptide backbone. When combined with some <em>a priori</em> knowledge, these
+features become powerful tools for detecting novel chemical moieties and adducts resulting from treatments to your protein samples.</p>
 
-<p>Chemical cross-linkers are assumed to be bifunctional. This means that they have two reactive groups that may bind
-to the same (homobifunctional) or different (heterobifunctional) moieties. Cross-linkers also have different spacer arm
-compositions that influence their mass. As an example, here is the parameter you would set if you used either DSS
-(or BS3) as your cross-linker:</p>
+<p>If your adduct masses are known, they are best identified through standard modification analyses. However, if the precise adduct mass
+is unknown, a range of potential adduct masses are specified with two simple parameters:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>min_adduct_mass = 50.0
+max_adduct_mass = 300.0
 </code></pre></div></div>
 
-<p>There are three values for the parameter. The first two values indicate the reaction targets on both ends of the
-cross-linker. DSS is homobifunctional and specifically targets primary amines (lysine residues or the n-terminus).
-Thus, the first two values are both 1, which is the <a href="../param/cross_link.html">chemical code</a> for primary amines.
-The third value is the amount of additional mass the spacer arm adds to the mass of two cross-linked peptides.</p>
+<p>In the example above, any open modification mass between 50 and 300 Da will be searched on all peptide sequences. If a peptide
+with an open modification in this range scores higher than any other peptide sequence (including those without modifications or
+more typical variable modifications), then this open-modified PSM will be reported in the Magnum results.</p>
 
-<p>It is also common for cross-linkers to produce partial linkages. These occur when one side of the cross-linker
-binds to a protein, but the other side becomes inert through hydrolysis. The resulting peptide remains unlinked,
-but with a differential modification equal to the hydrolyzed cross-linker at the target moiety:</p>
+<p>A unique feature to Magnum is the ability to localize the open modifcation or adduct to a particular peptide residue or set
+of residues, including the protein termini. Localization has several advantages, foremost in restricting the open search space
+to a realistic subset of peptides. This feature is especially useful if your adduct has reactive sites that limit its interactions
+to particular chemical moieties. Localization may also help in downstream curation of the results. To set localization, use the
+following parameter:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mono_link = 1 156.0786
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>adduct_sites = nK
 </code></pre></div></div>
 
-<p>Similar to the <code class="highlighter-rouge">cross_link</code> parameter, the <code class="highlighter-rouge">mono_link</code> parameter requires a reaction target, albeit only one. The
-differential mass is different as well, to reflect the different atomic composition of the incompletely linked
-spacer arm.</p>
+<p>The example above limits the open modification search space to primary amines (lysines and the protein n-terminus). To have a complete
+open modification search, it is possible to specify all amino acids. Localization will still occur if there is fragmentation evidence
+to place the adduct on a particular residue.</p>
 
-<p>Often, you will use both the <code class="highlighter-rouge">cross_link</code> and <code class="highlighter-rouge">mono_link</code> parameters in the same configuration file. However,
-some cross-linkers may not produce partial links, and thus the <code class="highlighter-rouge">mono_link</code> lines can be deleted or commented out
-using the note <code class="highlighter-rouge">#</code> character. Also, as is the case for zero-length cross-linkers, the differential mass may be
-negative if there is no corresponding spacer arm and instead the target residues are linked in a hydrolysis reaction.</p>
-
-<p>It is also possible to add multiple <code class="highlighter-rouge">cross_link</code> and <code class="highlighter-rouge">mono_link</code> parameter lines to a configuration file if you
-used more than one cross-linker in your sample preparation, or there is more than one outcome for the reactions.
-For example, if you used a light-heavy labeled combination of BS3, your parameters may look like this:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742  #normal BS3
-cross_link = 1 1 150.143404  #heavy isotope-labeled BS3
-mono_link = 1 156.0786       #normal
-mono_link = 1 168.15393      #heavy
-</code></pre></div></div>
-
-<p>Or perhaps you used two cross-linkers of different chemistries. Your parameters may look like this:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cross_link = 1 1 138.068742  #DSS
-cross_link = 1 2 -18.010595  #EDC
-mono_link = 1 156.0786       #DSS half-reaction
-</code></pre></div></div>
+<p>One final note on addut localization. Explicit localization to a specific residue is only made if there is fragmentation ion evidence for
+the localization. If there is no fragmentation evidence (i.e. the adduct mass simply makes it possible to observe the fragment ions without the
+adduct - common among labile adducts), then the adduct mass is still reported to the user, but without an localization indicators, even if
+there is only a single possible site for the adduct to bind.</p>
 
 <hr />
 
 <h4 id="4-modifications">4. Modifications</h4>
 
-<p>The Modifications parameters refer to amino acid modifications that are independent of the cross-linking reactions.
+<p>The Modifications parameters refer to amino acid modifications that are independent of the open modification/adduct searches.
 These occur naturally (e.g. post-translational modifications) or as a result of sample preparation 
 (e.g. carbamidomethylcysteine):</p>
 
@@ -310,22 +292,19 @@ listed in these examples. You can find the complete list on the <a href="../para
 max_miscleavages = 2
 </code></pre></div></div>
 
-<p>The above two parameters indicate the trypsin enzyme cleavage rule and the number of missed cleavages allowed. The missed
-cleavages include those caused by cross-linkers binding to the enzyme target residues.</p>
+<p>The above two parameters indicate the trypsin enzyme cleavage rule and the number of missed cleavages allowed.</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>min_peptide_mass = 500.0
 max_peptide_mass = 6000.0
+min_peptide_length = 7
+max_peptide_length = 40
 </code></pre></div></div>
 
 <p>The peptide mass boundaries shown above are important to understand, but once set, you probably will use the same values
-for all Kojak analyses. These parameters determine the smallest and largest peptides to be searched, by mass in Daltons,
-not by number of amino acids. Setting a low <code class="highlighter-rouge">min_peptide_mass</code> will allow you to search for cross-links to small peptides,
-for example, peptides with just three amino acids. Although links to small peptides do happen, they are not likely to be 
-seen after validation because there would be very few fragment ion peaks to contribute to the score of the PSM. Thus, a 
-more practical value such as 500.0 Daltons is recommended. For <code class="highlighter-rouge">max_peptide_mass</code>, consider that cross-linkers binding 
-to enzymatic cleavage sites will produce a larger number of long peptides. As a result, it might make sense to use a 
-large value, such as 6000.0 Daltons, for a Kojak analysis, although such a number might be considered excessive in a 
-typical shotgun database search.</p>
+for all Magnum analyses. These parameters determine the smallest and largest peptides to be searched, by mass in Daltons,
+not by number of amino acids. Additionally, residue counts are used to limit peptides to those of reasonable lengths regardless
+of mass. For example with the settings above, if a peptide has mass greater than 500 Da, but is only six residues in length,
+it will not be searched.</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ppm_tolerance_pre = 25.0
 prefer_precursor_pred = 1
@@ -336,8 +315,8 @@ the precursor mass, in parts per million, that a PSM is allowed to have to be ac
 instrument mass accuracy is recommended, but there are various reasons to use much larger or smaller values that are
 outside the scope of this manual. Sometimes, such as with <code class="highlighter-rouge">Thermo RAW</code> data, a suggested monoisotopic precursor mass
 is provided for a spectrum. It is often helpful to use this value, which is indicated by setting <code class="highlighter-rouge">prefer_precursor_pred</code>
-to 1. If you set the value to 0, then Kojak will compute new monoisotopic precursor masses for the spectra. Regardless
-of this parameter setting, if no precursor monoisotopic masses were previously assigned to the spectra, Kronik will compute
+to 1. If you set the value to 0, then Magnum will compute new monoisotopic precursor masses for the spectra. Regardless
+of this parameter setting, if no precursor monoisotopic masses were previously assigned to the spectra, Magnum will compute
 them.</p>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>spectrum_processing = 1
@@ -368,7 +347,7 @@ it does not appear in the labels of your target sequences, or they will incorrec
 	 
 	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
 	 
-	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 <a class="nav-link sidebar-link" href="../docs/magnumresults.html">Magnum Results</a>
 	 
 	 <h5 class="sidebar-header">Explore in Detail</h5>
      

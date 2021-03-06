@@ -167,7 +167,7 @@ hr {
 }
 .sidebar-module-inset {
   padding: 15px;
-  background-color: #444444;
+  background-color: #82221C;
   border-radius: 4px;
 }
 .sidebar-module-inset p:last-child,
@@ -176,18 +176,20 @@ hr {
   margin-bottom: 0;
 }
 .sidebar-link {
+ font-size:0.9rem;
  margin: 0px;
  padding: 0px;
- color:#82221C;
+ color:#F8F4F8;
 }
 .sidebar-link:hover,.sidebar-link:focus {
- color:#F44336;
+ color:#CE9747;
  text-decoration:underline;
 }
 .sidebar-header{
  padding:0px;
  margin:0px;
  margin-top:10px;
+ color:#CD9747;
 }
 
 /* Source page links*/
@@ -591,6 +593,44 @@ button.bg-dark:focus {
 .text-400{
  font-weight:400;
 }
+
+.alert-info{
+ background-color:#5C8540;
+ color:#F8F4F8;
+}
+
+.alert-warning{
+ background-color:#DA7508;
+ color:#F8F4F8;
+}
+
+.alert-warning a{
+ font-weight:400;
+ color:#82221C;
+}
+
+.alert-warning a:hover,a:focus{
+ font-weight:400;
+ color:#15141C;
+ text-decoration:underline
+}
+
+.alert-danger{
+ background-color:#797393;
+ color:#F8F4F8;
+}
+
+.alert-danger a{
+ font-weight:400;
+ color:#82221C;
+}
+
+.alert-danger a:hover,a:focus{
+ font-weight:400;
+ color:#15141C;
+ text-decoration:underline
+}
+
 
 /* Rules for sizing the icon. */
 .material-icons.md-18 { font-size: 18px; }

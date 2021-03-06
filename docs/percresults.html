@@ -93,7 +93,7 @@ are beyond the scope of this documentation. Below are descriptions for the Perco
 
 <h4 id="validated-psm-information">Validated PSM Information</h4>
 
-<table class="table table-bordered table-magnum">
+<table class="table table-bordered table-koj">
 <thead>
 <tr>
 <th class="success">Result</th>
@@ -104,11 +104,11 @@ are beyond the scope of this documentation. Below are descriptions for the Perco
 <tr>
 <td>PSMId</td>
 <td>Unique identifier that contains tracking information (input file name, scan number, retention time) to 
-cross-reference the Percolator result with the original Kojak result.</td>
+cross-reference the Percolator result with the original Magnum result.</td>
 </tr>
 <tr>
 <td>score</td>
-<td>A Percolator-specific score representation of the PSM. This value has no relation to the Kojak score.</td>
+<td>A Percolator-specific score representation of the PSM. This value has no relation to the Magnum score.</td>
 </tr>
 <tr>
 <td>q-value</td>
@@ -121,16 +121,12 @@ would accept all PSMs with a q-value of 0.01 or less.</td>
 </tr>
 <tr>
 <td>peptide</td>
-<td>The unique PSM sequence. Cross-linked peptides are separated with a double dash, '--'. The sites of linkage
-are represented in parentheses after each peptide. For loop-links, both sites are represented with a single
-set of parentheses. Modification masses (other than the cross-linker) are represented inside square brackets, '[]',
-after the amino acid that contains them. Modifications include mono-linked representations of the chemical
-cross-linker.</td>
+<td>The unique PSM sequence. Modification masses (other than the open/adduct modification mass) are represented inside square brackets, '[]',
+after the amino acid that contains them. </td>
 <tr>
 <td>proteinIds</td>
-<td>All proteins represented by the peptide(s) in the previous field are tab-delimited for the remainder of the
-line. The order of the proteins is alphabetic, and thus does not reflect the order of the peptides represented
-in cross-links.</td>
+<td>All proteins represented by the peptide in the previous field are tab-delimited for the remainder of the
+line.</td>
 </tr>
 </tr>
 </tbody>
@@ -141,10 +137,10 @@ in cross-links.</td>
 <h4 id="additional-information">Additional Information</h4>
 
 <p>Percolator represents proteins in alphabetical order. Thus, the proteins are not listed in the same order as the
-peptides in a cross-link. The proper peptide-protein associations can be cross-referenced in the Kojak results.</p>
+peptides in a cross-link. The proper peptide-protein associations can be cross-referenced in the Magnum results.</p>
 
 <p>If decoy labels appear in the Percolator results it is either because the peptide sequence is shared between
-target and decoy protein sequences, or the decoy_filter label was not set properly during Kojak analysis.</p>
+target and decoy protein sequences, or the decoy_filter label was not set properly during Magnum analysis.</p>
 
    </div>
    <div class="col-md-3">
@@ -155,7 +151,7 @@ target and decoy protein sequences, or the decoy_filter label was not set proper
 	 
 	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
 	 
-	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 <a class="nav-link sidebar-link" href="../docs/magnumresults.html">Magnum Results</a>
 	 
 	 <h5 class="sidebar-header">Explore in Detail</h5>
      

@@ -111,41 +111,12 @@ Percolator with the <code class="highlighter-rouge">-h</code> option.</p>
 <p>Run Percolator from the directory containing your Magnum results. To validate Magnum results, provide the Percolator-formatted
 file as input, and redirect output to a new file:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ /usr/bin/percolator data_set1.perc.intra.txt &gt; data_set1.intra.validated.txt
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ /usr/bin/percolator data_set1.perc.txt &gt; data_set1.validated.txt
 </code></pre></div></div>
 
-<p>In the above example, intra-protein cross-linked PSMs from Magnum are analyzed with Percolator to obtain a non-redundant
-list of unique cross-linked peptides. All these unique peptide cross-links have q-values that are used to filter for a
+<p>In the above example, PSMs from Magnum are analyzed with Percolator to obtain a non-redundant
+list of unique peptides. All these unique peptide have q-values that are used to filter for a
 given false discovery rate.</p>
-
-<div class="alert alert-info">
-<h4>Helpful Hint</h4>
-<p class="hint">Magnum formats and partitions all PSMs into subsets designed for Percolator analysis. These
-subsets are labeled with <b>perc</b> to indicate they are input for Percolator. Additionally, they are labeled with 
-<b>inter</b>, <b>intra</b>, <b>loop</b>, and <b>single</b> to describe which type of PSM is contained in the files.
-<table class="table table-bordered table-hint">
-<thead>
-<tr>
-<th class="success">Label</th>
-<th class="success">Description</th>
-</tr>
-</thead>
-<tr>
-<td>inter</td>
-<td>inter-protein cross-linked PSMs</td>
-</tr><tr>
-<td>intra</td>
-<td>intra-protein cross-linked PSMs</td>
-</tr><tr>
-<td>loop</td>
-<td>loop-linked PSMs</td>
-</tr><tr>
-<td>single</td>
-<td>non-linked PSMs (i.e. typical shotgun PSMs)</td>
-</tr>
-</table>
-</p>
-</div>
 
 <hr />
 
@@ -179,7 +150,7 @@ this manner will result in failure of Percolator to assign q-values to each PSM.
 	 
 	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
 	 
-	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 <a class="nav-link sidebar-link" href="../docs/magnumresults.html">Magnum Results</a>
 	 
 	 <h5 class="sidebar-header">Explore in Detail</h5>
      

@@ -83,6 +83,10 @@
   <div class="col-md-9">
    <h1 id="quick-start-guide">Quick Start Guide</h1>
 
+<p>This quick start guide just gives the barest example of how one might quickly analyze their spectra using Magnum.
+Your actual pipeline requirements might differ and it is recommended that you read and follow the complete instructions
+provided elsewhere on this website before using Magnum.</p>
+
 <h3 id="step-1-set-up-a-data-project-folder">Step 1: Set up a data project folder</h3>
 <p>A. Create a folder or directory on your computer hard drive.</p>
 
@@ -107,10 +111,10 @@
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MS_data_file = C:\Data\MyProject\DataFile1.mzML 
 </code></pre></div></div>
 
-<p>C. Name your output_file and percolator_file.</p>
+<p>C. Specify any additional output formats.</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>output_file = C:\Data\MyProject\DataFile1-results.txt
-percolator_file = C:\Data\MyProject\DataFile1-perc
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export_percolator = 1
+export_pepXML = 1
 </code></pre></div></div>
 
 <p>D. Change database to the amino acid sequence database you want to use.</p>
@@ -143,7 +147,7 @@ percolator_file = C:\Data\MyProject\DataFile1-perc
 
 <p>B. Execute the Percolator application</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Percolator\Percolator.exe DataFile1-percolator.txt &gt; DataFile1-validated.txt 
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Percolator\Percolator.exe DataFile1.perc.txt &gt; DataFile1-validated.txt 
 </code></pre></div></div>
 
 <p>C. View your DataFile1-validated.txt results file in any text editor or spreadsheet application (such as Excel).</p>

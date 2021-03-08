@@ -555,6 +555,27 @@ button.bg-dark:focus {
  margin-top:8px;
 }
 
+.card .card-mini {
+ margin:15px;
+}
+
+.card-mini .mini-title{
+ color: #82221C;
+ font-size:24px;
+ font-weight:500;	
+}
+
+.card-mini .mini-content{
+ color: #15141C;
+ font-size:1.2rem;
+ font-weight:700;
+ margin:15px;
+}
+
+.card-mini .mini-bottom{
+ margin-bottom:15px;
+}
+
 .color-accent{
  background-color:#797393;
  color:#F8F4F8;
@@ -572,9 +593,10 @@ button.bg-dark:focus {
 }
 
 .text-news{
- font-size:1rem;
+ font-size:1.2rem;
  font-weight:200;
  padding-top:10px;
+ padding-right:40px;
  height:140px;
 }
 

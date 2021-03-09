@@ -5,7 +5,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Kojak Results</title>
+    <title>Magnum Results</title>
     <meta name="description" content="Kojak Description">
 
     <!-- Bootstrap core CSS -->
@@ -81,9 +81,9 @@
 <div class="container padded">
  <div class="row">
   <div class="col-md-9">
-   <h2 id="kojak-results">Kojak Results</h2>
+   <h2 id="magnum-results">Magnum Results</h2>
 
-<p>Output from Kojak is in tab-delimited ASCII text. The first line of output indicates the Kojak version number
+<p>Output from Magnum is in tab-delimited ASCII text. The first line of output indicates the Magnum version number
 that was used to generate the output. This line is followed by the column headers that describe the search
 results. The remainder of the file is populated by PSMs, one per line. Spectra for which no positive scoring
 PSM was identified will contain mostly zero values for each column. Occasionally, two or more PSMs will have
@@ -92,7 +92,7 @@ simplicity, column descriptions are divided into categories below.</p>
 
 <hr />
 
-<h4 id="precursor-ion-information">Precursor Ion Information</h4>
+<h4 id="spectrum-information">Spectrum Information</h4>
 
 <table class="table table-bordered table-koj">
 <thead>
@@ -103,20 +103,30 @@ simplicity, column descriptions are divided into categories below.</p>
 </thead>
 <tbody>
 <tr>
+<td>ScanNumber</td>
+<td>The spectrum scan number identifier.</td>
+</tr>
+<tr>
+<td>PSMID</td>
+<td>Indicator for the PSM associated with this spectrum. For most spectra, there will be only one PSM. 
+For some spectra, multiple PSMs might produce the same score and will each be listed with a unique PSMID.</td>
+</tr>
+<tr>
+<td>RTsec</td>
+<td>The spectrum retention time (in seconds).</td>
+</tr>
+<tr>
+<td>SelectedMZ</td>
+<td>The m/z of the ion selected by the mass spectrometer to produce this spectrum.</td>
+</tr>
+<tr>
+<td>MonoisotopicMass</td>
+<td>The observed monoisotopic mass of the selected ion in this spectrum. Note that this value is only as accurate as the algorithms
+that attempt to compute it from the precursor spectra.</td>
+</tr>
+<tr>
 <td>Charge</td>
-<td>Precursor ion charge state.</td>
-</tr>
-<tr>
-<td>Obs Mass</td>
-<td>Observed mass of the precursor ion peak.</td>
-</tr>
-<tr>
-<td>PPM Error</td>
-<td>Difference (in parts per million) between the PSM mass and the Obs Mass.</td>
-</tr>
-<tr>
-<td>PSM Mass</td>
-<td>Theoretically computed precursor mass of the PSM.</td>
+<td>Precursor ion charge state - again only as accurate as the algorithms that compute it from the precursor spectra.</td>
 </tr>
 </tbody>
 </table>
@@ -134,16 +144,29 @@ simplicity, column descriptions are divided into categories below.</p>
 </thead>
 <tbody>
 <tr>
-<td>Score</td>
-<td>The Kojak cross-correlation score.</td>
+<td>PSMmass</td>
+<td>The expected neutral mass of this PSM.</td>
 </tr>
 <tr>
-<td>dScore</td>
-<td>The difference between the reported PSM score and the next best PSM score.</td>
+<td>PPM Error</td>
+<td>Difference (in parts per million) between the PSMmass and the MonoisotopicMass.</td>
 </tr>
 <tr>
-<td>Pep. Diff.</td>
-<td>The score contribution of only the lower scoring peptide in a cross-link.</td>
+<td>Evalue</td>
+<td>The expectation value of this PSM. As this value is normalized for the peptide length, it is the best indicator for scoring PSMs relative to each other.</td>
+</tr>
+<tr>
+<td>MScore</td>
+<td>The simple Magnum cross-correlation score for the PSM. This score is provided for diagnostic purposes, but is not intended to solely indicated PSM correctness,
+as this value is highly influenced by peptide length.</td>
+</tr>
+<tr>
+<td>DScore</td>
+<td>The difference between the PSM's MScore and the next best possible PSM for this spectrum.</td>
+</tr>
+<tr>
+<td>ReporterIons</td>
+<td>A list of the observed reporter ions, if any were specified in the search parameters.</td>
 </tr>
 </tbody>
 </table>
@@ -161,21 +184,34 @@ simplicity, column descriptions are divided into categories below.</p>
 </thead>
 <tbody>
 <tr>
-<td>Peptide #n</td>
-<td>The peptide sequence of the PSM. For cross-linked PSMs, a second sequence is provided as Peptide #2.</td>
+<td>Modifications</td>
+<td>The amino acid modifications, both static and variable, associated with the PSM. Next to the modification mass is a number in brackets
+indicating the number of times the modification occurs on the peptide, followed by a list of sites where the modification resides. If there are more
+sites listed than the number of modification occurences, then there was ambiguity in the localization and the modification(s) could reside at any
+of the sites.</td>
 </tr>
 <tr>
-<td>Link #n</td>
-<td>The site of cross-linking, relative to the peptide, . If the PSM is not a cross-link, a value of -1 is shown.</td>
+<td>OpenMod</td>
+<td>The mass of any predicted open modification adduct on the peptide. The format for open modifications is identical to the Modifications listed above.
+However, only a single open modification (if any) will occur. However, multiple possible localization sites may be listed. If the location is ever '0',
+then it means no localization evidence (fragment ions specific to the modified residue) was observed.</td>
 </tr>
 <tr>
-<td>Protein #n</td>
-<td>The protein name(s) that contain the peptide. For cross-linked PSMs, a second list is provided as Protein #2. For cross-linked
-PSMs, the site of cross-linking relative to the protein is provided in parentheses.</td>
+<td>Peptide</td>
+<td>The peptide sequence, without any annotations.</td>
 </tr>
 <tr>
-<td class="td-nowrap">Linker Mass</td>
-<td>The mass contribution of the cross-linker for cross-linked PSMs. Zero otherwise.</td>
+<td>PeptideA</td>
+<td>The peptide sequence, annotated with the observed modifications EXCEPT the open modification. If multiple possible orientations of the modifications
+are possible, only the first orientation is listed.</td>
+</tr>
+<tr>
+<td>Decoy</td>
+<td>Either '0' or '1' to indicated if the peptide belongs to a target or decoy protein, respectively</td>
+</tr>
+<tr>
+<td>Proteins</td>
+<td>A list of proteins that contain this PSM peptide sequence.</td>
 </tr>
 </tbody>
 </table>
@@ -190,7 +226,7 @@ PSMs, the site of cross-linking relative to the protein is provided in parenthes
 	 
 	 <a class="nav-link sidebar-link" href="../docs/quick.html">Quick Start Guide</a>
 	 
-	 <a class="nav-link sidebar-link" href="../docs/kojakresults.html">Kojak Results</a>
+	 <a class="nav-link sidebar-link" href="../docs/magnumresults.html">Magnum Results</a>
 	 
 	 <h5 class="sidebar-header">Explore in Detail</h5>
      

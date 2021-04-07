@@ -28,7 +28,16 @@ int main(int argc, char* argv[]){
   cout << "Visit http://magnum-ms.org for full documentation." << endl;
   if(argc<2){
     cout << "Usage: Magnum <Config File> [<Data File>...]" << endl;
+    cout << "\nNote: To create a default configuration file for Magnum, run the following command:" << endl;
+    cout << "        Magnum --config" << endl;
     return 1;
+  }
+
+  if (strcmp(argv[1],"--config") == 0) {
+    MParams p;
+    p.exportDefault(VERSION);
+    cout << "\nmagnum_default_params.conf file created." << endl;
+    return 2;
   }
 
   cout << "\n****** Begin Magnum Analysis ******" << endl;

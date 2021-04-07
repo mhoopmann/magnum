@@ -163,7 +163,7 @@ typedef struct mParams {
     eValDepth=3000;
     instrument=1;
     isotopeError=1;
-    maxMods=0;
+    maxMods=2;
     maxPeaks=0;
     maxPepLen=50;
     minPeaks=20;
@@ -176,11 +176,11 @@ typedef struct mParams {
     preferPrecursor=1;
     setA=0;
     setB=0;
-    specProcess=0;
+    specProcess=1;
     threads=1;
-    topCount=250;
+    topCount=5;
     truncate=0;
-    exportPepXML=false;
+    exportPepXML=true;
     exportPercolator=false;
     ionSeries[0]=false; //a-ions
     ionSeries[1]=true;  //b-ions

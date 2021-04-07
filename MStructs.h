@@ -169,11 +169,11 @@ typedef struct mParams {
     minPeaks=20;
     minPepLen=6;
     miscleave=2;
-    ms1Centroid=0;
-    ms2Centroid=0;
+    ms1Centroid=1;
+    ms2Centroid=1;
     ms1Resolution=60000;
     ms2Resolution=15000;
-    preferPrecursor=1;
+    preferPrecursor=2;
     setA=0;
     setB=0;
     specProcess=1;

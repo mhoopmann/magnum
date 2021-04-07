@@ -162,7 +162,7 @@ typedef struct mParams {
   mParams(){
     eValDepth=3000;
     instrument=1;
-    isotopeError=1;
+    isotopeError=3;
     maxMods=2;
     maxPeaks=0;
     maxPepLen=50;

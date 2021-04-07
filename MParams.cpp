@@ -422,7 +422,7 @@ void MParams::parse(const char* cmd) {
 
   } else if (strcmp(param, "isotope_error")==0){
     params->isotopeError = atoi(&values[0][0]);
-    if (params->isotopeError < 0 || params->isotopeError>2){
+    if (params->isotopeError < 0 || params->isotopeError>3){
       warn("ERROR: isotope_error has invalid value. Stopping analysis.",3);
       exit(-5);
     }

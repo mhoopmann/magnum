@@ -161,7 +161,7 @@ typedef struct mParams {
   std::vector<double>   rIons;
   mParams(){
     eValDepth=3000;
-    instrument=1;
+    instrument=0;
     isotopeError=3;
     maxMods=2;
     maxPeaks=0;

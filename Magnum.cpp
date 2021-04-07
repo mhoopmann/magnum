@@ -27,9 +27,9 @@ int main(int argc, char* argv[]){
   cout << "Copyright Michael Hoopmann, Institute for Systems Biology" << endl;
   cout << "Visit http://magnum-ms.org for full documentation." << endl;
   if(argc<2){
-    cout << "Usage: Magnum <Config File> [<Data File>...]" << endl;
+    cout << "Usage: magnum <Config File> [<Data File>...]" << endl;
     cout << "\nNote: To create a default configuration file for Magnum, run the following command:" << endl;
-    cout << "        Magnum --config" << endl;
+    cout << "        magnum --config" << endl;
     return 1;
   }
 

@@ -89,6 +89,7 @@ bool MParams::buildOutput(string in, string base, string ext){
   char* b=getcwd(cwd, 1024);
   processPath(cwd, in.c_str(), str);
   params->inFile=str;
+  params->inFileNoExt = params->inFile.substr(0,params->inFile.size()-ext.size());
 
   //expand DB file to full path - only do this once
   if(params->dbPath.empty()){

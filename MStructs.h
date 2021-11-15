@@ -149,7 +149,8 @@ typedef struct mParams {
   std::string     enzymeName;
   std::string     ext;
   std::string     inFile;  //true input file with full path
-  std::string     msFile;   //input file parameter from confic
+  std::string     inFileNoExt;  //for pepXML
+  std::string     msFile;   //input file parameter from config
   std::string     outFile;  //true output file with full path
   std::string     resPath;
   std::string     dbPath;

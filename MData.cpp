@@ -88,7 +88,7 @@ NeoPepXMLParser* MData::createPepXML(string& str, MDatabase& db){
   pa.summary_xml=str;
 
   CnpxMSMSRunSummary rs;
-  rs.base_name=params->inFile;
+  rs.base_name=params->inFileNoExt; //params->inFile.substr(0,params->inFile.find_last_of('.'));
   rs.raw_data_type="raw";
   rs.raw_data=params->ext;
 
@@ -399,7 +399,7 @@ void MData::exportPepXML(NeoPepXMLParser*& p, vector<mResults>& r){
           break;
         }
       }
-      if(mi.mod_aminoacid_mass.size()>0 || mi.mod_cterm_mass!=0 || mi.mod_nterm_mass!=0) sh.modification_info=mi;
+      if(mi.mod_aminoacid_mass.size()>0 || mi.mod_cterm_mass!=0 || mi.mod_nterm_mass!=0) sh.modification_info.push_back(mi);
 
       //check for open modifications (adducts)
       for (size_t b = 0; b<r[a].vMods[x].mods.size(); b++){

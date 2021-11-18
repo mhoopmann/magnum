@@ -166,6 +166,7 @@ void MParams::exportDefault(string ver){
   fprintf(f, "results_path = .                        #path must exist. Use '.' for current working directory.\n");
   fprintf(f, "export_pepXML = %d                       #0=no, 1=yes\n", (int)def.exportPepXML);
   fprintf(f, "export_percolator = %d                   #0=no, 1=yes\n",(int)def.exportPercolator);
+  fprintf(f, "split_percolator = %d                    #0=no, 1=yes\n", (int)def.splitPercolator);
   fprintf(f, "percolator_version = %.2lf\n", def.percVersion);
   fprintf(f, "\n\n#\n# Parameters describing data analyzed by Magnum\n#\n");
   fprintf(f, "instrument = %d            #0=Orbitrap, 1=FTICR\n",def.instrument);
@@ -555,6 +556,11 @@ void MParams::parse(const char* cmd) {
   } else if(strcmp(param,"spectrum_processing")==0) {
     params->specProcess=atoi(&values[0][0]);
     logParam("spectrum_processing",values[0]);
+
+  } else if (strcmp(param, "split_percolator") == 0){
+    if (atoi(&values[0][0]) != 0) params->splitPercolator = true;
+    else params->splitPercolator = false;
+    logParam("split_percolator", values[0]);
 
   } else if(strcmp(param,"threads")==0) {
     params->threads = atoi(&values[0][0]);

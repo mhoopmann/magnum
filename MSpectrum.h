@@ -85,6 +85,13 @@ public:
   int histogramCount;
   int histoMaxIndex;
 
+  //** temporary
+  //int hX[60][HISTOSZ];
+  //int hXCount[60];
+  //void tHistogram(double score, int len);
+  //void exportHisto();
+  //**
+
   MHistogram** mHisto;
   MDecoys* decoys;
   double computeE(double score, int len);

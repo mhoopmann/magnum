@@ -45,7 +45,7 @@ public:
 
   bool      createDiag        (FILE*& f);
   NeoPepXMLParser* createPepXML(string& str, MDatabase& db);
-  bool      createPercolator  (FILE*& f);
+  bool      createPercolator  (FILE*& f, FILE*& f2);
   bool      createTXT         (FILE*& f);
   void      diagSinglet       ();
   void      exportPepXML      (NeoPepXMLParser*& p, vector<mResults>& r);

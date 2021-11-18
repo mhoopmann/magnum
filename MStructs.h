@@ -132,6 +132,7 @@ typedef struct mParams {
   bool    exportPercolator;
   bool    ionSeries[6];
   bool    precursorRefinement;
+  bool    splitPercolator;
   bool    xcorr;
   double  binOffset;
   double  binSize;
@@ -190,6 +191,7 @@ typedef struct mParams {
     ionSeries[4]=true;  //y-ions
     ionSeries[5]=false; //z-ions
     precursorRefinement=true;
+    splitPercolator=false;
     xcorr=false;
     binSize=0.03;
     binOffset=0.0;

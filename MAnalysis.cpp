@@ -476,6 +476,11 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     double ev = 1000;
     Threading::LockMutex(mutexSpecScore[index]);
     ev = s->computeE(topScore, len);
+
+    //** temporary
+    //s->tHistogram(topScore, len);
+    //**
+
     //cout << "DoneE " << ev << endl;
     Threading::UnlockMutex(mutexSpecScore[index]);
     sc.eVal=ev;
@@ -493,7 +498,15 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     s->checkScore(sc,iIndex);
     //cout << "CheckScore" << endl;
     Threading::UnlockMutex(mutexSpecScore[index]);
-  }
+  } 
+
+  //** temporary
+  //else {
+  //  Threading::LockMutex(mutexSpecScore[index]);
+  //  s->tHistogram(0, len);
+  //  Threading::UnlockMutex(mutexSpecScore[index]);
+  //}
+  //**
 
 }
 

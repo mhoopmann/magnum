@@ -64,6 +64,13 @@ MSpectrum::MSpectrum(const int& i, const double& bs, const double& os, const int
   histogramCount=0;
   histoMaxIndex=0;
 
+  //** temporary
+  //for(int a=0;a<60;a++){
+  //  for (int j = 0; j<HISTOSZ; j++) hX[a][j] = 0;
+  //  hXCount[a] = 0;
+  //}
+  //**
+
   cc=0;
   sc=0;
 }
@@ -115,6 +122,13 @@ MSpectrum::MSpectrum(mParams& p){
   for (int j = 0; j<HISTOSZ; j++) histogram[j] = 0;
   histogramCount = 0;
   histoMaxIndex = 0;
+
+  //** temporary
+  //for (int a = 0; a<60; a++){
+  //  for (int j = 0; j<HISTOSZ; j++) hX[a][j] = 0;
+  //  hXCount[a] = 0;
+  //}
+  //**
 
   cc = 0;
   sc = 0;
@@ -200,6 +214,14 @@ MSpectrum::MSpectrum(const MSpectrum& p){
       }
     }
   }
+
+  //** temporary
+  //for (int a = 0; a<60; a++){
+  //  for (int j = 0; j<HISTOSZ; j++) hX[a][j] = p.hX[a][j];
+  //  hXCount[a] = p.hXCount[a];
+  //}
+  //**
+
 }
   
 MSpectrum::~MSpectrum(){
@@ -607,6 +629,12 @@ double MSpectrum::computeE(double score, int len){
     linearRegression3(mHisto[len]->slope, mHisto[len]->intercept, mHisto[len]->rSq);
     //cout << "linReg3 success" << endl;
     mHisto[len]->slope*=10;
+    
+    //** temporary
+    //cout << "\nDecoy Histogram: " << len << "\t" << histogramCount << endl;
+    //for(int i=0;i<HISTOSZ;i++) cout << i << "\t" << histogram[i] << endl;
+    //cout << mHisto[len]->slope << "\t" <<  mHisto[len]->intercept << "\t" << mHisto[len]->rSq << endl;
+    //**
   }
 
   if (mHisto[len]->slope>=0){
@@ -1314,6 +1342,13 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
     mHisto[a] = new MHistogram();
     linearRegression4(histoX[a],histoXCount[a],mHisto[a]->slope, mHisto[a]->intercept, mHisto[a]->rSq);
     mHisto[a]->slope *= 10;
+
+    //** temporary
+    //cout << "\nDecoy Histogram: " << a << "\t" << histoXCount[a] << endl;
+    //for (int i = 0; i<HISTOSZ; i++) cout << i << "\t" << histoX[a][i] << endl;
+    //cout << mHisto[a]->slope << "\t" << mHisto[a]->intercept << "\t" << mHisto[a]->rSq << endl;
+    //**
+
   }
 
   return true;
@@ -2048,3 +2083,28 @@ int MSpectrum::compareMZ(const void *p1, const void *p2){
   else if(d1.mass>d2.mass) return 1;
   else return 0;
 }
+
+
+//** temporary
+//void MSpectrum::tHistogram(double score, int len){
+//  int k = (int)(score * 10 + 0.5);
+//  if (k < 0) k = 0;
+//  else if (k >= HISTOSZ) k = HISTOSZ - 1;
+//  hX[len][k] += 1;
+//  hXCount[len]++;
+//}
+//
+//void MSpectrum::exportHisto(){
+//
+//  for(int k=10;k<30;k++){
+//    for (int j = 0; j<HISTOSZ; j++) histogram[j] = hX[k][j];
+//    histogramCount = hXCount[k];
+//
+//    MHistogram mHistoX;
+//    linearRegression3(mHistoX.slope, mHistoX.intercept, mHistoX.rSq);
+//    cout << "\nReal Histogram: " << k << "\t" << histogramCount << endl;
+//    for (int i = 0; i<HISTOSZ; i++) cout << i << "\t" << histogram[i] << endl;
+//    cout << mHistoX.slope << "\t" << mHistoX.intercept << "\t" << mHistoX.rSq << endl;;
+//  }
+//}
+//**

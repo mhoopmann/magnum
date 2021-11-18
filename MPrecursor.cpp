@@ -819,6 +819,7 @@ int MPrecursor::findPeak(Spectrum& s, double mass){
 //Returns point within precision or -1 if doesn't exist
 int MPrecursor::findPeak(Spectrum& s, double mass, double prec){
   int sz=s.size();
+  if(sz==0) return -1;
   int lower=0;
   int mid=sz/2;
   int upper=sz;

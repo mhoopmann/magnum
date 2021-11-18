@@ -154,19 +154,49 @@ NeoPepXMLParser* MData::createPepXML(string& str, MDatabase& db){
   return p;
 }
 
-bool MData::createPercolator(FILE*& f){
+bool MData::createPercolator(FILE*& f, FILE*& f2){
   string sPercName = params->outFile;
-  sPercName += ".perc.txt";
-  f = fopen(sPercName.c_str(), "wt");
-  if (f == NULL) {
-    cout << "ERROR: Cannot open: " << sPercName << endl;
-    return false;
+  if(params->splitPercolator){
+    string file1= sPercName+ ".standard.perc.txt";
+    f = fopen(file1.c_str(), "wt");
+    if (f == NULL) {
+      cout << "ERROR: Cannot open: " << file1 << endl;
+      return false;
+    }
+    fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
+    fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
+    fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
+    fprintf(f, "\tMass\tPPM\tLength");
+    fprintf(f, "\tPeptide\tProteins\n");
+
+    string file2 = sPercName + ".open.perc.txt";
+    f2 = fopen(file2.c_str(), "wt");
+    if (f2 == NULL) {
+      cout << "ERROR: Cannot open: " << file2 << endl;
+      return false;
+    }
+    fprintf(f2, "SpecId\tLabel\tscannr\tMScore\tDScore");
+    fprintf(f2, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
+    fprintf(f2, "\tCharge4\tCharge5\tCharge6plus");
+    fprintf(f2, "\tMass\tPPM\tLength");
+    fprintf(f2, "\tPeptide\tProteins\n");
+
+
+  } else {
+
+    sPercName += ".perc.txt";
+    f = fopen(sPercName.c_str(), "wt");
+    if (f == NULL) {
+      cout << "ERROR: Cannot open: " << sPercName << endl;
+      return false;
+    }
+    fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
+    fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
+    fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
+    fprintf(f, "\tMass\tPPM\tLength");
+    fprintf(f, "\tPeptide\tProteins\n");
+
   }
-  fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
-  fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
-  fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
-  fprintf(f, "\tMass\tPPM\tLength");
-  fprintf(f, "\tPeptide\tProteins\n");
   return true;
 }
 
@@ -637,7 +667,6 @@ bool MData::mapPrecursors(){
     //}
 
     if(ret>0){
-
       //if supplementing instrument predicted precursor, then chance for precursor
       //to be seen twice (first by instrument, then by Hardklor). Keep Hardklor result.
       if(spec[i].getInstrumentPrecursor() && spec[i].sizePrecursor()>1){
@@ -671,9 +700,7 @@ bool MData::mapPrecursors(){
         }
 
       }
-
     } else { 
-      
       //If no precursors found, estimate using mercury and selected mass
       pre.estimatePrecursor(spec[i]);
       
@@ -688,7 +715,6 @@ bool MData::mapPrecursors(){
           }
         }
       }
-
     }
 
     if(spec[i].sizePrecursor()>0){
@@ -824,6 +850,7 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
 bool MData::outputResults(MDatabase& db){
   FILE* fTXT=NULL;
   FILE* fPerc=NULL;
+  FILE* fPerc2 = NULL;
   FILE* fDiag=NULL;
   string fXML;
   NeoPepXMLParser* pepxml;
@@ -838,13 +865,17 @@ bool MData::outputResults(MDatabase& db){
     if(pepxml==NULL) return false;
   }
   if(params->exportPercolator){
-    if(!createPercolator(fPerc)) return false;
+    if(!createPercolator(fPerc,fPerc2)) return false;
   }
   
   //iterate over all spectra to create exportable results
   //Output top score for each spectrum
   //Must iterate through all possible precursors for that spectrum
   for (size_t a = 0; a<spec.size(); a++) {
+
+    //** temporary
+    //spec[a].exportHisto();
+    //**
 
     //Check if we need to output diagnostic information
     bool bDiag = false;
@@ -939,7 +970,19 @@ bool MData::outputResults(MDatabase& db){
 
     exportTXT(fTXT, vRes);
     if(params->exportPepXML) exportPepXML(pepxml,vRes);
-    if(params->exportPercolator) exportPercolator(fPerc,vRes);
+    if(params->exportPercolator) {
+      if (fPerc2 == NULL) exportPercolator(fPerc, vRes);
+      else {
+        vector<mResults> v1;
+        vector<mResults> v2;
+        for(size_t z=0;z<vRes.size();z++){
+          if(vRes[z].openMod.empty()) v1.push_back(vRes[z]);
+          else v2.push_back(vRes[z]);
+        }
+        exportPercolator(fPerc,v1);
+        exportPercolator(fPerc2,v2);
+      }
+    }
 
   }
 

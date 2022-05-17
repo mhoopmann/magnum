@@ -175,9 +175,9 @@ void MParams::exportDefault(string ver){
   fprintf(f, "MS1_resolution = %d    #resolution at 400 m/z, value ignored if data are centroided\n", def.ms1Resolution);
   fprintf(f, "MS2_resolution = %d    #resolution at 400 m/z, value ignored if data are centroided\n", def.ms2Resolution);
   fprintf(f, "\n\n#\n# Amino acid search modification. Use uppercase amino acid letters. n=peptide N-terminus, c=peptide C-terminus\n#\n");
-  fprintf(f, "#fixedModification = C 57.02146       #fixed modifications are applied to all amino acid instances.\n");
-  fprintf(f, "#fixedModification_protN = 15.994915  #fixed modifications to protN are applied to all protein N-termini.\n");
-  fprintf(f, "#fixedModification_protN = 15.994915  #fixed modifications to protC are applied to all protein C-termini.\n");
+  fprintf(f, "#fixed_modification = C 57.02146       #fixed modifications are applied to all amino acid instances.\n");
+  fprintf(f, "#fixed_modification_protN = 15.994915  #fixed modifications to protN are applied to all protein N-termini.\n");
+  fprintf(f, "#fixed_modification_protN = 15.994915  #fixed modifications to protC are applied to all protein C-termini.\n");
   fprintf(f, "#modification = M 15.994915           #modifications are possible (differential) mass alterations.\n");
   fprintf(f, "#modification = N 0.984016            #use multiple modification (and fixed_modification) lines for each possible modification mass.\n");
   fprintf(f, "#modification_protN = 42.010565       #modifications to protN are differential on protein N-termini.\n");

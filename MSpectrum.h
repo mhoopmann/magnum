@@ -160,7 +160,7 @@ private:
   //Functions
   void BinIons      (mPreprocessStruct *pPre);
   void MakeCorrData (double *pdTempRawData, mPreprocessStruct *pPre, double scale);
-
+  bool matchMods    (mPepMod2& v1, std::vector<mPepMod>& v2);
   void kojakXCorr   ();
 
   //Utilities

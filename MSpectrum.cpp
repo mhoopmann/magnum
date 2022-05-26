@@ -1906,6 +1906,43 @@ void MSpectrum::linearRegression4(int* h, int sz, double& slope, double& interce
 
 }
 
+bool MSpectrum::matchMods(mPepMod2& v1, vector<mPepMod>& v2){
+  //make simplified list of mods
+  vector<mSimpleMod> v;
+  size_t b;
+  for(size_t a=0; a<v1.mods.size();a++){
+    for(b=0;b<v.size();b++){
+      if(fabs(v[b].mass-v1.mods[a].mass)<0.001){
+        v[b].count++;
+        break;
+      }
+    }
+    if(b==v.size()){
+      mSimpleMod m;
+      m.count=1;
+      m.mass=v1.mods[a].mass;
+      v.push_back(m);
+    }
+  }
+
+  //check other mod set for matches
+  for(size_t a=0;a<v2.size();a++){
+    for(b=0;b<v.size();b++){
+      if (fabs(v[b].mass - v2[a].mass)<0.001){
+        v[b].count--;
+        break;
+      }
+    }
+    if (b == v.size()) return false;
+  }
+
+  //verify same number and type of mods
+  for(b = 0; b<v.size(); b++){
+    if(v[b].count!=0) return false;
+  }
+  return true;
+}
+
 void MSpectrum::shortResults(std::vector<mScoreCard2>& v){
   //cout << "shortResults: ";
   v.clear();
@@ -1990,14 +2027,16 @@ void MSpectrum::shortResults2(std::vector<mScoreCard3>& v){
     size_t a;
     for (a = 0; a<v.size(); a++){
       if (v[a].eVal == tmpSC.eVal && v[a].simpleScore == tmpSC.simpleScore && v[a].pep == tmpSC.pep && v[a].modCount == (int)tmpSC.mods->size()){
-        //alternate version of existing peptide, so append the novel mod positions
-        mPepMod2 pm;
-        for (size_t c = 0; c<tmpSC.mods->size(); c++) {
-          pm.mods.push_back(tmpSC.mods->at(c));
+        if(matchMods(v[a].mSet[0],*tmpSC.mods)){ //mods must also be of the same type, not just same number
+          //alternate version of existing peptide, so append the novel mod positions
+          mPepMod2 pm;
+          for (size_t c = 0; c<tmpSC.mods->size(); c++) {
+            pm.mods.push_back(tmpSC.mods->at(c));
+          }
+          v[a].mSet.push_back(pm);
+          v[a].aSites.push_back(tmpSC.site);
+          break;
         }
-        v[a].mSet.push_back(pm);
-        v[a].aSites.push_back(tmpSC.site);
-        break;
       }
     }
 

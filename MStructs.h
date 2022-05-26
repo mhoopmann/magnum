@@ -390,4 +390,9 @@ typedef struct mResults{
   }
 } mResults;
 
+typedef struct mSimpleMod{
+  double mass;
+  int count;
+} mSimpleMod;
+
 #endif

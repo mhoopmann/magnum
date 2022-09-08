@@ -21,6 +21,8 @@ limitations under the License.
 #include "MParams.h"
 #include "MagnumManager.h"
 
+using namespace std;
+
 int main(int argc, char* argv[]){
 
   cout << "\nMagnum version " << VERSION << ", " << BDATE << endl;

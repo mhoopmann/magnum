@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef _MSPECTRUM_H
 #define _MSPECTRUM_H
 
+#include <algorithm>
 #include <cmath>
 #include <list>
 #include <vector>
@@ -37,7 +38,7 @@ class MSpectrum {
 public:
 
   //Constructors & Destructors
-  MSpectrum(const int& i, const double& bs, const double& os, const int& th);
+  //MSpectrum(const int& i, const double& bs, const double& os, const int& th);
   MSpectrum(mParams& p);
   MSpectrum(const MSpectrum& p);
   ~MSpectrum();
@@ -51,6 +52,8 @@ public:
   int             xCorrSparseArraySize;
   char**          kojakSparseArray;
   int             kojakBins;
+
+  int peakCounts;
   
   double lowScore;
 
@@ -106,11 +109,13 @@ public:
   void addPoint               (mSpecPoint& s);
   void addPrecursor           (mPrecursor& p, int sz);
   void clear                  ();
+  void  clearPrecursors();
   void erasePrecursor         (int i);
   void setCharge              (int i);
   void setInstrumentPrecursor (bool b);
   void setMaxIntensity        (float f);
   void setMZ                  (double d);
+  void setNativeID(std::string s);
   void setPrecursor           (double d, int i);
   void setRTime               (float f);
   void setScanNumber          (int i);
@@ -133,7 +138,10 @@ public:
   void  shortResults(std::vector<mScoreCard2>& v);
   void  shortResults2(std::vector<mScoreCard3>& v);
   void  sortMZ            ();
-  void  xCorrScore        ();
+  void  sortIntensityRev() { sort(spec->begin(), spec->end(), compareIntensityRev); }
+  //void  xCorrScore        ();
+  void kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, float* pfFastXcorrData, mPreprocessStruct*& pPre);
+
 
 private:
 
@@ -145,10 +153,12 @@ private:
   double                invBinSize;
   float                 maxIntensity;
   double                mz;
+  std::string           nativeID;
   std::vector<mPrecursor>*   precursor;
   float                 rTime;
   int                   scanNumber;
   int                   singletCount;
+  int maxX;
   
   
   std::vector<MTopPeps>*     singlets;
@@ -161,10 +171,10 @@ private:
   void BinIons      (mPreprocessStruct *pPre);
   void MakeCorrData (double *pdTempRawData, mPreprocessStruct *pPre, double scale);
   bool matchMods    (mPepMod2& v1, std::vector<mPepMod>& v2);
-  void kojakXCorr   ();
-
+  
   //Utilities
   static int compareIntensity (const void *p1,const void *p2);
+  static bool compareIntensityRev(const mSpecPoint& p1, const mSpecPoint& p2) { return p1.intensity>p2.intensity; }
   static int compareMZ        (const void *p1,const void *p2);
 
 

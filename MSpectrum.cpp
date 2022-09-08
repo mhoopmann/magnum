@@ -22,58 +22,60 @@ using namespace std;
 /*============================
   Constructors & Destructors
 ============================*/
-MSpectrum::MSpectrum(const int& i, const double& bs, const double& os, const int& th){
-  binOffset=os;
-  binSize=bs;
-  instrumentPrecursor=false;
-  invBinSize=1.0/binSize;
-  charge = 0; 
-  maxIntensity=0;
-  mz = 0;
-  precursor = new vector<mPrecursor>;
-  singlets = new vector<MTopPeps>;
-  spec = new vector<mSpecPoint>;
-  scanNumber = 0;
-  rTime = 0;
-  xCorrArraySize=0;
-  xCorrSparseArraySize=0;
-  xCorrSparseArray=NULL;
-  bigMonoMass=0;
-  bigZ=0;
-  
-  singletCount=0;
-  singletFirst=NULL;
-  singletLast=NULL;
-  singletMax=i;
-
-  kojakSparseArray=NULL;
-  kojakBins=0;
-
-  //singletList=NULL;
-  //singletBins=0;
-
-  lowScore=0;
-
-  hpSize=th;
-  hp=new sHistoPep[hpSize];
-  for(int j=0;j<hpSize;j++){
-    hp[j].pepIndex=-1;
-    hp[j].topScore=0;
-  }
-  for(int j=0;j<HISTOSZ;j++) histogram[j]=0;
-  histogramCount=0;
-  histoMaxIndex=0;
-
-  //** temporary
-  //for(int a=0;a<60;a++){
-  //  for (int j = 0; j<HISTOSZ; j++) hX[a][j] = 0;
-  //  hXCount[a] = 0;
-  //}
-  //**
-
-  cc=0;
-  sc=0;
-}
+//MSpectrum::MSpectrum(const int& i, const double& bs, const double& os, const int& th){
+//  binOffset=os;
+//  binSize=bs;
+//  instrumentPrecursor=false;
+//  invBinSize=1.0/binSize;
+//  charge = 0; 
+//  maxIntensity=0;
+//  mz = 0;
+//  precursor = new vector<mPrecursor>;
+//  singlets = new vector<MTopPeps>;
+//  spec = new vector<mSpecPoint>;
+//  scanNumber = 0;
+//  rTime = 0;
+//  xCorrArraySize=0;
+//  xCorrSparseArraySize=0;
+//  xCorrSparseArray=NULL;
+//  bigMonoMass=0;
+//  bigZ=0;
+//  
+//  singletCount=0;
+//  singletFirst=NULL;
+//  singletLast=NULL;
+//  singletMax=i;
+//
+//  kojakSparseArray=NULL;
+//  kojakBins=0;
+//
+//  //singletList=NULL;
+//  //singletBins=0;
+//
+//  lowScore=0;
+//
+//  hpSize=th;
+//  hp=new sHistoPep[hpSize];
+//  for(int j=0;j<hpSize;j++){
+//    hp[j].pepIndex=-1;
+//    hp[j].topScore=0;
+//  }
+//  for(int j=0;j<HISTOSZ;j++) histogram[j]=0;
+//  histogramCount=0;
+//  histoMaxIndex=0;
+//
+//  //** temporary
+//  //for(int a=0;a<60;a++){
+//  //  for (int j = 0; j<HISTOSZ; j++) hX[a][j] = 0;
+//  //  hXCount[a] = 0;
+//  //}
+//  //**
+//
+//  cc=0;
+//  sc=0;
+//
+//  peakCounts=0;
+//}
 
 MSpectrum::MSpectrum(mParams& p){
   //params->topCount, params->binSize, params->binOffset, params->threads
@@ -132,6 +134,9 @@ MSpectrum::MSpectrum(mParams& p){
 
   cc = 0;
   sc = 0;
+
+  peakCounts=0;
+  maxX = (int)((p.maxPepMass + p.maxAdductMass + 100.0) / p.binSize);
 }
 
 MSpectrum::MSpectrum(const MSpectrum& p){
@@ -170,6 +175,7 @@ MSpectrum::MSpectrum(const MSpectrum& p){
 
   cc=p.cc;
   sc=p.sc;
+  peakCounts=p.peakCounts;
 
   hpSize=p.hpSize;
   hp=new sHistoPep[hpSize];
@@ -221,7 +227,7 @@ MSpectrum::MSpectrum(const MSpectrum& p){
   //  hXCount[a] = p.hXCount[a];
   //}
   //**
-
+  maxX=p.maxX;
 }
   
 MSpectrum::~MSpectrum(){
@@ -261,11 +267,9 @@ MSpectrum::~MSpectrum(){
 ============================*/
 MSpectrum& MSpectrum::operator=(const MSpectrum& p){
   if(this!=&p){
-    unsigned int i;
-    int j;
     delete spec;
     spec = new vector<mSpecPoint>(*p.spec);
-    for(i=0;i<20;i++) topHit[i]=p.topHit[i];
+    for(int i=0;i<20;i++) topHit[i]=p.topHit[i];
     delete precursor;
     precursor = new vector<mPrecursor>(*p.precursor);
     delete singlets;
@@ -286,11 +290,11 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
     bigMonoMass = p.bigMonoMass;
     bigZ=p.bigZ;
 
-    for (i = 0; i<HISTOSZ; i++) histogram[i] = p.histogram[i];
+    for (int i = 0; i<HISTOSZ; i++) histogram[i] = p.histogram[i];
     histogramCount = p.histogramCount;
     histoMaxIndex = p.histoMaxIndex;
 
-    for(i=0;i<maxPepLen+1;i++){
+    for(int i=0;i<maxPepLen+1;i++){
       if(mHisto[i]!=NULL) delete mHisto[i];
     }
     delete [] mHisto;
@@ -304,11 +308,13 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
 
     cc = p.cc;
     sc = p.sc;
+    peakCounts=p.peakCounts;
+    maxX=p.maxX;
 
     delete [] hp;
     hpSize = p.hpSize;
     hp = new sHistoPep[hpSize];
-    for (j = 0; j<hpSize; j++)hp[j] = p.hp[j];
+    for (int j = 0; j<hpSize; j++)hp[j] = p.hp[j];
 
     singletCount=p.singletCount;
     singletMax=p.singletMax;
@@ -334,11 +340,11 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
       xCorrSparseArray=NULL;
     } else {
       xCorrSparseArray = (mSparseMatrix *)calloc((size_t)xCorrSparseArraySize, (size_t)sizeof(mSparseMatrix));
-      for(j=0;j<xCorrSparseArraySize;j++) xCorrSparseArray[j]=p.xCorrSparseArray[j];
+      for(int j=0;j<xCorrSparseArraySize;j++) xCorrSparseArray[j]=p.xCorrSparseArray[j];
     }
     
     if(kojakSparseArray!=NULL){
-      for(j=0;j<kojakBins;j++){
+      for(int j=0;j<kojakBins;j++){
         if(kojakSparseArray[j]!=NULL) delete [] kojakSparseArray[j];
       }
       delete [] kojakSparseArray;
@@ -347,12 +353,12 @@ MSpectrum& MSpectrum::operator=(const MSpectrum& p){
     if(p.kojakSparseArray==NULL){
       kojakSparseArray=NULL;
     } else {
-      for(j=0;j<kojakBins;j++){
+      for(int j=0;j<kojakBins;j++){
         if(p.kojakSparseArray[j]==NULL){
           kojakSparseArray[j]=NULL;
         } else {
           kojakSparseArray[j] = new char[(int)invBinSize+1];
-          for(i=0;i<(unsigned int)invBinSize+1;i++) kojakSparseArray[j][i]=p.kojakSparseArray[j][i];
+          for(int i=0;i<(int)invBinSize+1;i++) kojakSparseArray[j][i]=p.kojakSparseArray[j][i];
         }
       }
     }
@@ -468,6 +474,11 @@ void MSpectrum::clear(){
   bigZ=0;
 }
 
+void MSpectrum::clearPrecursors(){
+  precursor->clear();
+  singlets->clear();
+}
+
 void MSpectrum::erasePrecursor(int i){
   precursor->erase(precursor->begin()+i);
   singlets->erase(singlets->begin()+i);
@@ -487,6 +498,10 @@ void MSpectrum::setMaxIntensity(float f){
 
 void MSpectrum::setMZ(double d){
   mz=d;
+}
+
+void MSpectrum::setNativeID(string s){
+  nativeID = s;
 }
 
 void MSpectrum::setRTime(float f){
@@ -676,144 +691,78 @@ void MSpectrum::sortMZ(){
   qsort(&spec->at(0),spec->size(),sizeof(mSpecPoint),compareMZ);
 }
 
-void MSpectrum::xCorrScore(){
-  kojakXCorr();
-}
+//void MSpectrum::xCorrScore(){
+//  kojakXCorr();
+//}
 
 
 /*============================
   Private Functions
 ============================*/
-void MSpectrum::kojakXCorr(){
+void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, float* pfFastXcorrData, mPreprocessStruct*& pPre){
   int i;
   int j;
   int iTmp;
   double dTmp;
   double dSum;
-  double *pdTempRawData;
-  double *pdTmpFastXcorrData;
-  float  *pfFastXcorrData;
-  mPreprocessStruct pPre;
 
-  pPre.iHighestIon = 0;
-  pPre.dHighestIntensity = 0;
+  pPre->iHighestIon = 0;
+  pPre->dHighestIntensity = 0;
+  BinIons(pPre);
 
-  BinIons(&pPre);
-  //cout << scanNumber << ": " << kojakBins << "\t" << xCorrArraySize << "\t" << invBinSize << "\t" << (int)invBinSize+1 << endl;
-  kojakSparseArray=new char*[kojakBins];
-  for(i=0;i<kojakBins;i++) kojakSparseArray[i]=NULL;
+  memset(pdTempRawData, 0, xCorrArraySize*sizeof(double));
+  memset(pdTmpFastXcorrData, 0, xCorrArraySize*sizeof(double));
+  memset(pfFastXcorrData, 0, xCorrArraySize*sizeof(float));
+  kojakSparseArray = new char*[kojakBins];
+  for (i = 0; i<kojakBins; i++) kojakSparseArray[i] = NULL;
 
-  pdTempRawData = (double *)calloc((size_t)xCorrArraySize, (size_t)sizeof(double));
-  if (pdTempRawData == NULL) {
-    fprintf(stderr, " Error - calloc(pdTempRawData[%d]).\n\n", xCorrArraySize);
-    exit(1);
-  }
-
-  pdTmpFastXcorrData = (double *)calloc((size_t)xCorrArraySize, (size_t)sizeof(double));
-  if (pdTmpFastXcorrData == NULL) {
-    fprintf(stderr, " Error - calloc(pdTmpFastXcorrData[%d]).\n\n", xCorrArraySize);
-    exit(1);
-  }
-
-  pfFastXcorrData = (float *)calloc((size_t)xCorrArraySize, (size_t)sizeof(float));
-  if (pfFastXcorrData == NULL) {
-    fprintf(stderr, " Error - calloc(pfFastXcorrData[%d]).\n\n", xCorrArraySize);
-    exit(1);
-  }
 
   // Create data for correlation analysis.
-  MakeCorrData(pdTempRawData, &pPre, 50.0);
+  MakeCorrData(pdTempRawData, pPre, 50.0);
 
   // Make fast xcorr spectrum.
-  dSum=0.0;
-  for (i=0; i<75; i++) dSum += pPre.pdCorrelationData[i].intensity;
-  for (i=75; i < xCorrArraySize +75; i++) {
-    if (i<xCorrArraySize) dSum += pPre.pdCorrelationData[i].intensity;
-    if (i>=151) dSum -= pPre.pdCorrelationData[i-151].intensity;
-    pdTmpFastXcorrData[i-75] = (dSum - pPre.pdCorrelationData[i-75].intensity)* 0.0066666667;
+  mSpecPoint *pdCorrelationData = pPre->pdCorrelationData;
+  dSum = 0.0;
+  for (i = 0; i<75; i++) dSum += pdCorrelationData[i].intensity;
+  for (i = 75; i < xCorrArraySize + 75; i++) {
+    if (i<xCorrArraySize && pdCorrelationData[i].intensity>0) dSum += pdCorrelationData[i].intensity;
+    if (i >= 151 && pdCorrelationData[i - 151].intensity>0) dSum -= pdCorrelationData[i - 151].intensity;
+    pdTmpFastXcorrData[i - 75] = (dSum - pdCorrelationData[i - 75].intensity)* 0.0066666667;
   }
 
-  xCorrSparseArraySize=1;
-  for (i=0; i<xCorrArraySize; i++) {
-    dTmp = pPre.pdCorrelationData[i].intensity - pdTmpFastXcorrData[i];
-    pfFastXcorrData[i] = (float)dTmp;
+  xCorrSparseArraySize = 1;
 
-    // Add flanking peaks if used
-    iTmp = i-1;
-    if (iTmp >= 0) pfFastXcorrData[i] += (float) ((pPre.pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp])*0.5);
-
-    iTmp = i+1;
-    if (iTmp < xCorrArraySize) pfFastXcorrData[i] += (float) ((pPre.pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp])*0.5);
-
+  double dTmp0 = pdCorrelationData[0].intensity - pdTmpFastXcorrData[0];
+  double dTmp1 = pdCorrelationData[1].intensity - pdTmpFastXcorrData[1];
+  double dTmp2 = pdCorrelationData[2].intensity - pdTmpFastXcorrData[2];
+  pfFastXcorrData[0] = (float)(dTmp0 + dTmp1*0.5);
+  pfFastXcorrData[1] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  for (i = 2; i<xCorrArraySize - 1; i++){
+    dTmp0 = dTmp1;
+    dTmp1 = dTmp2;
+    dTmp2 = pdCorrelationData[i + 1].intensity - pdTmpFastXcorrData[i + 1];
+    pfFastXcorrData[i] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
   }
-  free(pdTmpFastXcorrData);
+  pfFastXcorrData[xCorrArraySize - 1] = (float)(dTmp2 + dTmp1*0.5);
 
   //MH: Fill sparse matrix
-  for(i=0;i<xCorrArraySize;i++){
-    if(pfFastXcorrData[i]>0.5 || pfFastXcorrData[i]<-0.5){
+  for (i = 0; i<xCorrArraySize; i++){
+    if (pfFastXcorrData[i]>0.5 || pfFastXcorrData[i]<-0.5){
 
-      //Fill in missing masses as a result of adding flanking peaks
-      if(pPre.pdCorrelationData[i].mass==0){
-        j=1;
-        while(true){
-          if( (i+j)<xCorrArraySize){
-            if(pPre.pdCorrelationData[i+j].mass>0){
-              pPre.pdCorrelationData[i].mass=pPre.pdCorrelationData[i+j].mass-j*binSize;
-              break;
-            }
-          }
-          if( (i-j)>-1){
-            if(pPre.pdCorrelationData[i-j].mass>0){
-              pPre.pdCorrelationData[i].mass=pPre.pdCorrelationData[i-j].mass+j*binSize;
-              break;
-            }
-          }
-          j++;
-        }
+      dTmp = binSize*i;
+      iTmp = (int)dTmp;
+      if (kojakSparseArray[iTmp] == NULL) {
+        kojakSparseArray[iTmp] = new char[(int)invBinSize + 1];
+        for (j = 0; j<(int)invBinSize + 1; j++) kojakSparseArray[iTmp][j] = 0;
       }
+      j = (int)((dTmp - iTmp)*invBinSize/*+0.5*/);
 
-      //convert i to sparse array key
-      //dTmp=pPre.pdCorrelationData[i].mass+binSize*binOffset;
-      dTmp=binSize*i;
-      iTmp=(int)dTmp;
-      //cout << i << "\t" << pfFastXcorrData[i] << "\t" << dTmp << "\t" << iTmp << endl;
-      if(kojakSparseArray[iTmp]==NULL) {
-        kojakSparseArray[iTmp]=new char[(int)invBinSize+1];
-        for(j=0;j<(int)invBinSize+1;j++) kojakSparseArray[iTmp][j]=0;
-      }
-      j=(int)((dTmp-iTmp)*invBinSize/*+0.5*/);
-      //cout << (dTmp-iTmp) << "\t" << (dTmp-iTmp)*invBinSize/*+0.5*/ << endl;
-      //cout << j << endl;
-      //if( j>(int)invBinSize) {
-      //  cout << "ERROR!" << endl;
-      //  exit(0);
-      //}
-      if(pfFastXcorrData[i]>127) kojakSparseArray[iTmp][j]=127;
-      else if(pfFastXcorrData[i]<-128) kojakSparseArray[iTmp][j]=-128;
-      else if(pfFastXcorrData[i]>0) kojakSparseArray[iTmp][j]=(char)(pfFastXcorrData[i]+0.5);
-      else kojakSparseArray[iTmp][j]=(char)(pfFastXcorrData[i]-0.5);
-      //cout << i << "\t" << iTmp << "\t" << j << "\t" << (int)kojakSparseArray[iTmp][j] << endl;
+      if (pfFastXcorrData[i]>127) kojakSparseArray[iTmp][j] = 127;
+      else if (pfFastXcorrData[i]<-128) kojakSparseArray[iTmp][j] = -128;
+      else if (pfFastXcorrData[i]>0) kojakSparseArray[iTmp][j] = (char)(pfFastXcorrData[i] + 0.5);
+      else kojakSparseArray[iTmp][j] = (char)(pfFastXcorrData[i] - 0.5);
     }
   }
-
-  /*
-  if(scanNumber==11368){
-    for(i=0;i<kojakBins;i++){
-      if(kojakSparseArray[i]==NULL) {
-        cout << i << "\tNULL" << endl;
-        continue;
-      }
-      for(j=0;j<(int)invBinSize+1;j++){
-        cout << i << "\t" << j << "\t" << (int)kojakSparseArray[i][j] << endl;
-      }
-    }
-  }
-  */
-
-  //exit(1);
-  free(pPre.pdCorrelationData);
-  free(pfFastXcorrData);
-  free(pdTempRawData);
 
 }
 
@@ -823,6 +772,7 @@ void MSpectrum::BinIons(mPreprocessStruct *pPre) {
   double dPrecursor;
   double dIon;
   double dIntensity;
+  mSpecPoint *pdCorrelationData = pPre->pdCorrelationData;
 
   // Just need to pad iArraySize by 75.
   dPrecursor=0;
@@ -830,13 +780,10 @@ void MSpectrum::BinIons(mPreprocessStruct *pPre) {
     if(precursor->at(j).monoMass>dPrecursor) dPrecursor=precursor->at(j).monoMass;
   }
   xCorrArraySize = (int)((dPrecursor + 100.0) / binSize);
+  if(xCorrArraySize>pPre->iMaxXCorrArraySize) xCorrArraySize=pPre->iMaxXCorrArraySize;
   kojakBins = (int)(spec->at(spec->size()-1).mass+100.0);
 
-  pPre->pdCorrelationData = (mSpecPoint *)calloc(xCorrArraySize, (size_t)sizeof(mSpecPoint));
-  if (pPre->pdCorrelationData == NULL) {
-    fprintf(stderr, " Error - calloc(pdCorrelationData[%d]).\n\n", xCorrArraySize);
-    exit(1);
-  }
+  memset(pdCorrelationData, 0, xCorrArraySize*sizeof(mSpecPoint));
 
   i = 0;
   while(true) {

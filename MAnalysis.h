@@ -71,10 +71,10 @@ private:
   //Private Functions
   bool         allocateMemory          (int threads);
   static bool  analyzeSinglets         (mPeptide& pep, int index, int iIndex);
-  static void  checkXLMotif            (int motifA, char* motifB, vector<int>& v);
+  static void  checkXLMotif            (int motifA, char* motifB, std::vector<int>& v);
   void         deallocateMemory        (int threads);
   static void  scoreSingletSpectra     (int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex);
-  static void  scoreSpectra            (vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex);
+  static void  scoreSpectra            (std::vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex);
   static float magnumScoring           (int specIndex, double modMass, int sIndex, int iIndex, int& match, int& conFrag, int z=0);
 
   //Data Members

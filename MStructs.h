@@ -214,9 +214,10 @@ typedef struct mSpecPoint{
 } mSpecPoint;
 
 typedef struct mPreprocessStruct { //adapted from Comet
-   int iHighestIon;
-   double dHighestIntensity;
-   mSpecPoint *pdCorrelationData;
+  int iMaxXCorrArraySize;
+  int iHighestIon;
+  double dHighestIntensity;
+  mSpecPoint *pdCorrelationData;
 } mPreprocessStruct;
 
 typedef struct mPepMod{

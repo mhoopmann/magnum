@@ -25,9 +25,6 @@ limitations under the License.
 #include "MLog.h"
 #include "MStructs.h"
 
-using namespace std;
-
-
 class MDatabase{
 public:
 
@@ -48,12 +45,12 @@ public:
   mEnzymeRules&       getEnzymeRules      ();
   int                 getMaxPepLen        (double mass);
   mPeptide&           getPeptide          (int index);
-  vector<mPeptide>*   getPeptideList      ();
+  std::vector<mPeptide>*   getPeptideList      ();
   int                 getPeptideListSize  ();
   bool                getPeptideSeq       (int index, int start, int stop, char* str);
-  bool                getPeptideSeq       (int index, int start, int stop, string& str);
-  bool                getPeptideSeq       (mPeptide& p, string& str);
-  bool                getPeptideSeq       (int pepIndex, string& str);
+  bool                getPeptideSeq       (int index, int start, int stop, std::string& str);
+  bool                getPeptideSeq       (mPeptide& p, std::string& str);
+  bool                getPeptideSeq       (int pepIndex, std::string& str);
   mDB&                getProtein          (int index);
   int                 getProteinDBSize    ();
   void                setAAMass           (char aa, double mass);
@@ -75,12 +72,12 @@ private:
   bool          adductSites[128];
   mEnzymeRules  enzyme;    //Where to cut to generate peptides
 
-  vector<mDB>      vDB;    //Entire FASTA database stored in memory
-  vector<mPeptide> vPep;   //List of all peptides
+  std::vector<mDB>      vDB;    //Entire FASTA database stored in memory
+  std::vector<mPeptide> vPep;   //List of all peptides
 
   MLog* mlog;
 
-  void addPeptide(int index, int start, int len, double mass, mPeptide& p, vector<mPeptide>& vP, bool bN, bool bC, char xlSites);
+  void addPeptide(int index, int start, int len, double mass, mPeptide& p, std::vector<mPeptide>& vP, bool bN, bool bC, char xlSites);
   bool checkAA(size_t i, size_t start, size_t n, size_t seqSize, bool& bN, bool& bC);
 
   //Utility functions (for sorting)

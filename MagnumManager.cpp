@@ -99,20 +99,29 @@ int MagnumManager::run(){
       log.addError("Cannot perform precursor refinement using MGF files. Please disable by setting precursor_refinement=0");
       return -10;
     }
-    log.addMessage("Reading spectra data file: " + files[i].input, true);
-    cout << "\n Reading spectra data file: " << files[i].input << " ... ";
+
+    //new file reading pipelines several steps to speed loading and transforming spectra
+    log.addMessage("Reading and processing spectra data file: " + files[i].input, true);
+    cout << " Reading and processing spectra data file: " << files[i].input.c_str() << " ... ";
     if (!spec.readSpectra()){
       log.addError("Error reading MS_data_file: " + files[i].input);
       return -2;
     }
-    spec.mapPrecursors();
 
-    log.addMessage("Start transformation.", true);
-    time(&timeNow);
-    cout << "\n Start transformation: " << ctime(&timeNow);
-    spec.xCorr();
-    time(&timeNow);
-    cout << " Finished transformation: " << ctime(&timeNow) << endl;
+    //log.addMessage("Reading spectra data file: " + files[i].input, true);
+    //cout << "\n Reading spectra data file: " << files[i].input << " ... ";
+    //if (!spec.readSpectra()){
+    //  log.addError("Error reading MS_data_file: " + files[i].input);
+    //  return -2;
+    //}
+    //spec.mapPrecursors();
+
+    //log.addMessage("Start transformation.", true);
+    //time(&timeNow);
+    //cout << "\n Start transformation: " << ctime(&timeNow);
+    //spec.xCorr();
+    //time(&timeNow);
+    //cout << " Finished transformation: " << ctime(&timeNow) << endl;
 
     //Step #4: Analyze single peptides with open mods
     MAnalysis anal(params, &db, &spec);

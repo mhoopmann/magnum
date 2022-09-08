@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "MDB.h"
 
+using namespace std;
+
 //==============================
 //  Constructors & Destructors
 //==============================

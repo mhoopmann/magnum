@@ -25,12 +25,31 @@ limitations under the License.
 #include "MSpectrum.h"
 #include "MSReader.h"
 #include "NeoPepXMLParser.h"
+#include <deque>
 #include <iostream>
 #include "CometDecoys.h"
 #include "Threading.h"
 #include "ThreadPool.h"
 
-using namespace MSToolkit;
+//=============================
+// Structures for threading
+//=============================
+typedef struct mMS2struct{
+  MSToolkit::Spectrum* s;
+  MSpectrum* pls;
+  int state;
+  bool thread;
+  mMS2struct(MSToolkit::Spectrum* sp, mParams* params){
+    s = sp;
+    pls = new MSpectrum(*params);
+    state = 0;
+    thread = false;
+  }
+  ~mMS2struct(){
+    delete s;
+    pls = NULL;  //this needs to be deleted elsewhere
+  }
+} mMS2struct;
 
 class MData {
 public:
@@ -44,18 +63,17 @@ public:
   MSpectrum* getSpectrum(const int& i);
 
   bool      createDiag        (FILE*& f);
-  NeoPepXMLParser* createPepXML(string& str, MDatabase& db);
+  NeoPepXMLParser* createPepXML(std::string& str, MDatabase& db);
   bool      createPercolator  (FILE*& f, FILE*& f2);
   bool      createTXT         (FILE*& f);
   void      diagSinglet       ();
-  void      exportPepXML      (NeoPepXMLParser*& p, vector<mResults>& r);
-  void      exportPercolator  (FILE*& f, vector<mResults>& r);
-  void      exportTXT         (FILE*& f, vector<mResults>& r);
-  bool      getBoundaries     (double mass1, double mass2, vector<int>& index, bool* buffer);
-  bool      getBoundaries2    (double mass, double prec, vector<int>& index, bool* buffer);
+  void      exportPepXML      (NeoPepXMLParser*& p, std::vector<mResults>& r);
+  void      exportPercolator  (FILE*& f, std::vector<mResults>& r);
+  void      exportTXT         (FILE*& f, std::vector<mResults>& r);
+  bool      getBoundaries     (double mass1, double mass2, std::vector<int>& index, bool* buffer);
+  bool      getBoundaries2    (double mass, double prec, std::vector<int>& index, bool* buffer);
   double    getMaxMass        ();
   double    getMinMass        ();
-  bool      mapPrecursors     ();
   void      outputDiagnostics (FILE* f, MSpectrum& s, MDatabase& db);
   bool      outputResults     (MDatabase& db);
   void      processPSM        (MSpectrum& s, mScoreCard3& sc, mResults& r);
@@ -66,7 +84,6 @@ public:
   void      setParams         (MParams* p);
   void      setVersion        (const char* v);
   int       size              ();
-  void      xCorr             ();
 
   bool*     getAdductSites    ();
 
@@ -75,27 +92,62 @@ private:
   //Data Members
   bool* bScans;
   char               version[32];
-  vector<MSpectrum>  spec;
-  vector<mMass>      massList;
-  mParams*           params;
+  std::vector<MSpectrum*>  spec;
+  std::vector<mMass>      massList;
+  static mParams*           params;
   MParams*           parObj;
   MIons              aa;
-  MLog*              mlog;
+  static MLog*              mlog;
   int                pepXMLindex;
+
+  //Common memory to be shared by all threads during spectral processing
+  static bool* memoryPool;
+  static double** tempRawData;
+  static double** tmpFastXcorrData;
+  static float**  fastXcorrData;
+  static Mutex    mutexMemoryPool;
+  static mPreprocessStruct** preProcess;
+
+  //Optimized file loading structures for spectral processing
+  static std::deque<MSToolkit::Spectrum*> dMS1;
+  static std::vector<MSToolkit::Spectrum*> vMS1Buffer;
+  static Mutex mutexLockMS1;
+  static CHardklor2** h;
+  static CHardklorSetting hs;
+  static Mutex* mutexHardklor;
+  static CAveragine** averagine;
+  static CMercury8** mercury;
+  static CModelLibrary* models;
+  static bool* bHardklor;
+  static int maxPrecursorMass;
 
   bool adductSite[128];
 
-  static void xCorrProc(MSpectrum* s);
+  //static void xCorrProc(MSpectrum* s);
+
+  //spectral processing functions
+  static void averageScansCentroid(std::vector<MSToolkit::Spectrum*>& s, MSToolkit::Spectrum& avg, double min, double max);
+  static int  findPeak(MSToolkit::Spectrum* s, double mass);
+  static int  findPeak(MSToolkit::Spectrum* s, double mass, double prec);
+  static void formatMS2(MSToolkit::Spectrum* s, MSpectrum* pls);
+  void initHardklor();
+  void memoryAllocate();
+  void memoryFree();
+  static void processMS2(mMS2struct* s);
+  static int  processPrecursor(mMS2struct* s, int tIndex);
+  void releaseHardklor();
 
   //Utilities
-  void        centroid          (Spectrum& s, Spectrum& out, double resolution, int instrument=0);
-  void        collapseSpectrum  (Spectrum& s);
+  static void        centroid(MSToolkit::Spectrum* s, MSpectrum* out, double resolution, int instrument = 0);
+  static void        collapseSpectrum(MSpectrum& s);
   static int  compareInt        (const void *p1, const void *p2);
   static int  compareMassList   (const void *p1, const void *p2);
-  int         getCharge         (Spectrum& s, int index, int next);
-  double      polynomialBestFit (vector<double>& x, vector<double>& y, vector<double>& coeff, int degree=2);
+  static int compareScanBinRev2(const void *p1, const void *p2);
+  static bool compareSpecPoint(const mSpecPoint& p1, const mSpecPoint& p2){ return p1.mass<p2.mass; }
+  static int         getCharge(MSpectrum& s, int index, int next);
+  static double      polynomialBestFit (std::vector<double>& x, std::vector<double>& y, std::vector<double>& coeff, int degree=2);
   bool        processPath       (const char* in_path, char* out_path);
-  string      processPeptide(mPeptide& pep, vector<mPepMod>& mod, int site, double massA, MDatabase& db);
+  std::string      processPeptide(mPeptide& pep, std::vector<mPepMod>& mod, int site, double massA, MDatabase& db);
 
 };
 

@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "MAnalysis.h"
 
+using namespace std;
+
 bool*       MAnalysis::bKIonsManager;
 MDatabase*  MAnalysis::db;
 MIons*      MAnalysis::ions;

@@ -4,8 +4,8 @@
 #include "MLog.h"
 #include "MParams.h"
 
-#define VERSION "1.1.0"
-#define BDATE "August 29 2022"
+#define VERSION "1.1.1"
+#define BDATE "September 8 2022"
 
 class MagnumManager {
 public:

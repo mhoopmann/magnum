@@ -276,7 +276,7 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
 
   if(p->xlSites==0) return true;
 
-  //Crosslinked peptides must also search singlets with reciprocol mass on each lysine
+  //Search for open modifications on peptide as well if it has sites where modification can bind
   analyzeSinglets(*p,pepIndex,iIndex);
 
   return true;
@@ -337,7 +337,8 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
 
       for(j=0;j<scanIndex.size();j++){
         //cout << "before score" << endl;
-        scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex);
+        if (k == 0)scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex,true);
+        else scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex);
         //cout << "after score" << endl;
       }
     }
@@ -371,7 +372,7 @@ void MAnalysis::deallocateMemory(int threads){
 }
 
 //This function is way out of date. Particularly the mutexes and how to deal with multiple precursors.
-void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex){
+void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex, bool bSiteless){
   //cout << "scoreSingletSpectra()" << endl;
   mScoreCard sc;
   MIonSet* iset;
@@ -404,9 +405,11 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
     i=0;
     p = s->getPrecursor2(i);
   }
+
   if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
   else if((p->monoMass-mass)>params.maxAdductMass) score=0;
-  else score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
+  else if(bSiteless) score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
+
   if(score>0){
     topScore = score;
     topMatch = match;

@@ -43,6 +43,8 @@ int MAnalysis::nonSkipCount;
 
 MDecoys MAnalysis::decoys;
 
+double MAnalysis::dummy[10]{};
+
 /*============================
   Constructors & Destructors
 ============================*/
@@ -296,16 +298,34 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
   //get the peptide sequence
   db->getPeptideSeq(pep,pepSeq);
 
-  //Set Mass boundaries
-  minMass = pep.mass + params.minAdductMass;
-  maxMass = pep.mass + params.maxAdductMass;
-  minMass-=(minMass/1000000*params.ppmPrecursor);
-  maxMass+=(maxMass/1000000*params.ppmPrecursor);
+
 
   //Find mod mass as difference between precursor and peptide
-  
+  //cout << "analyzeSinglets: " << iIndex << "\t" << pepSeq << endl;
   len=(pep.map->at(0).stop-pep.map->at(0).start)+1;
   ions[iIndex].setPeptide(&db->at(pep.map->at(0).index).sequence[pep.map->at(0).start], len, pep.mass, pep.nTerm, pep.cTerm);
+  //ions[iIndex].reset();
+  ions[iIndex].buildModIons2();
+
+  //get all spectra that might contain this peptide and adduct
+  //Set Mass boundaries
+  minMass = ions[iIndex].pepMassMin + params.minAdductMass;
+  maxMass = ions[iIndex].pepMassMax + params.maxAdductMass;
+  minMass-=(minMass/1000000*params.ppmPrecursor);
+  maxMass+=(maxMass/1000000*params.ppmPrecursor);
+  //cout << minMass << " - " << maxMass << " for " << ions[iIndex].pepMassMin << " to " << ions[iIndex].pepMassMax << " over " << ions[iIndex].pepCount << " peptides." << endl;
+
+  if (!spec->getBoundaries(minMass, maxMass, scanIndex, scanBuffer[iIndex])) return true;
+  //else cout << scanIndex.size() << " scans." << endl;
+
+  for (j = 0; j<scanIndex.size(); j++){
+    //cout << "before score" << endl;
+    for(size_t a=0;a<ions[iIndex].peaks->size();a++) ions[iIndex].peaks->at(a).visit=false; //reset for the next analysis
+    scoreSingletSpectra2(scanIndex[j], pep.mass, len, index, minMass, maxMass, iIndex);
+    //cout << "after score" << endl;
+  }
+
+  return true;
   
   //Iterate every adduct site
   for(k=0;k<len;k++){
@@ -358,6 +378,9 @@ bool MAnalysis::allocateMemory(int threads){
   for(int i=0;i<threads;i++) {
     bKIonsManager[i]=false;
     scanBuffer[i] = new bool[spec->size()];
+    for(int j=0;j<128;j++){
+      ions[i].site[j]=adductSites[j];
+    }
   }
   return true;
 }
@@ -512,6 +535,180 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   //  Threading::UnlockMutex(mutexSpecScore[index]);
   //}
   //**
+
+}
+
+void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex){
+  //cout << "scoreSingletSpectra2()" << endl;
+  mScoreCard sc;
+  MIonSet* iset;
+  mPepMod mod;
+  double score = 0;
+  int i, j;
+  int precI;
+  int match=0;
+  int conFrag=0;
+
+  MSpectrum* s = spec->getSpectrum(index);
+  mPrecursor* p;
+  MTopPeps* tp;
+  int sz = s->sizePrecursor();
+  double topScore = 0;
+  int topMatch = 0;
+  int topConFrag = 0;
+
+  //score all peptides against all appropriate precursors
+  vector<sPrecursor> pre;
+  int maxZ=1;
+  for(int i=0;i<sz;i++){
+    p = s->getPrecursor2(i);
+    if (p->monoMass<minMass) continue;
+    if (p->monoMass>maxMass) continue;
+    //if ((p->monoMass - mass)>params.maxAdductMass) continue; //Not sure here, peptides have multiple masses
+    //if ((p->monoMass - mass)<params.minAdductMass) continue;
+    sPrecursor pr;
+    pr.index=i;
+    pr.monomass=p->monoMass;
+    pr.maxZ=p->charge-1;
+    if(pr.maxZ<1) pr.maxZ=1;
+    if(pr.maxZ>3) pr.maxZ=3;
+    if(pr.maxZ>maxZ) maxZ=pr.maxZ;
+    pre.push_back(pr);
+  }
+  if(pre.size()==0) {
+    cout << "WTF" << endl;
+    exit(1);
+  }
+
+  size_t pepCount=ions[iIndex].pepCount;
+  size_t preCount=pre.size();
+  sScoreSet* pScores = new sScoreSet[pepCount];
+  vector<sNode2>* peaks=ions[iIndex].peaks;
+  for (size_t a = 0; a<peaks->at(0).start.size(); a++){
+    score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores, &pre, iIndex, maxZ,sizeof(double)*pre.size());
+  }
+  for(size_t a=0;a<pepCount;a++){
+    for(size_t b=0;b<preCount;b++){
+      if(pScores[a].scores[b]<=0) continue;
+      double score = pScores[a].scores[b]*0.005;
+
+      if(score>0){
+        topScore = score;
+        topMatch = match;
+        topConFrag = conFrag;
+        precI = pre[b].index;
+        sc.simpleScore = (float)score;
+        sc.pep = pep;
+        sc.mass = ions[iIndex].pepMass[a];
+        sc.massA = pre[b].monomass - ions[iIndex].pepMass[a];
+        sc.precursor = pre[b].index;
+        sc.site = ions[iIndex].pepLinks[a];
+        sc.mods->clear();
+        for(size_t c=0;c<ions[iIndex].pepMods[a].mods.size();c++){
+          sc.mods->push_back(ions[iIndex].pepMods[a][c]);
+        }
+      }
+
+      double ev = 1000;
+      Threading::LockMutex(mutexSpecScore[index]);
+      ev = s->computeE(topScore, len);
+      Threading::UnlockMutex(mutexSpecScore[index]);
+      sc.eVal = ev;
+      sc.match = topMatch;
+      sc.conFrag = topConFrag;
+
+      tp = s->getTopPeps(precI);
+      Threading::LockMutex(mutexSingletScore[index][precI]);
+      tp->checkPeptideScore(sc);
+      Threading::UnlockMutex(mutexSingletScore[index][precI]);
+
+      Threading::LockMutex(mutexSpecScore[index]);
+      s->checkScore(sc, iIndex);
+      Threading::UnlockMutex(mutexSpecScore[index]);
+    }
+  }
+
+  delete [] pScores;
+  peaks=NULL;
+
+}
+
+void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize) {
+
+  if (node->mass > 0) {
+
+    if (!node->visit) {
+      for (int b = 1; b <= maxZ; b++){
+        double mz = (node->mass + 1.007276466*b)/b;
+        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
+        mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b)/ b;
+        node->scoreAltNL[b] = node->scoreAltNL[b - 1] + magnumScoring2(s, mz);//score reverse without link
+      }
+    }
+
+    for (size_t a = 0; a<pre->size(); a++){
+      link->score[a] = score[a] + node->score[pre->at(a).maxZ];
+      link->scoreNL[a] = scoreNL[a] + node->score[pre->at(a).maxZ] + node->scoreAltNL[pre->at(a).maxZ];
+
+      if (depth < ions[iIndex].maxLink) {
+        if (!node->visit) {
+          for (int b = 1; b <= maxZ; b++) {
+            double mz = (pre->at(a).monomass - node->mass + 1.007276466*b) / b;
+            node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score reverse after precursor subtraction
+          }
+        }
+        link->score[a] += node->scoreAlt[a][pre->at(a).maxZ];
+      }
+    }
+
+  } else {
+
+    if (!node->visit) {
+      for (int b = 1; b <= maxZ; b++) {
+        double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466*b) / b;
+        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
+      }
+    }
+    for (size_t a = 0; a < pre->size(); a++) {
+      if (!node->visit) {
+        for (int b = 1; b <= maxZ; b++) {
+          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
+          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction  
+        }
+      }
+      link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
+      link->scoreNL[a] = scoreNL[a] + node->scoreAlt[a][pre->at(a).maxZ];
+    }
+
+  }
+
+  node->visit = true;
+  if (link->nextNode == SIZE_MAX) {
+    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
+      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize);
+    } else {
+      memcpy(v[link->pepNum].scores, link->score, bufSize);
+    }
+  } else {
+    if (ions[iIndex].pepLinks[link->pepNum] < 0) score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
+    else score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
+  }
+
+  for (size_t a = 0; a < node->start.size(); a++) {
+    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
+    if (node->start[a].pepNum < link->pepNum) continue;
+    //if (i->pepMass[node->start[a].pepNum] <800 || i->pepMass[node->start[a].pepNum]>1000) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
+    v[node->start[a].pepNum].scored = true;
+    if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0) {
+      if (node->start[a].nextNode == SIZE_MAX) {
+        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
+      } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
+    } else {
+      if (node->start[a].nextNode == SIZE_MAX) {
+        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
+      } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
+    }
+  }
 
 }
 
@@ -723,6 +920,18 @@ float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iI
   delete[] ionSeries;
 
   return float(dXcorr);
+}
+
+//An alternative score uses the XCorr metric from the Comet algorithm
+//This version allows for fast scoring when the cross-linked mass is added.
+char MAnalysis::magnumScoring2(MSpectrum* s, double mass) {
+  double invBinSize = s->getInvBinSize();
+  double mz = params.binSize * (int)(mass * invBinSize + params.binOffset);
+  int key = (int)mz;
+  if (key >= s->kojakBins) return 0;
+  if (s->kojakSparseArray[key] == NULL) return 0;
+  int pos = (int)((mz - key)*invBinSize);
+  return s->kojakSparseArray[key][pos];
 }
 
 

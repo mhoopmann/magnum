@@ -105,6 +105,12 @@ private:
   static Mutex* mutexSpecScore; //these signal PSM list reads/additions/deleteions
   static Mutex** mutexSingletScore; //these signal singlet list reads/additions/deletions
 
+  //For new search
+  static double dummy[10];
+  static char magnumScoring2(MSpectrum* s, double mass);
+  static void scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex);
+  static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize);
+
   //Utilities
   static int compareD           (const void *p1,const void *p2);
   

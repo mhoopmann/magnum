@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "MStructs.h"
 #include "MIonSet.h"
+#include <map>
 #include <vector>
 
 typedef struct mModPos{
@@ -48,12 +49,15 @@ public:
   //Functions
   void      addFixedMod       (char mod, double mass);
   void      addMod            (char mod, bool xl, double mass);
+  void      addPeak           (double mass, bool adduct, size_t& node, bool& ar, size_t& index); //could be private?
   void      buildIons         ();
   void      buildModIons      (int modSite);
+  void      buildModIons2     ();
   double    getAAMass         (char aa);
   double    getFixedModMass   (char aa);
   void      modIonsRec        (int start, int link, int index, int depth, bool xl);
   void      modIonsRec2       (int start, int link, int index, int depth, bool xl);
+  void      modIonsRec4       (int start, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex); //could be private?
   void      reset             ();
 
   //Accessors
@@ -76,6 +80,17 @@ public:
   //Data Members
   double* modList;
   bool site[128]; //possible sites of linkage based on parameters
+
+  //New data members for tree search
+  std::vector<sNode2>* peaks;
+  std::map<double, size_t> mP;  //could be private
+  size_t pepCount;
+  std::vector<int> pepLinks;
+  std::vector<double> pepMass;
+  std::vector<sPepModSet> pepMods;
+  double pepMassMin;
+  double pepMassMax;
+  int maxLink;
 
 private:
 

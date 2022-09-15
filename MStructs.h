@@ -396,4 +396,51 @@ typedef struct mSimpleMod{
   int count;
 } mSimpleMod;
 
+
+typedef struct sLink2{
+  size_t nextNode;
+  size_t nextIndex;
+  size_t pepNum;
+  double score[10]{};    //make an array large enough to hold all precursors? Is 10 enough?
+  double scoreNL[10]{};  //make an array large enough to hold all precursors? Is 10 enough?
+  sLink2(){
+    nextNode = SIZE_MAX;
+    nextIndex = SIZE_MAX;
+  }
+} sLink2;
+
+
+typedef struct sNode2{
+  bool visit;
+  double mass;
+  double score[4]{};       //always same?
+  double scoreAlt[10][4]{};    //make an array large enough to hold all precursors? Is 10 enough?
+  double scoreAltNL[4]{};  //always same?
+  std::vector<sLink2> start;
+  std::vector<sLink2> next;
+  sNode2(){
+    visit = false;
+    mass = 0;
+  }
+} sNode2;
+
+typedef struct sPepModSet{
+  std::vector<mPepMod> mods;
+  mPepMod& operator[](const size_t& index) { return mods[index]; }
+} sPepModSet;
+
+typedef struct sPrecursor{
+  int index;
+  double monomass;
+  int maxZ;
+} sPrecursor;
+
+typedef struct sScoreSet {
+  double scores[10]{};  //never more than 10 precursors
+  bool scored;
+  sScoreSet(){
+    scored = false;
+  }
+} sScoreSet;
+
 #endif

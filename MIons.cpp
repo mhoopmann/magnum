@@ -57,10 +57,12 @@ MIons::MIons(){
   pep1=NULL;
   maxModCount=0;
   ionCount=0;
+  peaks=NULL;
 }
 
 MIons::~MIons(){
   if(modList!=NULL) delete [] modList;
+  if(peaks!=NULL) delete peaks;
   pep1=NULL;
 }
 
@@ -81,6 +83,43 @@ void MIons::addFixedMod(char mod, double mass){
 void MIons::addMod(char mod, bool xl, double mass){
   aaMod[mod].mod[aaMod[mod].count].xl=xl;
   aaMod[mod].mod[aaMod[mod].count++].mass=mass;
+}
+
+void MIons::addPeak(double mass, bool adduct, size_t& node, bool& ar, size_t& index){
+  double pMass = mass;
+  if (adduct) pMass = -pMass;
+  size_t target;
+  map<double, size_t>::iterator it = mP.find(pMass);
+  if (it == mP.end()) {
+    target = peaks->size();
+    mP.insert(pair<double, size_t>(pMass, target));
+    if (ar) {
+      peaks->at(node).start[index].nextNode = target;
+      peaks->at(node).start[index].nextIndex = 0;
+    } else {
+      peaks->at(node).next[index].nextNode = target;
+      peaks->at(node).next[index].nextIndex = 0;
+    }
+    peaks->emplace_back();
+    peaks->back().mass = pMass;
+    index = peaks->back().next.size();
+    peaks->back().next.emplace_back();
+
+  } else {
+    target = it->second;
+    if (ar) {
+      peaks->at(node).start[index].nextNode = target;
+      peaks->at(node).start[index].nextIndex = peaks->at(target).next.size();
+    } else {
+      peaks->at(node).next[index].nextNode = target;
+      peaks->at(node).next[index].nextIndex = peaks->at(target).next.size();
+    }
+    index = peaks->at(target).next.size();
+    peaks->at(target).next.emplace_back();
+
+  }
+  node = target;
+  ar = false;
 }
 
 void MIons::buildIons(){
@@ -187,6 +226,42 @@ void MIons::buildModIons(int modSite){
       else sets[0].zIons[j][i] = ((sets[0].zIons[0][i]+1.007276466*j)/j);
     }
   }
+
+}
+
+void MIons::buildModIons2() {
+  double mMass;
+
+  if(peaks!=NULL) delete peaks;
+  peaks = new vector<sNode2>;
+  mP.clear();
+  pepLinks.clear();
+  pepMass.clear();
+  pepMods.clear();
+  maxLink = -99;
+
+  peaks->emplace_back();
+  peaks->at(0).start.emplace_back();
+  peaks->at(0).start.back().pepNum = 0;
+
+  //set up boundaries
+  ionCount = pep1Len;
+
+  //peptide number
+  pepCount = 0;
+
+  //b- & y-ions from first peptide
+  pepMass.push_back(pep1Mass);
+  pepMassMin = pepMassMax = pep1Mass;
+  mMass = aaMass['n'];
+  pepMass[0] += aaMass['n'];
+  if (nPep1) {
+    mMass += aaMass['$'];
+    pepMass[0] += aaMass['$'];
+  }
+  pepMods.emplace_back();
+  modIonsRec4(0, mMass, -99, pepCount, 0, -1, 0, true, 0);
+  pepCount++; //Double-check this?
 
 }
 
@@ -313,6 +388,87 @@ void MIons::modIonsRec2(int start, int link, int index, int depth, bool xl){
     }
   }
 
+}
+
+void MIons::modIonsRec4(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex) {
+
+  for (int i = pos; i < ionCount - 1; i++) { //recursive function continues from last position
+
+    //see if adduct attaches here
+    if (oSite == -99 && i == 0 && nPep1 && site['n']) {  //if n-terminus can be linked, proceed as if it is linked
+      pepCount++;
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      peaks->at(linkNode).start.emplace_back();
+      peaks->at(linkNode).start.back().pepNum = pepCount;
+      modIonsRec4(i, mMass, i, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1);
+
+    } else if (oSite == -99 && modSite < i && site[pep1[i]]) { //otherwise attach adduct to available site
+      pepCount++;
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      peaks->at(linkNode).start.emplace_back();
+      peaks->at(linkNode).start.back().pepNum = pepCount;
+      modIonsRec4(i, mMass, i, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1);
+    }
+
+    //only check modifications if adduct is not attached and we are allowed more modifications
+    if (i > modSite && i != oSite && depth < maxModCount) {
+      //Check if amino acid is on the modification list
+      for (int j = 0; j < aaMod[pep1[i]].count; j++) {
+
+        //skip mods if it is xl mod on a cut site - is this relevant in Magnum?
+        if (aaMod[pep1[i]].mod[j].xl && i == pep1Len - 1 && !cPep1) continue;
+
+        //Add masses
+        pepCount++;
+        pepMass.push_back(pepMass[pepNum] + aaMod[pep1[i]].mod[j].mass);
+        pepMods.push_back(pepMods[pepNum]);
+        mPepMod pm;
+        pm.mass = aaMod[pep1[i]].mod[j].mass;
+        pm.pos = (char)i;
+        pm.term = false;
+        pepMods.back().mods.push_back(pm);
+        peaks->at(linkNode).start.emplace_back();
+        peaks->at(linkNode).start.back().pepNum = pepCount;
+        modIonsRec4(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, pepCount, depth, i, linkNode, true, peaks->at(linkNode).start.size() - 1);
+
+      }
+    }
+
+    mMass += aaMass[pep1[i]]; //add the amino acid mass
+    if (i == ionCount - 1) { //special case for the end of a peptide
+      mMass += aaMass['c']; //add static mods to last amino acid
+      pepMass[pepNum] += aaMass['c'];
+      if (cPep1) {
+        mMass += aaMass['%']; //add static mods to end of protein
+        pepMass[pepNum] += aaMass['%'];
+      }
+    }
+
+    if (oSite >= 0 && i >= oSite) addPeak(mMass, true, linkNode, linkAr, linkIndex);
+    else addPeak(mMass, false, linkNode, linkAr, linkIndex);
+    peaks->at(linkNode).next[linkIndex].pepNum = pepNum;
+  }
+
+  if (oSite == -99 && cPep1 && site['c']) { //if c-terminus can be linked, proceed as if it is linked
+    pepCount++;
+    pepMass.push_back(pepMass[pepNum]);
+    pepMods.push_back(pepMods[pepNum]);
+    peaks->at(linkNode).start.emplace_back();
+    peaks->at(linkNode).start.back().pepNum = pepCount;
+    modIonsRec4(ionCount, mMass, ionCount, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1);
+
+  }
+
+  //check if mass boundaries have changed
+  if (pepMass[pepNum] < pepMassMin)pepMassMin = pepMass[pepNum]; 
+  if (pepMass[pepNum] > pepMassMax)pepMassMax = pepMass[pepNum];
+
+  //Mark position of adduct
+  while (pepLinks.size() <= pepNum) pepLinks.push_back(0);
+  pepLinks[pepNum] = oSite;
+  if (oSite>maxLink) maxLink = oSite;
 }
 
 void MIons::reset(){

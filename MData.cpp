@@ -1072,7 +1072,7 @@ bool MData::outputResults(MDatabase& db){
   FILE* fPerc2 = NULL;
   FILE* fDiag=NULL;
   string fXML;
-  NeoPepXMLParser* pepxml;
+  NeoPepXMLParser* pepxml=NULL;
 
   //Create output files
   if(!createTXT(fTXT)) return false;

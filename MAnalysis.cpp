@@ -44,6 +44,9 @@ int MAnalysis::nonSkipCount;
 MDecoys MAnalysis::decoys;
 
 double MAnalysis::dummy[10]{};
+int MAnalysis::dummyM[10]{};
+int* MAnalysis::maxZ2;
+int* MAnalysis::bufSize2;
 
 /*============================
   Constructors & Destructors
@@ -286,83 +289,30 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
 
 bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
 
-  int i;
-  size_t j;
-  int k;
-  int len;
-  double minMass;
-  double maxMass;
-  vector<int> scanIndex;
-  string pepSeq;
-
   //get the peptide sequence
-  db->getPeptideSeq(pep,pepSeq);
+  //string pepSeq;
+  //db->getPeptideSeq(pep,pepSeq);
 
-
-
-  //Find mod mass as difference between precursor and peptide
-  //cout << "analyzeSinglets: " << iIndex << "\t" << pepSeq << endl;
-  len=(pep.map->at(0).stop-pep.map->at(0).start)+1;
+  //Build our peptide
+  int len=(pep.map->at(0).stop-pep.map->at(0).start)+1;
   ions[iIndex].setPeptide(&db->at(pep.map->at(0).index).sequence[pep.map->at(0).start], len, pep.mass, pep.nTerm, pep.cTerm);
-  //ions[iIndex].reset();
-  ions[iIndex].buildModIons2();
+  ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.
 
   //get all spectra that might contain this peptide and adduct
   //Set Mass boundaries
-  minMass = ions[iIndex].pepMassMin + params.minAdductMass;
-  maxMass = ions[iIndex].pepMassMax + params.maxAdductMass;
-  minMass-=(minMass/1000000*params.ppmPrecursor);
+  double minMass = ions[iIndex].pepMassMin + params.minAdductMass;
+  double maxMass = ions[iIndex].pepMassMax + params.maxAdductMass;
+  minMass-=(minMass/1000000*params.ppmPrecursor); //is this necessary because all adduct results end in 0ppm error?
   maxMass+=(maxMass/1000000*params.ppmPrecursor);
-  //cout << minMass << " - " << maxMass << " for " << ions[iIndex].pepMassMin << " to " << ions[iIndex].pepMassMax << " over " << ions[iIndex].pepCount << " peptides." << endl;
-
+ 
+  vector<int> scanIndex;
   if (!spec->getBoundaries(minMass, maxMass, scanIndex, scanBuffer[iIndex])) return true;
-  //else cout << scanIndex.size() << " scans." << endl;
 
-  for (j = 0; j<scanIndex.size(); j++){
-    //cout << "before score" << endl;
-    for(size_t a=0;a<ions[iIndex].peaks->size();a++) ions[iIndex].peaks->at(a).visit=false; //reset for the next analysis
+  for (size_t j = 0; j<scanIndex.size(); j++){
+    if(j>0){
+      for(size_t a=0;a<ions[iIndex].peaks->size();a++) ions[iIndex].peaks->at(a).visit=false; //reset for the next analysis
+    }
     scoreSingletSpectra2(scanIndex[j], pep.mass, len, index, minMass, maxMass, iIndex);
-    //cout << "after score" << endl;
-  }
-
-  return true;
-  
-  //Iterate every adduct site
-  for(k=0;k<len;k++){
-
-    if (k == len - 1 && pep.cTerm){
-      if (!adductSites['c'])  continue;
-    } else if (k==len-1) {
-      if(!adductSites['%']) continue;
-    } else if (!adductSites[pepSeq[k]]) {
-      if (k == 0 && pep.nTerm){
-        if(!adductSites['n']) continue;
-      } else if (k == 0) {
-        if(!adductSites['$']) continue;
-      } else {
-        continue;
-      }
-    }
-  
-    //build fragment ions and score against all potential spectra
-    ions[iIndex].reset();
-    ions[iIndex].buildModIons(k);
-    ions[iIndex].modIonsRec2(0,k,0,0,true);
-
-    //iterate through all ion sets
-    for(i=0;i<ions[iIndex].size();i++){
-
-      //Iterate all spectra from (peptide mass + minimum mass) to (peptide mass + maximum mass)
-      if (!spec->getBoundaries(minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, scanIndex, scanBuffer[iIndex])) continue;
-
-      for(j=0;j<scanIndex.size();j++){
-        //cout << "before score" << endl;
-        if (k == 0)scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex,true);
-        else scoreSingletSpectra(scanIndex[j], i, ions[iIndex][i].mass, len, index, (char)k, minMass + ions[iIndex][i].difMass, maxMass + ions[iIndex][i].difMass, iIndex);
-        //cout << "after score" << endl;
-      }
-    }
-
   }
 
   return true;
@@ -382,6 +332,8 @@ bool MAnalysis::allocateMemory(int threads){
       ions[i].site[j]=adductSites[j];
     }
   }
+  maxZ2=new int[threads];
+  bufSize2=new int[threads];
   return true;
 }
 
@@ -392,6 +344,8 @@ void MAnalysis::deallocateMemory(int threads){
     delete[] scanBuffer[i];
   }
   delete[] scanBuffer;
+  delete[] maxZ2;
+  delete[] bufSize2;
 }
 
 //This function is way out of date. Particularly the mutexes and how to deal with multiple precursors.
@@ -407,7 +361,7 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
   int conFrag;
 
   MSpectrum* s=spec->getSpectrum(index);
-  mPrecursor* p;
+  mPrecursor* p=NULL;
   MTopPeps* tp;
   int sz=s->sizePrecursor();
   double topScore=0;
@@ -539,7 +493,6 @@ void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len,
 }
 
 void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex){
-  //cout << "scoreSingletSpectra2()" << endl;
   mScoreCard sc;
   MIonSet* iset;
   mPepMod mod;
@@ -559,7 +512,9 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
 
   //score all peptides against all appropriate precursors
   vector<sPrecursor> pre;
-  int maxZ=1;
+  maxZ2[iIndex] = 1;
+  //double maxPre=0;
+  //double minPre=100000;
   for(int i=0;i<sz;i++){
     p = s->getPrecursor2(i);
     if (p->monoMass<minMass) continue;
@@ -572,7 +527,9 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     pr.maxZ=p->charge-1;
     if(pr.maxZ<1) pr.maxZ=1;
     if(pr.maxZ>3) pr.maxZ=3;
-    if(pr.maxZ>maxZ) maxZ=pr.maxZ;
+    if (pr.maxZ>maxZ2[iIndex]) maxZ2[iIndex] = pr.maxZ;
+    //if(pr.monomass>maxPre) maxPre=pr.monomass; //adjust later for ppm error?
+    //if(pr.monomass<minPre) minPre=pr.monomass;
     pre.push_back(pr);
   }
   if(pre.size()==0) {
@@ -580,33 +537,71 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     exit(1);
   }
 
+  bufSize2[iIndex] = sizeof(double)*pre.size();
   size_t pepCount=ions[iIndex].pepCount;
   size_t preCount=pre.size();
   sScoreSet* pScores = new sScoreSet[pepCount];
   vector<sNode2>* peaks=ions[iIndex].peaks;
   for (size_t a = 0; a<peaks->at(0).start.size(); a++){
-    score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores, &pre, iIndex, maxZ,sizeof(double)*pre.size());
+    score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores, &pre, iIndex /*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
+    //score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, dummyM, dummyM, 0, pScores, &pre, iIndex, maxZ, sizeof(double)*pre.size(), sizeof(int)*pre.size()/*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
   }
-  for(size_t a=0;a<pepCount;a++){
-    for(size_t b=0;b<preCount;b++){
-      if(pScores[a].scores[b]<=0) continue;
-      double score = pScores[a].scores[b]*0.005;
 
-      if(score>0){
-        topScore = score;
-        topMatch = match;
-        topConFrag = conFrag;
-        precI = pre[b].index;
-        sc.simpleScore = (float)score;
-        sc.pep = pep;
-        sc.mass = ions[iIndex].pepMass[a];
-        sc.massA = pre[b].monomass - ions[iIndex].pepMass[a];
-        sc.precursor = pre[b].index;
-        sc.site = ions[iIndex].pepLinks[a];
-        sc.mods->clear();
-        for(size_t c=0;c<ions[iIndex].pepMods[a].mods.size();c++){
-          sc.mods->push_back(ions[iIndex].pepMods[a][c]);
-        }
+  //keep only the best score(s).
+  vector<sDIndex> vTop;
+  topScore=0;
+  size_t minMods=100;
+  for (size_t a = 0; a<pepCount; a++){
+    //cout << "Peptide: " << a << "\t" << ions[iIndex].pepMass[a] << "\t" << ions[iIndex].pepLinks[a] << "\t" << ions[iIndex].pepMods[a].mods.size() << "\t" << pScores[a].scores << endl;
+    double topPreScore=0;
+    size_t topPreIndex=0;
+    for (size_t b = 0; b<preCount; b++){
+      double massA = pre[b].monomass - ions[iIndex].pepMass[a];
+      if(massA<params.minAdductMass || massA>params.maxAdductMass) continue; //skip adducts outside our bounds
+
+      if (pScores[a].scores[b] > topPreScore){
+        topPreScore=pScores[a].scores[b];
+        topPreIndex=b;
+      }
+    }
+
+    if (topPreScore > topScore){
+      topScore = pScores[a].scores[topPreIndex];
+      vTop.clear();
+      sDIndex di;
+      di.a=a;
+      di.b = topPreIndex;
+      vTop.push_back(di);
+      minMods = ions[iIndex].pepMods[a].mods.size();
+    } else if (topPreScore == topScore){
+      sDIndex di;
+      di.a = a;
+      di.b = topPreIndex;
+      vTop.push_back(di);
+      if (ions[iIndex].pepMods[a].mods.size()<minMods) minMods = ions[iIndex].pepMods[a].mods.size();
+    }
+   
+  }
+
+  //TODO: Combine all ambiguous localizations here
+  if(topScore>0){
+    for(size_t a=0;a<vTop.size();a++){
+      double score = pScores[vTop[a].a].scores[vTop[a].b]*0.005;
+      if (ions[iIndex].pepMods[vTop[a].a].mods.size()>minMods) continue; //skip modified peptides that are explained with fewer modifications
+
+      topScore = score;
+      //topMatch = pScores[vTop[a].a].match[vTop[a].b];
+      topConFrag = conFrag;
+      precI = pre[vTop[a].b].index;
+      sc.simpleScore = (float)score;
+      sc.pep = pep;
+      sc.mass = ions[iIndex].pepMass[vTop[a].a];
+      sc.massA = pre[vTop[a].b].monomass - ions[iIndex].pepMass[vTop[a].a];
+      sc.precursor = pre[vTop[a].b].index;
+      sc.site = ions[iIndex].pepLinks[vTop[a].a];
+      sc.mods->clear();
+      for (size_t c = 0; c<ions[iIndex].pepMods[vTop[a].a].mods.size(); c++){
+        sc.mods->push_back(ions[iIndex].pepMods[vTop[a].a][c]);
       }
 
       double ev = 1000;
@@ -614,7 +609,7 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
       ev = s->computeE(topScore, len);
       Threading::UnlockMutex(mutexSpecScore[index]);
       sc.eVal = ev;
-      sc.match = topMatch;
+      sc.match = 0;//topMatch;
       sc.conFrag = topConFrag;
 
       tp = s->getTopPeps(precI);
@@ -633,12 +628,13 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
 
 }
 
-void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize) {
+//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
+void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/) {
 
   if (node->mass > 0) {
 
     if (!node->visit) {
-      for (int b = 1; b <= maxZ; b++){
+      for (int b = 1; b <= maxZ2[iIndex]; b++){
         double mz = (node->mass + 1.007276466*b)/b;
         node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
         mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b)/ b;
@@ -652,7 +648,7 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
 
       if (depth < ions[iIndex].maxLink) {
         if (!node->visit) {
-          for (int b = 1; b <= maxZ; b++) {
+          for (int b = 1; b <= maxZ2[iIndex]; b++) {
             double mz = (pre->at(a).monomass - node->mass + 1.007276466*b) / b;
             node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score reverse after precursor subtraction
           }
@@ -664,16 +660,16 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
   } else {
 
     if (!node->visit) {
-      for (int b = 1; b <= maxZ; b++) {
+      for (int b = 1; b <= maxZ2[iIndex]; b++) {
         double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466*b) / b;
         node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
       }
     }
     for (size_t a = 0; a < pre->size(); a++) {
       if (!node->visit) {
-        for (int b = 1; b <= maxZ; b++) {
+        for (int b = 1; b <= maxZ2[iIndex]; b++) {
           double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
-          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction  
+          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction
         }
       }
       link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
@@ -684,33 +680,117 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
 
   node->visit = true;
   if (link->nextNode == SIZE_MAX) {
-    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
-      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize);
-    } else {
-      memcpy(v[link->pepNum].scores, link->score, bufSize);
-    }
-  } else {
-    if (ions[iIndex].pepLinks[link->pepNum] < 0) score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
-    else score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
-  }
+    if (ions[iIndex].pepLinks[link->pepNum] < 0) memcpy(v[link->pepNum].scores, link->scoreNL, bufSize2[iIndex]);
+    else memcpy(v[link->pepNum].scores, link->score, bufSize2[iIndex]);
+  } else score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
 
   for (size_t a = 0; a < node->start.size(); a++) {
     if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
     if (node->start[a].pepNum < link->pepNum) continue;
-    //if (i->pepMass[node->start[a].pepNum] <800 || i->pepMass[node->start[a].pepNum]>1000) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
+    //if (ions[iIndex].pepMass[node->start[a].pepNum] <minMass || ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
     v[node->start[a].pepNum].scored = true;
-    if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0) {
-      if (node->start[a].nextNode == SIZE_MAX) {
-        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
-      } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
-    } else {
-      if (node->start[a].nextNode == SIZE_MAX) {
-        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
-      } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex, maxZ, bufSize);
-    }
+    if (node->start[a].nextNode == SIZE_MAX) {
+      if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0)  memcpy(v[node->start[a].pepNum].scores, link->scoreNL, bufSize2[iIndex]);
+      else memcpy(v[node->start[a].pepNum].scores, link->score, bufSize2[iIndex]);
+    } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
   }
 
 }
+
+//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
+//this version tries to count matched peaks, but it is currently buggy...
+//void MAnalysis::score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/) {
+//
+//  if (node->mass > 0) {
+//
+//    if (!node->visit) {
+//      for (int b = 1; b <= maxZ; b++){
+//        double mz = (node->mass + 1.007276466*b) / b;
+//        char c = magnumScoring2(s, mz);//score forward
+//        node->score[b] = node->score[b - 1] + c;
+//        if (c>5) node->match[b] = node->match[b - 1] + 1;
+//        mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
+//        c = magnumScoring2(s, mz);//score reverse without link
+//        node->scoreAltNL[b] = node->scoreAltNL[b - 1] + c;
+//        if (c>5) node->matchAltNL[b] = node->matchAltNL[b - 1] + 1;
+//      }
+//    }
+//
+//    for (size_t a = 0; a<pre->size(); a++){
+//      link->score[a] = score[a] + node->score[pre->at(a).maxZ];
+//      link->scoreNL[a] = scoreNL[a] + node->score[pre->at(a).maxZ] + node->scoreAltNL[pre->at(a).maxZ];
+//      link->match[a] = match[a] + node->match[pre->at(a).maxZ];
+//      link->matchNL[a] = matchNL[a] + node->match[pre->at(a).maxZ] + node->matchAltNL[pre->at(a).maxZ];
+//
+//      if (depth < ions[iIndex].maxLink) {
+//        if (!node->visit) {
+//          for (int b = 1; b <= maxZ; b++) {
+//            double mz = (pre->at(a).monomass - node->mass + 1.007276466*b) / b;
+//            char c = magnumScoring2(s, mz); //score reverse after precursor subtraction
+//            node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + c;
+//            if (c>5) node->matchAlt[a][b] = node->matchAlt[a][b - 1] + 1;
+//          }
+//        }
+//        link->score[a] += node->scoreAlt[a][pre->at(a).maxZ];
+//        link->match[a] += node->matchAlt[a][pre->at(a).maxZ];
+//      }
+//    }
+//
+//  } else {
+//
+//    if (!node->visit) {
+//      for (int b = 1; b <= maxZ; b++) {
+//        double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466*b) / b;
+//        char c = magnumScoring2(s, mz);//score forward
+//        node->score[b] = node->score[b - 1] + c;
+//        if (c>5) node->match[b] = node->match[b - 1] + 1;
+//      }
+//    }
+//    for (size_t a = 0; a < pre->size(); a++) {
+//      if (!node->visit) {
+//        for (int b = 1; b <= maxZ; b++) {
+//          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
+//          char c = magnumScoring2(s, mz); //score after precursor subtraction  
+//          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + c;
+//          if (c>5) node->matchAlt[a][b] = node->matchAlt[a][b - 1] + 1;
+//        }
+//      }
+//      link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
+//      link->scoreNL[a] = scoreNL[a] + node->scoreAlt[a][pre->at(a).maxZ];
+//      link->match[a] = match[a] + node->matchAlt[a][pre->at(a).maxZ] + node->match[pre->at(a).maxZ];
+//      link->matchNL[a] = matchNL[a] + node->matchAlt[a][pre->at(a).maxZ];
+//    }
+//
+//  }
+//
+//  node->visit = true;
+//  if (link->nextNode == SIZE_MAX) {
+//    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
+//      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize);
+//      memcpy(v[link->pepNum].match, link->matchNL, bufSizeM);
+//    } else {
+//      memcpy(v[link->pepNum].scores, link->score, bufSize);
+//      memcpy(v[link->pepNum].match, link->match, bufSizeM);
+//    }
+//  } else score7(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, link->match, link->matchNL, depth + 1, v, pre, iIndex, maxZ, bufSize, bufSizeM/*, minMass, maxMass*/);
+//
+//  for (size_t a = 0; a < node->start.size(); a++) {
+//    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
+//    if (node->start[a].pepNum < link->pepNum) continue;
+//    //if (ions[iIndex].pepMass[node->start[a].pepNum] <minMass || ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
+//    v[node->start[a].pepNum].scored = true;
+//    if (node->start[a].nextNode == SIZE_MAX) {
+//      if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0) {
+//        memcpy(v[node->start[a].pepNum].scores, link->scoreNL, bufSize);
+//        memcpy(v[node->start[a].pepNum].match, link->matchNL, bufSizeM);
+//      } else {
+//        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
+//        memcpy(v[node->start[a].pepNum].match, link->match, bufSizeM);
+//      }
+//    } else score7(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, link->match, link->matchNL, depth + 1, v, pre, iIndex, maxZ, bufSize, bufSizeM/*, minMass, maxMass*/);
+//  }
+//
+//}
 
 void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
   unsigned int a;

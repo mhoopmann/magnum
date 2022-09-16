@@ -398,30 +398,35 @@ typedef struct mSimpleMod{
 
 
 typedef struct sLink2{
-  size_t nextNode;
-  size_t nextIndex;
+  size_t nextNode=SIZE_MAX;
+  size_t nextIndex = SIZE_MAX;
   size_t pepNum;
   double score[10]{};    //make an array large enough to hold all precursors? Is 10 enough?
   double scoreNL[10]{};  //make an array large enough to hold all precursors? Is 10 enough?
-  sLink2(){
-    nextNode = SIZE_MAX;
-    nextIndex = SIZE_MAX;
-  }
+  //int match[10]{};
+  //int matchNL[10]{};
+  //sLink2(){
+  //  nextNode = SIZE_MAX;
+  //  nextIndex = SIZE_MAX;
+  //}
 } sLink2;
 
 
 typedef struct sNode2{
-  bool visit;
-  double mass;
+  bool visit=false;
+  double mass=0;
   double score[4]{};       //always same?
   double scoreAlt[10][4]{};    //make an array large enough to hold all precursors? Is 10 enough?
   double scoreAltNL[4]{};  //always same?
+  //int match[4]{};
+  //int matchAlt[10][4]{};
+  //int matchAltNL[4]{};
   std::vector<sLink2> start;
   std::vector<sLink2> next;
-  sNode2(){
-    visit = false;
-    mass = 0;
-  }
+  //sNode2(){
+  //  visit = false;
+  //  mass = 0;
+  //}
 } sNode2;
 
 typedef struct sPepModSet{
@@ -437,10 +442,16 @@ typedef struct sPrecursor{
 
 typedef struct sScoreSet {
   double scores[10]{};  //never more than 10 precursors
-  bool scored;
-  sScoreSet(){
-    scored = false;
-  }
+  //int match[10]{};
+  bool scored=false;
+  //sScoreSet(){
+  //  scored = false;
+  //}
 } sScoreSet;
+
+typedef struct sDIndex{
+  size_t a;
+  size_t b;
+} sDIndex;
 
 #endif

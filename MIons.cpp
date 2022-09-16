@@ -234,6 +234,7 @@ void MIons::buildModIons2() {
 
   if(peaks!=NULL) delete peaks;
   peaks = new vector<sNode2>;
+  //peaks->clear();
   mP.clear();
   pepLinks.clear();
   pepMass.clear();
@@ -431,7 +432,7 @@ void MIons::modIonsRec4(int pos, double mMass, int oSite, size_t pepNum, int dep
         pepMods.back().mods.push_back(pm);
         peaks->at(linkNode).start.emplace_back();
         peaks->at(linkNode).start.back().pepNum = pepCount;
-        modIonsRec4(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, pepCount, depth, i, linkNode, true, peaks->at(linkNode).start.size() - 1);
+        modIonsRec4(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, pepCount, depth+1, i, linkNode, true, peaks->at(linkNode).start.size() - 1);
 
       }
     }

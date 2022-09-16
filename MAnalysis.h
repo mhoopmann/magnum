@@ -107,9 +107,13 @@ private:
 
   //For new search
   static double dummy[10];
+  static int dummyM[10];
+  static int* maxZ2;
+  static int* bufSize2;
   static char magnumScoring2(MSpectrum* s, double mass);
   static void scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex);
-  static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize);
+  static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
+  //static void score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/);
 
   //Utilities
   static int compareD           (const void *p1,const void *p2);

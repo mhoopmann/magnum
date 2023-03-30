@@ -328,11 +328,15 @@ typedef struct mPrecursor{
   double  corr;
   char    label;
   double  monoMass;
+  char    type;  //0=selected peak, 1=instrument predicted, 2=hardklor predicted
+  char    offset; //offset amount (rounded)
   mPrecursor(){
     charge=0;
     corr=0;
     label=0;
     monoMass=0;
+    type=0;
+    offset=0;
   }
 } mPrecursor;
 

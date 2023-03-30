@@ -693,7 +693,7 @@ void MData::formatMS2(MSToolkit::Spectrum* s, MSpectrum* pls){
     break;
   case 1:
     if (!params->ms2Centroid) {
-      mlog->addWarning(0, "Spectrum is labeled as centroid, but Kojak parameter indicates data are profile. Ignoring Kojak parameter.");
+      mlog->addWarning(0, "Spectrum is labeled as centroid, but Magnum parameter indicates data are profile. Ignoring Magnum parameter.");
     }
     break;
   default:
@@ -757,11 +757,14 @@ void MData::formatMS2(MSToolkit::Spectrum* s, MSpectrum* pls){
       pre.monoMass = s->getMonoMZ()*s->getCharge() - s->getCharge()*1.007276466;
       pre.charge = s->getCharge();
       pre.corr = 0;
+      pre.type=1;
+      pre.offset=0;
       pls->addPrecursor(pre, params->topCount);
       for (int px = 1; px <= params->isotopeError; px++){
         if (px == 4) break;
         pre.monoMass -= 1.00335483;
         pre.corr -= 0.1;
+        pre.offset-=1;
         pls->addPrecursor(pre, params->topCount);
       }
       pls->setInstrumentPrecursor(true);
@@ -979,7 +982,6 @@ void MData::memoryFree(){
 void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
   size_t i,x;
   int j,k;
-  int code;
   char strs[256];
   char st[32];
   string pep1,tmp;
@@ -994,11 +996,7 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
   
   for (j = 0; j<s.sizePrecursor(); j++) {
     p=s.getPrecursor2(j);
-    if(p->corr<-4) code=2;
-    else if (p->corr<0)code=3;
-    else if(p->corr==0)code=2;
-    else code=1;
-    fprintf(f, "   <precursor mass=\"%.4lf\" charge=\"%d\" type=\"%d\" hk_corr=\"%.4lf\">\n", p->monoMass, p->charge, code, p->corr);
+    fprintf(f, "   <precursor mass=\"%.4lf\" offset=\"%d\" charge=\"%d\" type=\"%d\" hk_corr=\"%.4lf\">\n", p->monoMass, (int)p->offset, p->charge, (int)p->type, p->corr);
 
     tp = s.getTopPeps(j);
     sc = tp->peptideFirst;
@@ -1957,23 +1955,43 @@ void MData::processMS2(mMS2struct* s){
     pr.monoMass = s->pls->getMZ()*s->pls->getCharge() - 1.007276466*s->pls->getCharge();
     pr.charge = s->pls->getCharge();
     pr.corr = -5;
+    pr.offset=0;
+    pr.type=0;
     s->pls->setCharge(pr.charge);
     s->pls->addPrecursor(pr, params->topCount);
     for (int px = 1; px <= params->isotopeError; px++){
       if (px == 4) break;
       pr.monoMass -= 1.00335483;
+      pr.offset-=1;
       pr.corr -= 0.1;
       s->pls->addPrecursor(pr, params->topCount);
     }
   }
 
-  //Now clean up any duplicate precursors. They should already be in order of priority. Use 5ppm as tolerance
+  //order all precursors by priority
+  for (int k = 0; k < s->pls->sizePrecursor(); k++) {
+    for (int n = k + 1; n < s->pls->sizePrecursor(); n++) {
+      if(abs(s->pls->getPrecursor(n).offset)<abs(s->pls->getPrecursor(k).offset)){
+        mPrecursor mt= s->pls->getPrecursor(n);
+        s->pls->getPrecursor(n)= s->pls->getPrecursor(k);
+        s->pls->getPrecursor(k)=mt;
+      } else if(abs(s->pls->getPrecursor(n).offset) == abs(s->pls->getPrecursor(k).offset)){
+        if(s->pls->getPrecursor(n).type > s->pls->getPrecursor(k).type){
+          mPrecursor mt = s->pls->getPrecursor(n);
+          s->pls->getPrecursor(n) = s->pls->getPrecursor(k);
+          s->pls->getPrecursor(k) = mt;
+        }
+      }
+    }
+  }
+
+  //Now clean up any duplicate precursors. They should already be in order of priority. Use precursor tolerance ppm as tolerance
   for (int k = 0; k<s->pls->sizePrecursor(); k++){
     for (int n = k + 1; n<s->pls->sizePrecursor(); n++){
       double m1 = s->pls->getPrecursor(k).monoMass;
       double m2 = s->pls->getPrecursor(n).monoMass;
       double m = (m1 - m2) / m1*1e6;
-      if (fabs(m)<5){
+      if (fabs(m)<params->ppmPrecursor){
         s->pls->erasePrecursor(n);
         n--;
       }
@@ -2259,28 +2277,32 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
     pre.charge = charge;
     pre.corr = corr;
     pre.label = 0;
+    pre.type=2;
     s->pls->addPrecursor(pre, params->topCount);
     //also add isotope error
     if (params->isotopeError>0){
       pre.monoMass -= 1.00335483;
       pre.corr = -1;
+      pre.offset=-1;
       s->pls->addPrecursor(pre, params->topCount);
     }
     if (params->isotopeError>1){
       pre.monoMass -= 1.00335483;
       pre.corr = -2;
+      pre.offset = -2;
       s->pls->addPrecursor(pre, params->topCount);
     }
     if (params->isotopeError>2){
       pre.monoMass -= 1.00335483;
       pre.corr = -3;
+      pre.offset = -3;
       s->pls->addPrecursor(pre, params->topCount);
     }
   }
 
   //Assume two precursors with nearly identical mass (within precursor tolerance) are the same.
   //This can occur when checking multiple enrichment states.
-  //Keep only the higher correlated precursor.
+  //Keep only the higher type, then correlated precursor.
   if (s->pls->sizePrecursor()>1){
     bool bCheck = true;
     while (bCheck){
@@ -2288,8 +2310,13 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
       for (k = 0; k<s->pls->sizePrecursor() - 1; k++){
         for (j = k + 1; j<s->pls->sizePrecursor(); j++){
           if (fabs(s->pls->getPrecursor(k).monoMass - s->pls->getPrecursor(j).monoMass) / s->pls->getPrecursor(k).monoMass*1e6 < params->ppmPrecursor){
-            if (s->pls->getPrecursor(k).corr>s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
-            else s->pls->erasePrecursor(k);
+            if(s->pls->getPrecursor(k).type == s->pls->getPrecursor(j).type){
+              if (s->pls->getPrecursor(k).corr>s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
+              else s->pls->erasePrecursor(k);
+            } else {
+              if(s->pls->getPrecursor(k).type > s->pls->getPrecursor(j).type) s->pls->erasePrecursor(j);
+              else s->pls->erasePrecursor(k);
+            }
             bCheck = true;
             break;
           }

@@ -18,7 +18,7 @@ limitations under the License.
 #define _MIONS_H
 
 #include "MStructs.h"
-#include "MIonSet.h"
+//#include "MIonSet.h"
 #include <map>
 #include <vector>
 
@@ -50,19 +50,20 @@ public:
   void      addFixedMod       (char mod, double mass);
   void      addMod            (char mod, bool xl, double mass);
   void      addPeak           (double mass, bool adduct, size_t& node, bool& ar, size_t& index); //could be private?
-  void      buildIons         ();
-  void      buildModIons      (int modSite);
-  void      buildModIons2     ();
+  //void      buildIons         ();
+  //void      buildModIons      (int modSite);
+  void      buildModIons2     (bool bAdduct=true);
   double    getAAMass         (char aa);
   double    getFixedModMass   (char aa);
-  void      modIonsRec        (int start, int link, int index, int depth, bool xl);
-  void      modIonsRec2       (int start, int link, int index, int depth, bool xl);
-  void      modIonsRec4       (int start, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex); //could be private?
-  void      reset             ();
+  //void      modIonsRec        (int start, int link, int index, int depth, bool xl);
+  //void      modIonsRec2       (int start, int link, int index, int depth, bool xl);
+  void      modIonsRec4       (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex); //could be private?
+  void      modIonsRec5       (int pos, double mMass, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex);
+  //void      reset             ();
 
   //Accessors
-  MIonSet&  operator[ ]   (const int& i);
-  MIonSet*  at            (const int& i);
+  //MIonSet&  operator[ ]   (const int& i);
+  //MIonSet*  at            (const int& i);
   int       getIonCount   ();
   double    getModMass    (int index);
   int       getModMassSize();
@@ -70,7 +71,7 @@ public:
   void      getPeptide    (char* seq);
   int       getPeptideLen ();
   void      getPeptideMods(std::vector<mPepMod>& v);
-  int       size          ();
+  //int       size          ();
 
   //Modifiers
   void  setAAMass       (char aa, double mass);
@@ -120,7 +121,7 @@ private:
 
   std::vector<mModPos> modQueue;
   std::vector<double>  modMassArray;
-  std::vector<MIonSet> sets;
+  //std::vector<MIonSet> sets;
 
   //Utilities
   static int compareD(const void *p1,const void *p2);

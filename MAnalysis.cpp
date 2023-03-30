@@ -46,7 +46,7 @@ MDecoys MAnalysis::decoys;
 double MAnalysis::dummy[10]{};
 int MAnalysis::dummyM[10]{};
 int* MAnalysis::maxZ2;
-int* MAnalysis::bufSize2;
+size_t* MAnalysis::bufSize2;
 
 /*============================
   Constructors & Destructors
@@ -260,8 +260,6 @@ void MAnalysis::analyzeEValuePrecalcProc(MSpectrum* s){
 //or stage 1 of relaxed mode analysis
 bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
 
-  int j;
-  bool bt;
   vector<int> index;
   vector<mPepMod> mods;
 
@@ -271,20 +269,39 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
   //Set the peptide, calc the ions, and score it against the spectra
   int len = (p->map->at(0).stop - p->map->at(0).start) + 1;
   ions[iIndex].setPeptide(&db->at(p->map->at(0).index).sequence[p->map->at(0).start],p->map->at(0).stop-p->map->at(0).start+1,p->mass,p->nTerm,p->cTerm);
-  ions[iIndex].buildIons();
-  ions[iIndex].modIonsRec2(0,-1,0,0,false);
-
-  for(j=0;j<ions[iIndex].size();j++){
-    bt=spec->getBoundaries2(ions[iIndex][j].mass,params.ppmPrecursor,index,scanBuffer[iIndex]);
-    if(bt) scoreSpectra(index,j,len,ions[iIndex][j].difMass,pepIndex,-1,-1,-1,-1,iIndex);
-   }
-
-  if(p->xlSites==0) return true;
+  ions[iIndex].buildModIons2(false);
+  double lastMass=0;
+  for(size_t j=0;j<ions[iIndex].pepCount;j++){
+    if(ions[iIndex].pepMass[j]<=lastMass) continue; //skip peptide variants already searched
+    if(spec->getBoundaries2(ions[iIndex].pepMass[j],params.ppmPrecursor,index,scanBuffer[iIndex])){
+      scoreSpectra2(index, ions[iIndex].pepMass[j], len, pepIndex, iIndex);
+    }
+    lastMass= ions[iIndex].pepMass[j];
+  }
+  
+  if (p->xlSites == 0) return true;
 
   //Search for open modifications on peptide as well if it has sites where modification can bind
-  analyzeSinglets(*p,pepIndex,iIndex);
+  analyzeSinglets(*p, pepIndex, iIndex);
 
   return true;
+  
+  
+  //
+  //ions[iIndex].buildIons();
+  //ions[iIndex].modIonsRec2(0,-1,0,0,false);
+
+  //for(j=0;j<ions[iIndex].size();j++){
+  //  bt= spec->getBoundaries2(ions[iIndex][j].mass, params.ppmPrecursor, index, scanBuffer[iIndex]);
+  //  if(bt) scoreSpectra(index,j,len,ions[iIndex][j].difMass,pepIndex,-1,-1,-1,-1,iIndex);
+  // }
+
+  //if(p->xlSites==0) return true;
+
+  ////Search for open modifications on peptide as well if it has sites where modification can bind
+  //analyzeSinglets(*p,pepIndex,iIndex);
+
+  //return true;
 }
 
 bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
@@ -333,7 +350,7 @@ bool MAnalysis::allocateMemory(int threads){
     }
   }
   maxZ2=new int[threads];
-  bufSize2=new int[threads];
+  bufSize2=new size_t[threads];
   return true;
 }
 
@@ -349,155 +366,152 @@ void MAnalysis::deallocateMemory(int threads){
 }
 
 //This function is way out of date. Particularly the mutexes and how to deal with multiple precursors.
-void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex, bool bSiteless){
-  //cout << "scoreSingletSpectra()" << endl;
-  mScoreCard sc;
-  MIonSet* iset;
-  mPepMod mod;
-  double score=0;
-  int i,j;
-  int precI;
-  int match;
-  int conFrag;
-
-  MSpectrum* s=spec->getSpectrum(index);
-  mPrecursor* p=NULL;
-  MTopPeps* tp;
-  int sz=s->sizePrecursor();
-  double topScore=0;
-  int topMatch=0;
-  int topConFrag=0;
-
-  int code;
-  for(i=0;i<sz;i++){
-    p=s->getPrecursor2(i);
-    if (p->corr<-4) code = 2;
-    else if (p->corr<0)code = 3;
-    else if (p->corr == 0)code = 2;
-    else code = 1;
-    if(code==1) break;
-
-  }
-  if(i==sz) {
-    i=0;
-    p = s->getPrecursor2(i);
-  }
-
-  if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
-  else if((p->monoMass-mass)>params.maxAdductMass) score=0;
-  else if(bSiteless) score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
-
-  if(score>0){
-    topScore = score;
-    topMatch = match;
-    topConFrag = conFrag;
-    precI = i;
-    sc.simpleScore = (float)score;
-    sc.pep = pep;
-    sc.mass = mass;
-    sc.massA = p->monoMass - mass;
-    sc.precursor = i;
-    sc.site = -99;
-    sc.mods->clear();
-    iset = ions[iIndex].at(sIndex);
-    if (iset->difMass != 0){
-      for (j = 0; j<ions[iIndex].getIonCount(); j++) {
-        if (iset->mods[j] != 0){
-          if (j == 0 && iset->modNTerm) mod.term = true;
-          else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
-          else mod.term = false;
-          mod.pos = (char)j;
-          mod.mass = iset->mods[j];
-          sc.mods->push_back(mod);
-        }
-      }
-    }
-  }
-
-  for(i=0;i<sz;i++){
-    p=s->getPrecursor2(i);
-    //cout << i << " of " << sz << "\t" << p->monoMass << "\t" << minMass << "\t" << maxMass << "\t" << mass << endl;
-    if(p->monoMass<minMass) continue;
-    if(p->monoMass>maxMass) continue;
-    if ((p->monoMass - mass)>params.maxAdductMass) continue;
-    if ((p->monoMass - mass)<params.minAdductMass) continue;
-    //cout << "Before magnumScoring" << endl;
-    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);  //open mod with localization
-    //cout << score << endl;
-    if(score==0) continue;
-    else if(score>topScore) { //replace the previous peptide scores, if this version of the peptide scores better.
-      topScore=score;
-      topMatch=match;
-      topConFrag=conFrag;
-      precI=i;
-      sc.simpleScore = (float)score;
-      sc.pep = pep;
-      sc.mass = mass;
-      sc.massA = p->monoMass - mass;
-      sc.precursor = i;
-      sc.site = k;
-      sc.mods->clear();
-      iset = ions[iIndex].at(sIndex);
-      if (iset->difMass != 0){
-        for (j = 0; j<ions[iIndex].getIonCount(); j++) {
-          if (iset->mods[j] != 0){
-            if (j == 0 && iset->modNTerm) mod.term = true;
-            else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
-            else mod.term = false;
-            mod.pos = (char)j;
-            mod.mass = iset->mods[j];
-            sc.mods->push_back(mod);
-          }
-        }
-      }
-    }
-  }
-
-  if(topScore>0){
-    //cout << "Topper " << topScore << endl;
-    double ev = 1000;
-    Threading::LockMutex(mutexSpecScore[index]);
-    ev = s->computeE(topScore, len);
-
-    //** temporary
-    //s->tHistogram(topScore, len);
-    //**
-
-    //cout << "DoneE " << ev << endl;
-    Threading::UnlockMutex(mutexSpecScore[index]);
-    sc.eVal=ev;
-    sc.match=topMatch;
-    sc.conFrag=topConFrag;
-
-    tp = s->getTopPeps(precI);
-    //cout << "GotTopPeps" << endl;
-    Threading::LockMutex(mutexSingletScore[index][precI]);
-    tp->checkPeptideScore(sc);
-    //cout << "CheckPepScore" << endl;
-    Threading::UnlockMutex(mutexSingletScore[index][precI]);
-  
-    Threading::LockMutex(mutexSpecScore[index]);
-    s->checkScore(sc,iIndex);
-    //cout << "CheckScore" << endl;
-    Threading::UnlockMutex(mutexSpecScore[index]);
-  } 
-
-  //** temporary
-  //else {
-  //  Threading::LockMutex(mutexSpecScore[index]);
-  //  s->tHistogram(0, len);
-  //  Threading::UnlockMutex(mutexSpecScore[index]);
-  //}
-  //**
-
-}
+//void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex, bool bSiteless){
+//  //cout << "scoreSingletSpectra()" << endl;
+//  mScoreCard sc;
+//  MIonSet* iset;
+//  mPepMod mod;
+//  double score=0;
+//  int i,j;
+//  int precI;
+//  int match;
+//  int conFrag;
+//
+//  MSpectrum* s=spec->getSpectrum(index);
+//  mPrecursor* p=NULL;
+//  MTopPeps* tp;
+//  int sz=s->sizePrecursor();
+//  double topScore=0;
+//  int topMatch=0;
+//  int topConFrag=0;
+//
+//  int code;
+//  for(i=0;i<sz;i++){
+//    p=s->getPrecursor2(i);
+//    if (p->corr<-4) code = 2;
+//    else if (p->corr<0)code = 3;
+//    else if (p->corr == 0)code = 2;
+//    else code = 1;
+//    if(code==1) break;
+//
+//  }
+//  if(i==sz) {
+//    i=0;
+//    p = s->getPrecursor2(i);
+//  }
+//
+//  if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
+//  else if((p->monoMass-mass)>params.maxAdductMass) score=0;
+//  else if(bSiteless) score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
+//
+//  if(score>0){
+//    topScore = score;
+//    topMatch = match;
+//    topConFrag = conFrag;
+//    precI = i;
+//    sc.simpleScore = (float)score;
+//    sc.pep = pep;
+//    sc.mass = mass;
+//    sc.massA = p->monoMass - mass;
+//    sc.precursor = i;
+//    sc.site = -99;
+//    sc.mods->clear();
+//    iset = ions[iIndex].at(sIndex);
+//    if (iset->difMass != 0){
+//      for (j = 0; j<ions[iIndex].getIonCount(); j++) {
+//        if (iset->mods[j] != 0){
+//          if (j == 0 && iset->modNTerm) mod.term = true;
+//          else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
+//          else mod.term = false;
+//          mod.pos = (char)j;
+//          mod.mass = iset->mods[j];
+//          sc.mods->push_back(mod);
+//        }
+//      }
+//    }
+//  }
+//
+//  for(i=0;i<sz;i++){
+//    p=s->getPrecursor2(i);
+//    //cout << i << " of " << sz << "\t" << p->monoMass << "\t" << minMass << "\t" << maxMass << "\t" << mass << endl;
+//    if(p->monoMass<minMass) continue;
+//    if(p->monoMass>maxMass) continue;
+//    if ((p->monoMass - mass)>params.maxAdductMass) continue;
+//    if ((p->monoMass - mass)<params.minAdductMass) continue;
+//    //cout << "Before magnumScoring" << endl;
+//    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);  //open mod with localization
+//    //cout << score << endl;
+//    if(score==0) continue;
+//    else if(score>topScore) { //replace the previous peptide scores, if this version of the peptide scores better.
+//      topScore=score;
+//      topMatch=match;
+//      topConFrag=conFrag;
+//      precI=i;
+//      sc.simpleScore = (float)score;
+//      sc.pep = pep;
+//      sc.mass = mass;
+//      sc.massA = p->monoMass - mass;
+//      sc.precursor = i;
+//      sc.site = k;
+//      sc.mods->clear();
+//      iset = ions[iIndex].at(sIndex);
+//      if (iset->difMass != 0){
+//        for (j = 0; j<ions[iIndex].getIonCount(); j++) {
+//          if (iset->mods[j] != 0){
+//            if (j == 0 && iset->modNTerm) mod.term = true;
+//            else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
+//            else mod.term = false;
+//            mod.pos = (char)j;
+//            mod.mass = iset->mods[j];
+//            sc.mods->push_back(mod);
+//          }
+//        }
+//      }
+//    }
+//  }
+//
+//  if(topScore>0){
+//    //cout << "Topper " << topScore << endl;
+//    double ev = 1000;
+//    Threading::LockMutex(mutexSpecScore[index]);
+//    ev = s->computeE(topScore, len);
+//
+//    //** temporary
+//    //s->tHistogram(topScore, len);
+//    //**
+//
+//    //cout << "DoneE " << ev << endl;
+//    Threading::UnlockMutex(mutexSpecScore[index]);
+//    sc.eVal=ev;
+//    sc.match=topMatch;
+//    sc.conFrag=topConFrag;
+//
+//    tp = s->getTopPeps(precI);
+//    //cout << "GotTopPeps" << endl;
+//    Threading::LockMutex(mutexSingletScore[index][precI]);
+//    tp->checkPeptideScore(sc);
+//    //cout << "CheckPepScore" << endl;
+//    Threading::UnlockMutex(mutexSingletScore[index][precI]);
+//  
+//    Threading::LockMutex(mutexSpecScore[index]);
+//    s->checkScore(sc,iIndex);
+//    //cout << "CheckScore" << endl;
+//    Threading::UnlockMutex(mutexSpecScore[index]);
+//  } 
+//
+//  //** temporary
+//  //else {
+//  //  Threading::LockMutex(mutexSpecScore[index]);
+//  //  s->tHistogram(0, len);
+//  //  Threading::UnlockMutex(mutexSpecScore[index]);
+//  //}
+//  //**
+//
+//}
 
 void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex){
   mScoreCard sc;
-  MIonSet* iset;
-  mPepMod mod;
   double score = 0;
-  int i, j;
   int precI;
   int match=0;
   int conFrag=0;
@@ -698,6 +712,36 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
 }
 
 //could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
+void MAnalysis::score6solo(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass) {
+
+  if (!node->visit) {
+    for (int b = 1; b <= pre.maxZ; b++) {
+      double mz = (node->mass + 1.007276466 * b) / b;
+      node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
+      mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
+      node->scoreAltNL[b] = node->scoreAltNL[b - 1] + magnumScoring2(s, mz);//score reverse without link
+    }
+  }
+
+  link->score[0] = score[0] + node->score[pre.maxZ];
+  link->scoreNL[0] = scoreNL[0] + node->score[pre.maxZ] + node->scoreAltNL[pre.maxZ];
+  node->visit = true;
+
+  if (link->nextNode == SIZE_MAX) v[link->pepNum].scores[0]=link->scoreNL[0];
+  else score6solo(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
+
+  for (size_t a = 0; a < node->start.size(); a++) {
+    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
+    if (node->start[a].pepNum < link->pepNum) continue;
+    //if (ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
+    v[node->start[a].pepNum].scored = true;
+    if (node->start[a].nextNode == SIZE_MAX)  v[link->pepNum].scores[0] = link->scoreNL[0];
+    else score6solo (s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
+  }
+
+}
+
+//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
 //this version tries to count matched peaks, but it is currently buggy...
 //void MAnalysis::score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/) {
 //
@@ -792,215 +836,319 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
 //
 //}
 
-void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
+//void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
+//  unsigned int a;
+//  int i,z,ps;
+//  mScoreCard sc;
+//  mPepMod mod;
+//  double mass = ions[iIndex][sIndex].mass;
+//  mPrecursor* p=NULL;
+//  MTopPeps* tp=NULL;
+//
+//  //score spectra
+//  for(a=0;a<index.size();a++){
+//    
+//    //find the specific precursor mass in this spectrum to identify the charge state
+//    z=0;
+//    for (ps = 0; ps<spec->at(index[a]).sizePrecursor(); ps++){
+//      p = spec->at(index[a]).getPrecursor2(ps);
+//      double ppm = (p->monoMass - mass) / mass*1e6;
+//      if (ppm<params.ppmPrecursor && ppm>-params.ppmPrecursor){
+//        z = p->charge;
+//        tp = spec->at(index[a]).getTopPeps(ps);
+//        break;
+//      }
+//    }
+//    
+//    sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,sc.match,sc.conFrag,z);
+//    if(sc.simpleScore==0) {
+//
+//      //Threading::LockMutex(mutexSpecScore[index[a]]);
+//      //if (spec->at(index[a]).hp[iIndex].pepIndex != pep1){ //first score
+//      //  spec->at(index[a]).hp[iIndex].pepIndex = pep1;
+//      //  spec->at(index[a]).hp[iIndex].topScore = 0;
+//      //  spec->at(index[a]).histogram[0]++;
+//      //  spec->at(index[a]).histogramCount++;
+//      //} else {
+//      //  //do nothing, can't be a better score than what is already there.
+//      //}
+//      //Threading::UnlockMutex(mutexSpecScore[index[a]]);
+//
+//      continue;
+//    }
+//
+//    double ev = 1000;
+//    Threading::LockMutex(mutexSpecScore[index[a]]);
+//    ev = spec->at(index[a]).computeE(sc.simpleScore, len);
+//    Threading::UnlockMutex(mutexSpecScore[index[a]]);
+//
+//    sc.eVal=ev;
+//    sc.mods->clear();
+//    sc.site=k1;
+//    sc.mass=mass;
+//    sc.massA=0;
+//    sc.pep=pep1;
+//    sc.precursor=(char)ps;
+//    if(ions[iIndex][sIndex].difMass!=0){
+//      for(i=0;i<ions[iIndex].getPeptideLen();i++) {
+//        if(ions[iIndex][sIndex].mods[i]!=0){
+//          if (i == 0 && ions[iIndex][sIndex].modNTerm) mod.term = true;
+//          else if (i == ions[iIndex].getIonCount() - 1 && ions[iIndex][sIndex].modCTerm) mod.term = true;
+//          else mod.term = false;
+//          mod.pos=(char)i;
+//          mod.mass=ions[iIndex][sIndex].mods[i];
+//          sc.mods->push_back(mod);
+//        }
+//      }
+//    }
+//
+//    Threading::LockMutex(mutexSingletScore[index[a]][ps]);
+//    tp->checkPeptideScore(sc);
+//    Threading::UnlockMutex(mutexSingletScore[index[a]][ps]);
+//
+//    Threading::LockMutex(mutexSpecScore[index[a]]);
+//    spec->at(index[a]).checkScore(sc,iIndex);
+//    Threading::UnlockMutex(mutexSpecScore[index[a]]);
+//
+//  }
+//
+//  p=NULL;
+//  tp=NULL;
+//
+//}
+
+void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1, int iIndex) {
   unsigned int a;
-  int i,z,ps;
+  int ps;
   mScoreCard sc;
-  mPepMod mod;
-  double mass = ions[iIndex][sIndex].mass;
-  mPrecursor* p=NULL;
-  MTopPeps* tp=NULL;
+  mPrecursor* p = NULL;
+  MTopPeps* tp = NULL;
+  MSpectrum* s=NULL;
 
   //score spectra
-  for(a=0;a<index.size();a++){
-    
+  for (a = 0; a < index.size(); a++) {
+    s=spec->getSpectrum(index[a]);
+
+    if (a > 0) {
+      for (size_t b = 0;b < ions[iIndex].peaks->size(); b++) ions[iIndex].peaks->at(b).visit = false; //reset for the next analysis
+    }
+
     //find the specific precursor mass in this spectrum to identify the charge state
-    z=0;
-    for (ps = 0; ps<spec->at(index[a]).sizePrecursor(); ps++){
-      p = spec->at(index[a]).getPrecursor2(ps);
-      double ppm = (p->monoMass - mass) / mass*1e6;
-      if (ppm<params.ppmPrecursor && ppm>-params.ppmPrecursor){
-        z = p->charge;
-        tp = spec->at(index[a]).getTopPeps(ps);
+    sPrecursor pre;
+    pre.index=-1;
+    for (int i = 0; i < s->sizePrecursor(); i++) {
+      p = s->getPrecursor2(i);
+      double ppm = (p->monoMass - mass) / mass * 1e6;
+      if (ppm<params.ppmPrecursor && ppm>-params.ppmPrecursor) {
+        pre.index=i;
+        pre.monomass=p->monoMass;
+        pre.maxZ = p->charge - 1;
+        if (pre.maxZ < 1) pre.maxZ = 1;
+        if (pre.maxZ > 3) pre.maxZ = 3;
+        tp = s->getTopPeps(i);
+        ps=i;
         break;
       }
     }
-    
-    sc.simpleScore=magnumScoring(index[a],modMass,sIndex,iIndex,sc.match,sc.conFrag,z);
-    if(sc.simpleScore==0) {
 
-      //Threading::LockMutex(mutexSpecScore[index[a]]);
-      //if (spec->at(index[a]).hp[iIndex].pepIndex != pep1){ //first score
-      //  spec->at(index[a]).hp[iIndex].pepIndex = pep1;
-      //  spec->at(index[a]).hp[iIndex].topScore = 0;
-      //  spec->at(index[a]).histogram[0]++;
-      //  spec->at(index[a]).histogramCount++;
-      //} else {
-      //  //do nothing, can't be a better score than what is already there.
-      //}
-      //Threading::UnlockMutex(mutexSpecScore[index[a]]);
-
-      continue;
+    //bufSize2[iIndex] = sizeof(double);
+    size_t pepCount = ions[iIndex].pepCount;
+    sScoreSet* pScores = new sScoreSet[pepCount];
+    vector<sNode2>* peaks = ions[iIndex].peaks;
+    for (size_t b = 0; b < peaks->at(0).start.size(); b++) {
+      score6solo(s, &peaks->at(peaks->at(0).start[b].nextNode), &peaks->at(peaks->at(0).start[b].nextNode).next[peaks->at(0).start[b].nextIndex], dummy, dummy, pScores, pre, iIndex, pre.monomass+pre.monomass/1e6*params.ppmPrecursor);
     }
 
+    vector<sDIndex> vTop;
+    size_t minMods = 100;
+    sc.simpleScore = 0;
+    for (size_t b = 0; b < pepCount; b++) {
+      if (pScores[b].scores[0]<=0) continue;
+      if (pScores[b].scores[0] > sc.simpleScore) {
+        sc.simpleScore = (float)pScores[b].scores[0];
+        vTop.clear();
+        sDIndex di;
+        di.a = b;
+        di.b = pre.index;
+        vTop.push_back(di);
+        minMods = ions[iIndex].pepMods[b].mods.size();
+      } else if (pScores[b].scores[0] == sc.simpleScore) {
+        sDIndex di;
+        di.a = b;
+        di.b = pre.index;
+        vTop.push_back(di);
+        if (ions[iIndex].pepMods[b].mods.size() < minMods) minMods = ions[iIndex].pepMods[b].mods.size();
+      }
+    }
+    if (sc.simpleScore == 0) continue;
+
+    sc.simpleScore *= 0.005;
     double ev = 1000;
     Threading::LockMutex(mutexSpecScore[index[a]]);
     ev = spec->at(index[a]).computeE(sc.simpleScore, len);
     Threading::UnlockMutex(mutexSpecScore[index[a]]);
+    
+    for (size_t b = 0; b < vTop.size(); b++) {
+      if (ions[iIndex].pepMods[vTop[b].a].mods.size() > minMods) continue; //skip modified peptides that are explained with fewer modifications
 
-    sc.eVal=ev;
-    sc.mods->clear();
-    sc.site=k1;
-    sc.mass=mass;
-    sc.massA=0;
-    sc.pep=pep1;
-    sc.precursor=(char)ps;
-    if(ions[iIndex][sIndex].difMass!=0){
-      for(i=0;i<ions[iIndex].getPeptideLen();i++) {
-        if(ions[iIndex][sIndex].mods[i]!=0){
-          if (i == 0 && ions[iIndex][sIndex].modNTerm) mod.term = true;
-          else if (i == ions[iIndex].getIonCount() - 1 && ions[iIndex][sIndex].modCTerm) mod.term = true;
-          else mod.term = false;
-          mod.pos=(char)i;
-          mod.mass=ions[iIndex][sIndex].mods[i];
-          sc.mods->push_back(mod);
-        }
+      sc.eVal = ev;
+      sc.site = -1;
+      sc.mass = mass;
+      sc.massA = 0;
+      sc.pep = pep1;
+      sc.precursor = (char)pre.index;
+      sc.mods->clear();
+      for (size_t c = 0; c < ions[iIndex].pepMods[vTop[b].a].mods.size(); c++) {
+        sc.mods->push_back(ions[iIndex].pepMods[vTop[b].a][c]);
       }
+
+      Threading::LockMutex(mutexSingletScore[index[a]][ps]);
+      tp->checkPeptideScore(sc);
+      Threading::UnlockMutex(mutexSingletScore[index[a]][ps]);
+
+      Threading::LockMutex(mutexSpecScore[index[a]]);
+      spec->at(index[a]).checkScore(sc, iIndex);
+      Threading::UnlockMutex(mutexSpecScore[index[a]]);
     }
-
-    Threading::LockMutex(mutexSingletScore[index[a]][ps]);
-    tp->checkPeptideScore(sc);
-    Threading::UnlockMutex(mutexSingletScore[index[a]][ps]);
-
-    Threading::LockMutex(mutexSpecScore[index[a]]);
-    spec->at(index[a]).checkScore(sc,iIndex);
-    Threading::UnlockMutex(mutexSpecScore[index[a]]);
-
+    
+    delete[] pScores;
+    peaks=NULL;
   }
 
-  p=NULL;
-  tp=NULL;
+  p = NULL;
+  tp = NULL;
+  s=NULL;
 
 }
 
 //An alternative score uses the XCorr metric from the Comet algorithm
 //This version allows for fast scoring when the cross-linked mass is added.
-float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iIndex, int& match, int& conFrag, int z) { 
-
-  MSpectrum* s=spec->getSpectrum(specIndex);
-  MIonSet* ki=ions[iIndex].at(sIndex);
-
-  double dXcorr=0.0;
-  double invBinSize=s->getInvBinSize();
-  double binOffset=params.binOffset;
-  double dif;
-  double mz;
-
-  int ionCount=ions[iIndex].getIonCount();
-  int maxCharge=z;
-  if(maxCharge<1) maxCharge=s->getCharge();  
-
-  int i,j,k;
-  int key;
-  int pos;
-  int con;
-  match=0;
-  conFrag=0;
-
-  //Assign ion series
-  double***  ionSeries;
-  ionSeries=new double**[numIonSeries];
-  k=0;
-  if(params.ionSeries[0]) ionSeries[k++]=ki->aIons;
-  if(params.ionSeries[1]) ionSeries[k++]=ki->bIons;
-  if(params.ionSeries[2]) ionSeries[k++]=ki->cIons;
-  if(params.ionSeries[3]) ionSeries[k++]=ki->xIons;
-  if(params.ionSeries[4]) ionSeries[k++]=ki->yIons;
-  if(params.ionSeries[5]) ionSeries[k++]=ki->zIons;
-
-  //The number of fragment ion series to analyze is PrecursorCharge-1
-  //However, don't analyze past the 3+ series
-  if(maxCharge>4) maxCharge=4;
-
-  bool hardStop=false;
-
-  //Iterate all series
-  for(k=1;k<maxCharge;k++){
-
-    dif=modMass/k;
-
-    //Iterate through pfFastXcorrData
-    for(j=0;j<numIonSeries;j++){
-      con=0;
-
-      for(i=0;i<ionCount;i++){
-
-        //get key
-        if(ionSeries[j][k][i]<0) {
-          mz = params.binSize * (int)((dif-ionSeries[j][k][i])*invBinSize+binOffset);
-          if(mz<0) {
-            hardStop=true;
-            break;
-          }
-          key = (int)mz;
-          if (key >= s->kojakBins) {
-            if(con>conFrag) conFrag=con;
-            con=0;
-            break;
-          }
-          if (s->kojakSparseArray[key] == NULL) {
-            if (con>conFrag) conFrag = con;
-            con = 0;
-            continue;
-          }
-          pos = (int)((mz - key)*invBinSize);
-          dXcorr += s->kojakSparseArray[key][pos];
-          if (s->kojakSparseArray[key][pos]>5) {
-            match++;
-            con++;
-          } else {
-            if (con>conFrag) conFrag = con;
-            con = 0;
-          }
-
-        } else {
-          mz = params.binSize * (int)(ionSeries[j][k][i]*invBinSize+binOffset);
-          key = (int)mz;
-          if(key>=s->kojakBins) {
-            if (con>conFrag) conFrag = con;
-            con = 0;
-            break;
-          }
-          if(s->kojakSparseArray[key]==NULL) {
-            if (con>conFrag) conFrag = con;
-            con = 0;
-            continue;
-          }
-          pos = (int)((mz-key)*invBinSize);
-          dXcorr += s->kojakSparseArray[key][pos];
-          if (s->kojakSparseArray[key][pos]>5) {
-            match++;
-            con++;
-          } else {
-            if (con>conFrag) conFrag = con;
-            con = 0;
-          }
-        }
-      }
-      if(hardStop) break;
-      if(con>conFrag) conFrag=con;
-    }
-    if (hardStop) break;
-  }
-  
-
-  //Scale score appropriately
-  if(hardStop || dXcorr <= 0.0) dXcorr=0.0;
-  else dXcorr *= 0.005;
-
-  //Clean up memory
-  k = 0;
-  if (params.ionSeries[0]) ionSeries[k++] = NULL;
-  if (params.ionSeries[1]) ionSeries[k++] = NULL;
-  if (params.ionSeries[2]) ionSeries[k++] = NULL;
-  if (params.ionSeries[3]) ionSeries[k++] = NULL;
-  if (params.ionSeries[4]) ionSeries[k++] = NULL;
-  if (params.ionSeries[5]) ionSeries[k++] = NULL;
-
-  delete[] ionSeries;
-
-  return float(dXcorr);
-}
+//float MAnalysis::magnumScoring(int specIndex, double modMass, int sIndex, int iIndex, int& match, int& conFrag, int z) { 
+//
+//  MSpectrum* s=spec->getSpectrum(specIndex);
+//  MIonSet* ki=ions[iIndex].at(sIndex);
+//
+//  double dXcorr=0.0;
+//  double invBinSize=s->getInvBinSize();
+//  double binOffset=params.binOffset;
+//  double dif;
+//  double mz;
+//
+//  int ionCount=ions[iIndex].getIonCount();
+//  int maxCharge=z;
+//  if(maxCharge<1) maxCharge=s->getCharge();  
+//
+//  int i,j,k;
+//  int key;
+//  int pos;
+//  int con;
+//  match=0;
+//  conFrag=0;
+//
+//  //Assign ion series
+//  double***  ionSeries;
+//  ionSeries=new double**[numIonSeries];
+//  k=0;
+//  if(params.ionSeries[0]) ionSeries[k++]=ki->aIons;
+//  if(params.ionSeries[1]) ionSeries[k++]=ki->bIons;
+//  if(params.ionSeries[2]) ionSeries[k++]=ki->cIons;
+//  if(params.ionSeries[3]) ionSeries[k++]=ki->xIons;
+//  if(params.ionSeries[4]) ionSeries[k++]=ki->yIons;
+//  if(params.ionSeries[5]) ionSeries[k++]=ki->zIons;
+//
+//  //The number of fragment ion series to analyze is PrecursorCharge-1
+//  //However, don't analyze past the 3+ series
+//  if(maxCharge>4) maxCharge=4;
+//
+//  bool hardStop=false;
+//
+//  //Iterate all series
+//  for(k=1;k<maxCharge;k++){
+//
+//    dif=modMass/k;
+//
+//    //Iterate through pfFastXcorrData
+//    for(j=0;j<numIonSeries;j++){
+//      con=0;
+//
+//      for(i=0;i<ionCount;i++){
+//
+//        //get key
+//        if(ionSeries[j][k][i]<0) {
+//          mz = params.binSize * (int)((dif-ionSeries[j][k][i])*invBinSize+binOffset);
+//          if(mz<0) {
+//            hardStop=true;
+//            break;
+//          }
+//          key = (int)mz;
+//          if (key >= s->kojakBins) {
+//            if(con>conFrag) conFrag=con;
+//            con=0;
+//            break;
+//          }
+//          if (s->kojakSparseArray[key] == NULL) {
+//            if (con>conFrag) conFrag = con;
+//            con = 0;
+//            continue;
+//          }
+//          pos = (int)((mz - key)*invBinSize);
+//          dXcorr += s->kojakSparseArray[key][pos];
+//          if (s->kojakSparseArray[key][pos]>5) {
+//            match++;
+//            con++;
+//          } else {
+//            if (con>conFrag) conFrag = con;
+//            con = 0;
+//          }
+//
+//        } else {
+//          mz = params.binSize * (int)(ionSeries[j][k][i]*invBinSize+binOffset);
+//          key = (int)mz;
+//          if(key>=s->kojakBins) {
+//            if (con>conFrag) conFrag = con;
+//            con = 0;
+//            break;
+//          }
+//          if(s->kojakSparseArray[key]==NULL) {
+//            if (con>conFrag) conFrag = con;
+//            con = 0;
+//            continue;
+//          }
+//          pos = (int)((mz-key)*invBinSize);
+//          dXcorr += s->kojakSparseArray[key][pos];
+//          if (s->kojakSparseArray[key][pos]>5) {
+//            match++;
+//            con++;
+//          } else {
+//            if (con>conFrag) conFrag = con;
+//            con = 0;
+//          }
+//        }
+//      }
+//      if(hardStop) break;
+//      if(con>conFrag) conFrag=con;
+//    }
+//    if (hardStop) break;
+//  }
+//  
+//
+//  //Scale score appropriately
+//  if(hardStop || dXcorr <= 0.0) dXcorr=0.0;
+//  else dXcorr *= 0.005;
+//
+//  //Clean up memory
+//  k = 0;
+//  if (params.ionSeries[0]) ionSeries[k++] = NULL;
+//  if (params.ionSeries[1]) ionSeries[k++] = NULL;
+//  if (params.ionSeries[2]) ionSeries[k++] = NULL;
+//  if (params.ionSeries[3]) ionSeries[k++] = NULL;
+//  if (params.ionSeries[4]) ionSeries[k++] = NULL;
+//  if (params.ionSeries[5]) ionSeries[k++] = NULL;
+//
+//  delete[] ionSeries;
+//
+//  return float(dXcorr);
+//}
 
 //An alternative score uses the XCorr metric from the Comet algorithm
 //This version allows for fast scoring when the cross-linked mass is added.

@@ -138,7 +138,7 @@ private:
   void releaseHardklor();
 
   //Utilities
-  static void        centroid(MSToolkit::Spectrum* s, MSpectrum* out, double resolution, int instrument = 0);
+  static void        centroid(MSToolkit::Spectrum* s, void* out, double resolution, int instrument = 0, int type=0); //0=MSpectrum, 1=Spectrum
   static void        collapseSpectrum(MSpectrum& s);
   static int  compareInt        (const void *p1, const void *p2);
   static int  compareMassList   (const void *p1, const void *p2);

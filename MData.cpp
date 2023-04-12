@@ -1274,9 +1274,22 @@ bool MData::readSpectra(){
           dMS1.pop_front();
         }
         for (size_t a = 0; a<vMS1Buffer.size(); a++){
+          if(vMS1Buffer[a]->getCentroidStatus()!=1){
+            if (params->ms1Centroid) {
+              cout << " Params are set to MS1 centroid mode, but MS1 scan metainfo indicates profile." << endl;
+              return false;
+            }
+            Spectrum* cs = new Spectrum();
+            centroid(vMS1Buffer[a], cs, params->ms1Resolution, params->instrument, 1);
+            vMS1Buffer[a]->clearPeaks();
+            for (int b = 0; b < cs->size(); b++) vMS1Buffer[a]->add(cs->at(b));
+            vMS1Buffer[a]->setCentroidStatus(1);
+            delete cs;  
+          }
           dMS1.emplace_back(vMS1Buffer[a]);
           vMS1Buffer[a] = NULL;
         }
+          
         vMS1Buffer.clear();
         for (int a = 0; a<params->threads; a++) Threading::UnlockMutex(mutexHardklor[a]);
       }
@@ -1435,7 +1448,7 @@ int MData::size(){
   Private Utilities
 ============================*/
 //First derivative method, returns base peak intensity of the set
-void MData::centroid(Spectrum* s, MSpectrum* out, double resolution, int instrument){
+void MData::centroid(Spectrum* s, void* out, double resolution, int instrument, int type){
   int i,j;
   float maxIntensity;
   int bestPeak;
@@ -1453,7 +1466,8 @@ void MData::centroid(Spectrum* s, MSpectrum* out, double resolution, int instrum
 	bool bPoly;
 	float lastIntensity;
 
-	out->clear();
+  if(type==0) ((MSpectrum*)out)->clear();
+  else ((Spectrum*)out)->clear();
 
   bLastPos=false;
 	for(i=0;i<s->size()-1;i++){
@@ -1549,7 +1563,8 @@ void MData::centroid(Spectrum* s, MSpectrum* out, double resolution, int instrum
         if (centroid.mass<0 || centroid.mass>maxMZ) {
 					//do nothing if invalid mz
 				} else {
-					out->addPoint(centroid);
+					if(type==0)((MSpectrum*)out)->addPoint(centroid);
+          else ((Spectrum*)out)->add(centroid.mass,centroid.intensity);
 				}
 			
       }
@@ -2157,6 +2172,7 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
   for (int i = 0; i<dMS1.size(); i++){
     if (dMS1[i]->getRTime()<rt - 0.167) continue;
     if (dMS1[i]->getRTime()>rt + 0.167) break;
+
     int j = findPeak(dMS1[i], mz, 10);
 
     if (j>-1){

@@ -124,7 +124,7 @@ public:
   bool calcEValue(mParams* params, MDecoys& decoys);
   bool checkReporterIon(double mz,mParams* params);
   void  checkScore(mScoreCard& s, int th);
-  void  checkSingletScore (mScoreCard& s);
+  //void  checkSingletScore (mScoreCard& s);
   bool generateXcorrDecoys(mParams* params, MDecoys& decoys);
   bool generateXcorrDecoys2(int maxPepLen);
   bool generateXcorrDecoys3(int minP, int maxP, int depth);

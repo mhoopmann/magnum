@@ -268,8 +268,12 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
   //cout << str << "\t" << p->mass << endl;
   //Set the peptide, calc the ions, and score it against the spectra
   int len = (p->map->at(0).stop - p->map->at(0).start) + 1;
+
+  //skip peptide if its smallest possible mass with modifications is more than largest precursor.
+  if(p->mass>spec->getMaxMass()+1) return true;
+
   ions[iIndex].setPeptide(&db->at(p->map->at(0).index).sequence[p->map->at(0).start],p->map->at(0).stop-p->map->at(0).start+1,p->mass,p->nTerm,p->cTerm);
-  ions[iIndex].buildModIons2(false);
+  ions[iIndex].buildModIons2(false); //having this here is bad if there are lots of mods and few spectra
   double lastMass=0;
   for(size_t j=0;j<ions[iIndex].pepCount;j++){
     if(ions[iIndex].pepMass[j]<=lastMass) continue; //skip peptide variants already searched
@@ -928,6 +932,7 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
   //score spectra
   for (a = 0; a < index.size(); a++) {
     s=spec->getSpectrum(index[a]);
+    //cout << s->getScanNumber() << endl;
 
     if (a > 0) {
       for (size_t b = 0;b < ions[iIndex].peaks->size(); b++) ions[iIndex].peaks->at(b).visit = false; //reset for the next analysis
@@ -963,6 +968,8 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
     size_t minMods = 100;
     sc.simpleScore = 0;
     for (size_t b = 0; b < pepCount; b++) {
+      //cout << b << " of " << pepCount << "\t" << mass << "\t" << ions[iIndex].pepMass[b] << endl;
+      if(ions[iIndex].pepMass[b]!=mass) continue;
       if (pScores[b].scores[0]<=0) continue;
       if (pScores[b].scores[0] > sc.simpleScore) {
         sc.simpleScore = (float)pScores[b].scores[0];
@@ -980,7 +987,12 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
         if (ions[iIndex].pepMods[b].mods.size() < minMods) minMods = ions[iIndex].pepMods[b].mods.size();
       }
     }
-    if (sc.simpleScore == 0) continue;
+    //cout << "simpleScore: " << sc.simpleScore << endl;
+    if (sc.simpleScore == 0) {
+      peaks=NULL;
+      delete [] pScores;
+      continue;
+    }
 
     sc.simpleScore *= 0.005;
     double ev = 1000;
@@ -990,7 +1002,6 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
     
     for (size_t b = 0; b < vTop.size(); b++) {
       if (ions[iIndex].pepMods[vTop[b].a].mods.size() > minMods) continue; //skip modified peptides that are explained with fewer modifications
-
       sc.eVal = ev;
       sc.site = -1;
       sc.mass = mass;

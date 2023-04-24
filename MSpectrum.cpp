@@ -555,76 +555,76 @@ void MSpectrum::checkScore(mScoreCard& s, int th){
   }
 }
 
-void MSpectrum::checkSingletScore(mScoreCard& s){
-
-  mScoreCard* sc;
-  mScoreCard* cur;
-  
-  //If list is empty, add the score card
-  if(singletCount==0){
-    singletFirst=new mScoreCard(s);
-    singletLast=singletFirst;
-    singletCount++;
-    return;
-  }  
-
-  //check if we can just add to the end
-  if(s.simpleScore<singletLast->simpleScore){
-    //check if we need to store the singlet
-    if(singletCount==singletMax) return;
-
-    singletLast->next=new mScoreCard(s);
-    singletLast->next->prev=singletLast;
-    singletLast=singletLast->next;
-    singletCount++;
-    return;
-  }
-  
-  //check if it goes in the front
-  if(s.simpleScore>=singletFirst->simpleScore){
-
-    singletFirst->prev=new mScoreCard(s);
-    singletFirst->prev->next=singletFirst;
-    singletFirst=singletFirst->prev;
-
-    //add to singlet list
-    if(singletCount<singletMax) {
-      singletCount++;
-    } else {
-      cur=singletLast;
-      singletLast=singletLast->prev;
-      singletLast->next=NULL;
-      delete cur;
-    }
-    return;
-  }
-
-
-  //scan to find insertion point
-  cur = singletFirst->next;
-  int i=1;
-  while(s.simpleScore < cur->simpleScore){
-    i++;
-    cur=cur->next;
-  }
-
-  sc=new mScoreCard(s);
-  sc->prev=cur->prev;
-  sc->next=cur;
-  cur->prev->next=sc;
-  cur->prev=sc;
-  if(sc->prev==NULL) singletFirst=sc;
-
-  if(singletCount<singletMax) {
-    singletCount++;
-  } else {
-    cur=singletLast;
-    singletLast=singletLast->prev;
-    singletLast->next=NULL;
-    delete cur;
-  }
-
-}
+//void MSpectrum::checkSingletScore(mScoreCard& s){
+//
+//  mScoreCard* sc;
+//  mScoreCard* cur;
+//  
+//  //If list is empty, add the score card
+//  if(singletCount==0){
+//    singletFirst=new mScoreCard(s);
+//    singletLast=singletFirst;
+//    singletCount++;
+//    return;
+//  }  
+//
+//  //check if we can just add to the end
+//  if(s.simpleScore<singletLast->simpleScore){
+//    //check if we need to store the singlet
+//    if(singletCount==singletMax) return;
+//
+//    singletLast->next=new mScoreCard(s);
+//    singletLast->next->prev=singletLast;
+//    singletLast=singletLast->next;
+//    singletCount++;
+//    return;
+//  }
+//  
+//  //check if it goes in the front
+//  if(s.simpleScore>=singletFirst->simpleScore){
+//
+//    singletFirst->prev=new mScoreCard(s);
+//    singletFirst->prev->next=singletFirst;
+//    singletFirst=singletFirst->prev;
+//
+//    //add to singlet list
+//    if(singletCount<singletMax) {
+//      singletCount++;
+//    } else {
+//      cur=singletLast;
+//      singletLast=singletLast->prev;
+//      singletLast->next=NULL;
+//      delete cur;
+//    }
+//    return;
+//  }
+//
+//
+//  //scan to find insertion point
+//  cur = singletFirst->next;
+//  int i=1;
+//  while(s.simpleScore < cur->simpleScore){
+//    i++;
+//    cur=cur->next;
+//  }
+//
+//  sc=new mScoreCard(s);
+//  sc->prev=cur->prev;
+//  sc->next=cur;
+//  cur->prev->next=sc;
+//  cur->prev=sc;
+//  if(sc->prev==NULL) singletFirst=sc;
+//
+//  if(singletCount<singletMax) {
+//    singletCount++;
+//  } else {
+//    cur=singletLast;
+//    singletLast=singletLast->prev;
+//    singletLast->next=NULL;
+//    delete cur;
+//  }
+//
+//}
 
 double MSpectrum::computeE(double score, int len){
   //if we haven't computed a histogram yet, do it now

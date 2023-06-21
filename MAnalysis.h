@@ -78,6 +78,7 @@ private:
   //static float magnumScoring           (int specIndex, double modMass, int sIndex, int iIndex, int& match, int& conFrag, int z=0);
 
   //Data Members
+  //static bool bEcho;
   static bool*      bKIonsManager;
   static MDatabase* db;
   static MIons*     ions;
@@ -114,7 +115,9 @@ private:
   static void scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex);
   static void scoreSpectra2(std::vector<int>& index, double mass, int len, int pep1, int iIndex);
   static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
+  static void score7(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
   static void score6solo(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
+  static void score7solo(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
   //static void score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/);
 
   //Utilities

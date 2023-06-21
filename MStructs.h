@@ -405,6 +405,7 @@ typedef struct sLink2{
   size_t nextNode=SIZE_MAX;
   size_t nextIndex = SIZE_MAX;
   size_t pepNum;
+  size_t parentPepNum=-1;
   double score[10]{};    //make an array large enough to hold all precursors? Is 10 enough?
   double scoreNL[10]{};  //make an array large enough to hold all precursors? Is 10 enough?
   //int match[10]{};
@@ -419,7 +420,7 @@ typedef struct sLink2{
 typedef struct sNode2{
   bool visit=false;
   double mass=0;
-  double score[4]{};       //always same?
+  double score[4]{};       //always same? is it necessary to track charge states?
   double scoreAlt[10][4]{};    //make an array large enough to hold all precursors? Is 10 enough?
   double scoreAltNL[4]{};  //always same?
   //int match[4]{};
@@ -431,6 +432,7 @@ typedef struct sNode2{
   //  visit = false;
   //  mass = 0;
   //}
+  int id=0; //for diagnostics only
 } sNode2;
 
 typedef struct sPepModSet{

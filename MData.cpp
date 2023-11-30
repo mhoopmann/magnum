@@ -192,7 +192,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f, "\tMass\tPPM\tLength");
+    fprintf(f, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f, "\tPeptide\tProteins\n");
 
     string file2 = sPercName + ".open.perc.txt";
@@ -204,7 +204,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f2, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f2, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f2, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f2, "\tMass\tPPM\tLength");
+    fprintf(f2, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f2, "\tPeptide\tProteins\n");
 
 
@@ -219,7 +219,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f, "\tMass\tPPM\tLength");
+    fprintf(f, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f, "\tPeptide\tProteins\n");
 
   }
@@ -451,11 +451,24 @@ void MData::exportPercolator(FILE*& f, vector<mResults>& r){
     fprintf(f, "\t%.4lf", r[a].psmMass);
     fprintf(f, "\t%.4lf", r[a].ppm);
     fprintf(f, "\t%d", (int)r[a].peptide.size());
+
+    //OpenMod\tOpenMass\tAdjMass\tMC
+    if(r[a].openMod.empty()) fprintf(f, "\t0\t0");
+    else fprintf(f,"\t1\t%.4lf",r[a].openModMass);
+    fprintf(f,"\t%.4lf",r[a].psmMass/r[a].peptide.size());
+    int mc=0;
+    for(size_t b=0;b<r[a].peptide.size()-1;b++){
+      if((r[a].peptide[b]=='R' || r[a].peptide[b]=='K') && r[a].peptide[b+1]!='P') mc++;
+    }
+    fprintf(f,"\t%d",mc);
+
     fprintf(f, "\t-.%s.-", r[a].modPeptide[0].c_str());
     for(size_t b=0;b<r[a].proteins.size();b++){
       fprintf(f, "\t%s", r[a].proteins[b].protein.c_str());
     }
     fprintf(f, "\n");
+      
+    break; //only output first result
   }
 }
 
@@ -2350,6 +2363,7 @@ void MData::processPSM(MSpectrum& s, mScoreCard3& sc, mResults& r){
   r.monoMass=p.monoMass;
   r.charge=p.charge;
 
+  r.openModMass=sc.massA;
   r.psmMass=sc.mass+sc.massA;
   r.ppm=(r.monoMass-r.psmMass)/r.psmMass*1e6;
   r.eValue=sc.eVal;

@@ -366,6 +366,7 @@ typedef struct mResults{
   int     scanNumber;
   float   rTimeSec;
   double  eValue;
+  double  openModMass;
   double  monoMass;
   double  ppm;
   double  psmMass;
@@ -387,6 +388,7 @@ typedef struct mResults{
     scanNumber=0;
     rTimeSec=0;
     eValue=0;
+    openModMass=0;
     monoMass=0;
     ppm=0;
     scoreDelta=0;

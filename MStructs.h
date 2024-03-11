@@ -26,6 +26,8 @@ limitations under the License.
 #include <iostream>
 #include <exception>
 
+#define MAX_PRECURSOR 32
+
 //FASTA database structure
 typedef struct mDB{
   std::string description; //FASTA description (header - after first space)
@@ -406,16 +408,10 @@ typedef struct mSimpleMod{
 typedef struct sLink2{
   size_t nextNode=SIZE_MAX;
   size_t nextIndex = SIZE_MAX;
-  size_t pepNum;
-  size_t parentPepNum=-1;
-  double score[10]{};    //make an array large enough to hold all precursors? Is 10 enough?
-  double scoreNL[10]{};  //make an array large enough to hold all precursors? Is 10 enough?
-  //int match[10]{};
-  //int matchNL[10]{};
-  //sLink2(){
-  //  nextNode = SIZE_MAX;
-  //  nextIndex = SIZE_MAX;
-  //}
+  size_t pepNum=0;
+  size_t parentPepNum=0;
+  double score[MAX_PRECURSOR]{};    //make an array large enough to hold all precursors? Is 10 enough?
+  double scoreNL[MAX_PRECURSOR]{};  //make an array large enough to hold all precursors? Is 10 enough?
 } sLink2;
 
 
@@ -423,7 +419,7 @@ typedef struct sNode2{
   bool visit=false;
   double mass=0;
   double score[4]{};       //always same? is it necessary to track charge states?
-  double scoreAlt[10][4]{};    //make an array large enough to hold all precursors? Is 10 enough?
+  double scoreAlt[MAX_PRECURSOR][4]{};    //make an array large enough to hold all precursors? Is 10 enough?
   double scoreAltNL[4]{};  //always same?
   //int match[4]{};
   //int matchAlt[10][4]{};
@@ -449,7 +445,7 @@ typedef struct sPrecursor{
 } sPrecursor;
 
 typedef struct sScoreSet {
-  double scores[10]{};  //never more than 10 precursors
+  double scores[MAX_PRECURSOR]{};  //never more than 10 precursors
   //int match[10]{};
   bool scored=false;
   //sScoreSet(){

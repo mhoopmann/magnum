@@ -79,6 +79,8 @@ private:
 
   //Data Members
   //static bool bEcho;
+  //static int sCounter;
+
   static bool*      bKIonsManager;
   static MDatabase* db;
   static MIons*     ions;

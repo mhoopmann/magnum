@@ -49,6 +49,7 @@ int* MAnalysis::maxZ2;
 size_t* MAnalysis::bufSize2;
 
 //bool MAnalysis::bEcho;
+//int MAnalysis::sCounter;
 
 /*============================
   Constructors & Destructors
@@ -613,6 +614,11 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   maxZ2[iIndex] = 1;
   //double maxPre=0;
   //double minPre=100000;
+  //cout << "scoreSingletSpectra2 " << s->getScanNumber() << "\t" << sz << endl;
+  //bEcho=true; //comment this out
+  if(sz>MAX_PRECURSOR){
+    cout << "WARNING: " << s->getScanNumber() << " has too many candidate precursor ions. Analysis limited to " << MAX_PRECURSOR << " precursors." << endl;
+  }
   for(int i=0;i<sz;i++){
     p = s->getPrecursor2(i);
     if (p->monoMass<minMass) continue;
@@ -629,6 +635,7 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     //if(pr.monomass>maxPre) maxPre=pr.monomass; //adjust later for ppm error?
     //if(pr.monomass<minPre) minPre=pr.monomass;
     pre.push_back(pr);
+    if(pre.size()==MAX_PRECURSOR) break;
   }
   if(pre.size()==0) {
     cout << "WTF" << endl;
@@ -637,13 +644,18 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
 
   bufSize2[iIndex] = sizeof(double)*pre.size();
   size_t pepCount=ions[iIndex].pepCount;
-  //cout << "First pepCount: " << pepCount << endl;
+  //cout << "First pepCount: " << pepCount << "\t" << sizeof(double) * pre.size() << "\t" << pre.size() << endl;
+  //for(size_t a=0;a<pre.size();a++){
+  //  cout << pre[a].monomass << "\t" << pre[a].maxZ << "\t" << pre[a].index << endl;
+  //}
   size_t preCount=pre.size();
   sScoreSet* pScores = new sScoreSet[pepCount];
   vector<sNode2>* peaks=ions[iIndex].peaks;
   //cout << "\n\nBions:" << endl;
   for (size_t a = 0; a<peaks->at(0).start.size(); a++){
+    //sCounter=0;
     score7(s, peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores, &pre, iIndex /*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
+    //cout << "Final counter: " << sCounter << endl;
     //score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, dummyM, dummyM, 0, pScores, &pre, iIndex, maxZ, sizeof(double)*pre.size(), sizeof(int)*pre.size()/*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
   }
 
@@ -660,8 +672,12 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   sScoreSet* pScores2 = new sScoreSet[pepCount];
   peaks = ions[iIndex].peaksRev;
   //if(pep==103 && s->getScanNumber()==55157) bEcho=true;
+  //cout << s->getScanNumber() << endl;
+  //bEcho=true;
   for (size_t a = 0; a < peaks->at(0).start.size(); a++) {
+    //sCounter=0;
     score7(s, peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores2, &pre, iIndex /*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
+    //cout << "Final counter: " << sCounter << endl;
   }
   //bEcho=false;
   //cout << endl;
@@ -955,6 +971,8 @@ void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, 
 
 //could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
 void MAnalysis::score7(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/) {
+  //sCounter++;
+  //cout << "score7 : " << sCounter << endl;
   //if(bEcho) cout << "Peptide: " << link->pepNum << "\tNode: " << node->id << "\tmass: " << node->mass << "\tsite: " << ions[iIndex].pepLinks[link->pepNum] << "\t";
 
   if (node->mass > 0) {
@@ -1027,6 +1045,7 @@ void MAnalysis::score7(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLin
   } else {
     //cout << "Continuing: " << link->nextNode << "\tindex: " << link->nextIndex << endl;
     score7(s, peakSet, &peakSet->at(link->nextNode), &peakSet->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
+    //cout << "Gniunitnoc: " << link->nextNode << "\tindex: " << link->nextIndex << endl;
   }
 
   for (size_t a = 0; a < node->start.size(); a++) { //Change this to only do starts at first time to node?
@@ -1043,10 +1062,13 @@ void MAnalysis::score7(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLin
     } else {
       //if (bEcho) cout << "Starting: " << node->start[a].pepNum << "\tnode: " << node->start[a].nextNode << "\tindex: " << node->start[a].nextIndex << endl;
       score7(s, peakSet, &peakSet->at(node->start[a].nextNode), &peakSet->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
+      //if(bEcho) cout << "Gnitrats: " << node->start[a].pepNum << "\tnode: " << node->start[a].nextNode << "\tindex: " << node->start[a].nextIndex << endl;
     }
   }
 
   //if (bEcho) cout << "Done " << node->id << endl;
+  //sCounter--;
+  //cout << "end Score7: " << sCounter << endl;
 
 }
 

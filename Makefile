@@ -1,7 +1,7 @@
 #Set these variables if needed
 C = gcc
 CC = g++
-FLAGS = -O3 -static -std=c++11 -D_NOSQLITE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DGCC
+FLAGS = -O3 -std=c++11 -D_NOSQLITE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DGCC
 
 #Paths to supporting software
 MSTOOLKITPATH = ../MSToolkit
@@ -9,8 +9,9 @@ HARDKLORPATH = ../Hardklor
 PEPXMLPATH = ../NeoPepXMLParser
 
 #Do not touch these variables
-LIBPATH = -L$(MSTOOLKITPATH) -L$(HARDKLORPATH) -L$(PEPXMLPATH)
-LIBS = -lmstoolkitlite -lhardklor -lneopepxmlparser -lpthread
+#LIBPATH = -L$(MSTOOLKITPATH) -L$(HARDKLORPATH) -L$(PEPXMLPATH)
+LIBS = -lpthread -ldl
+LIBSTATIC = $(MSTOOLKITPATH)/libmstoolkitlite.a $(HARDKLORPATH)/libhardklor.a $(PEPXMLPATH)/libneopepxmlparser.a
 INCLUDE = -I$(MSTOOLKITPATH)/include -I$(HARDKLORPATH) -I$(PEPXMLPATH)
 
 
@@ -20,7 +21,7 @@ MAGNUM = MagnumManager.o MParams.o MAnalysis.o MData.o MDB.o MLog.o MPrecursor.o
 
 #Make statements
 magnum : Magnum.cpp $(MAGNUM)
-	$(CC) $(FLAGS) $(INCLUDE) $(MAGNUM) Magnum.cpp $(LIBPATH) $(LIBS) -o magnum
+	$(CC) $(FLAGS) $(INCLUDE) $(MAGNUM) $(LIBSTATIC) Magnum.cpp $(LIBS) -o magnum
 
 clean:
 	rm *.o magnum

@@ -538,6 +538,8 @@ void MData::exportPepXML(NeoPepXMLParser*& p, vector<mResults>& r){
       }
       sh.num_tot_proteins=(int)r[a].proteins.size();
       sh.calc_neutral_pep_mass=r[a].psmMass;
+      sh.massdiff=s.precursor_neutral_mass-sh.calc_neutral_pep_mass;
+      if(fabs(sh.massdiff<0.000001)) sh.massdiff=0;
 
       //Add scores
       sprintf(str,"%.4lf",r[a].scoreMagnum);

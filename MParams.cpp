@@ -201,6 +201,7 @@ void MParams::exportDefault(string ver){
   fprintf(f, "ion_series_Y = %d\n", (int)def.ionSeries[4]);
   fprintf(f, "ion_series_Z = %d              #Z-dot values are used\n", (int)def.ionSeries[5]);
   fprintf(f, "\n\n#\n# Search Space Prameters: specifies breadth of data analysis.\n#\n");
+  fprintf(f, "#adduct_sites = DE         #restricts adduct mass to the specified amino acids. Use 'n' and 'c' for protein termini.\n");
   fprintf(f, "decoy_filter = %s      #identifier for all decoys in the database.\n",def.decoy.c_str());
   fprintf(f, "e_value_depth = %d       #robustness of e-value histogram. Larger number improves e-value estimates, but increases computation time.\n",def.eValDepth);
   fprintf(f, "min_adduct_mass = %.1lf     #lowest allowed adduct mass in Daltons.\n",def.minAdductMass);
@@ -225,9 +226,9 @@ void MParams::exportDefault(string ver){
   fprintf(f, "#reporter_ion = 311.00\n");
   fprintf(f, "#reporter_ion = 470.03\n");
   fprintf(f, "\n\n#\n# Diagnostics: Only recommended for advanced users. If enabled, a diagnostic XML file is output with the Magnum results.\n#\n");
-  fprintf(f, "# diagnostic = 502       #diagnose intermediate peptide calculations for any scan number.\n");
-  fprintf(f, "# diagnostic = 503       #list multiple MS2 scan numbers, one per line.\n");
-  fprintf(f, "# diagnostic = -1        #or specify -1 to diagnose all MS2 scans.\n");
+  fprintf(f, "#diagnostic = 502        #diagnose intermediate peptide calculations for any scan number.\n");
+  fprintf(f, "#diagnostic = 503        #list multiple MS2 scan numbers, one per line.\n");
+  fprintf(f, "#diagnostic = -1         #or specify -1 to diagnose all MS2 scans.\n");
   fprintf(f, "top_count = %d            #number of lines of candidate peptides to diagnose per precursor prediction per MS2 scan.\n",def.topCount);
   fprintf(f, "truncate_prot_names = %d  #Shorten protein names to just the first number of characters, 0 = off\n",def.truncate);
   fclose(f);

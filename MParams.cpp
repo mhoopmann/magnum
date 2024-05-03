@@ -374,7 +374,12 @@ void MParams::parse(const char* cmd) {
     logParam("fixed_modification_protN",values[0]);
 
 	} else if(strcmp(param,"fragment_bin_offset")==0){
-    params->binOffset=1.0-atof(&values[0][0]);
+    double d= atof(&values[0][0]);
+    if(d<0 || d>1){
+      warn("ERROR: Invalid value for fragment_bin_offset parameter. Range = 0.0 - 1.0; Stopping analysis.", 3);
+      exit(-5);
+    }
+    params->binOffset=1.0-d;
     logParam("fragment_bin_offset",values[0]);
 
 	} else if(strcmp(param,"fragment_bin_size")==0){

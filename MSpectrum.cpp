@@ -751,6 +751,7 @@ void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, fl
 
       dTmp = binSize*i;
       iTmp = (int)dTmp;
+      
       if (kojakSparseArray[iTmp] == NULL) {
         kojakSparseArray[iTmp] = new char[(int)invBinSize + 1];
         for (j = 0; j<(int)invBinSize + 1; j++) kojakSparseArray[iTmp][j] = 0;

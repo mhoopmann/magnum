@@ -202,7 +202,7 @@ void MParams::exportDefault(string ver){
   fprintf(f, "ion_series_Z = %d              #Z-dot values are used\n", (int)def.ionSeries[5]);
   fprintf(f, "\n\n#\n# Search Space Prameters: specifies breadth of data analysis.\n#\n");
   fprintf(f, "#adduct_sites = DE         #restricts adduct mass to the specified amino acids. Use 'n' and 'c' for protein termini.\n");
-  fprintf(f, "decoy_filter = %s      #identifier for all decoys in the database.\n",def.decoy.c_str());
+  fprintf(f, "decoy_filter = %s %d    #identifier for all decoys in the database. 0=database has decoys, 1=have Magnum generate decoys\n",def.decoy.c_str(),(int)def.buildDecoy);
   fprintf(f, "e_value_depth = %d       #robustness of e-value histogram. Larger number improves e-value estimates, but increases computation time.\n",def.eValDepth);
   fprintf(f, "min_adduct_mass = %.1lf     #lowest allowed adduct mass in Daltons.\n",def.minAdductMass);
   fprintf(f, "max_adduct_mass = %.1lf    #highest allowed adduct mass in Daltons.\n",def.maxAdductMass);
@@ -320,8 +320,14 @@ void MParams::parse(const char* cmd) {
     logParam("diagnostic",values[0]);
 
 	} else if(strcmp(param,"decoy_filter")==0){
+    if (values.size() != 2) {
+      warn("ERROR: bad decoy_filter parameter. Suspected use of deprecated format.", 3);
+      exit(-5);
+    }
     params->decoy=values[0];
-    logParam("decoy_filter",values[0]);
+    if (atoi(values[1].c_str()) == 0) params->buildDecoy = false;
+    else params->buildDecoy = true;
+    logParam("decoy_filter", values[0] + " " + values[1]);
 
   } else if(strcmp(param,"enzyme")==0){
     params->enzyme=values[0];

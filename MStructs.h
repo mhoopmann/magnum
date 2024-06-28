@@ -30,6 +30,7 @@ limitations under the License.
 
 //FASTA database structure
 typedef struct mDB{
+  bool decoy;
   std::string description; //FASTA description (header - after first space)
   std::string name;        //FASTA name (header - before first space)
   std::string sequence;    //FASTA sequence
@@ -130,6 +131,7 @@ typedef struct mParams {
   int     threads;
   int     topCount;
   int     truncate;
+  bool    buildDecoy;
   bool    exportPepXML;
   bool    exportPercolator;
   bool    ionSeries[6];
@@ -145,9 +147,9 @@ typedef struct mParams {
   double  percVersion;
   double  ppmPrecursor;
   double  rIonThreshold;
-  std::string    adductSites;
+  std::string     adductSites;
   std::string     dbFile;
-  std::string    decoy;
+  std::string     decoy;
   std::string     enzyme;
   std::string     enzymeName;
   std::string     ext;
@@ -184,6 +186,7 @@ typedef struct mParams {
     threads=1;
     topCount=5;
     truncate=0;
+    buildDecoy=false;
     exportPepXML=true;
     exportPercolator=false;
     ionSeries[0]=false; //a-ions

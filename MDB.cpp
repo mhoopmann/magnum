@@ -71,7 +71,7 @@ mDB& MDatabase::operator[ ](const int& i){
 //==============================
 
 //buildDB reads in a FASTA file and stores it in memory.
-bool  MDatabase::buildDB(const char* fname) {
+bool  MDatabase::buildDB(const char* fname, string decoyStr) {
   char    str[10240];
   char*   tok;
   FILE*   f;
@@ -96,6 +96,8 @@ bool  MDatabase::buildDB(const char* fname) {
           if (mlog != NULL) mlog->addDBWarning(d.name + " has a sequence that is too long. It will be skipped.");
           else cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
         } else {
+          if (d.name.find(decoyStr) != string::npos) d.decoy = true;
+          else d.decoy = false;
           vDB.push_back(d);
         }
       }
@@ -127,11 +129,91 @@ bool  MDatabase::buildDB(const char* fname) {
     if (mlog != NULL) mlog->addDBWarning(d.name + " has a sequence that is too long. It will be skipped.");
     else cout << "  WARNING: " << &d.name[0] << " has a sequence that is too long. It will be skipped." << endl;
   } else {
+    if (d.name.find(decoyStr) != string::npos) d.decoy = true;
+    else d.decoy = false;
     vDB.push_back(d);
   }
 
   cout << "  Total Proteins: " << vDB.size() << endl;
   return true;
+}
+
+//Builds decoys on the fly from sequences in the search space. Decoys are sequences reversed in place between
+//enzyme cut points. If the sequence is palindromic, a minor attempt at creating a novel sequence is made.
+void MDatabase::buildDecoy(string decoy_label) {
+
+  typedef struct clips {
+    int start;
+    int stop;
+  } clips;
+
+  size_t i, j, sz;
+  vector<clips> cut;
+  clips c;
+
+  sz = vDB.size();
+  char alter = '0';
+  for (i = 0; i < sz; i++) {
+
+    cut.clear();
+    c.start = -1;
+    //if (vDB[i].sequence[0] == 'M')j = 1; //leave leading methionines in place
+    //else j = 0;
+    for (j = 1; j < vDB[i].sequence.size(); j++) {
+      if (enzyme.cutN[vDB[i].sequence[j]] || enzyme.cutC[vDB[i].sequence[j]]) {
+        if (c.start > -1) { //mark the space in between
+          c.stop = (int)j - 1;
+          cut.push_back(c);
+          c.start = -1; //reset
+        }
+      } else {
+        if (c.start < 0) c.start = (int)j;
+      }
+    }
+    if (!enzyme.cutN[vDB[i].sequence[j - 1]] && !enzyme.cutC[vDB[i].sequence[j - 1]]) { //check last amino acid
+      c.stop = (int)j - 1;
+      cut.push_back(c);
+    }
+
+    //reverse the sequences
+    string rev;
+    mDB decoy = vDB[i];
+    decoy.name = decoy_label + alter + "_" + decoy.name;
+    if (alter == '0') alter = '1';
+    else alter = '0';
+    for (j = 0; j < cut.size(); j++) {
+      rev.clear();
+
+      //adjust ends for restrictive sites
+      while (enzyme.exceptN[decoy.sequence[cut[j].start]] || enzyme.exceptC[decoy.sequence[cut[j].start]]) {
+        cut[j].start++;
+        if (cut[j].start == decoy.sequence.size()) break;
+      }
+      while (enzyme.exceptN[decoy.sequence[cut[j].stop]] || enzyme.exceptC[decoy.sequence[cut[j].stop]]) {
+        cut[j].stop--;
+        if (cut[j].stop == -1) break;
+      }
+      if (cut[j].start == decoy.sequence.size()) continue; //skip when out of bounds
+      if (cut[j].stop == -1) continue; //skip when out of bounds
+      if (cut[j].stop <= cut[j].start) continue; //skip if nothing will happen
+
+
+      for (size_t k = cut[j].stop; k >= cut[j].start; k--) {
+        rev += decoy.sequence[k];
+        if (k == 0) break;
+      }
+      if (rev.size() > 2 && rev.compare(decoy.sequence.substr(cut[j].start, (size_t)cut[j].stop - (size_t)cut[j].start + 1)) == 0) { //edge case of palindrome sequence
+        char c = rev[0];
+        rev[0] = rev[rev.size() / 2];
+        rev[rev.size() / 2] = c; //just swap the first and middle characters, see if that breaks up the palindrome
+      }
+      decoy.sequence.replace(cut[j].start, (size_t)cut[j].stop - (size_t)cut[j].start + 1, rev);
+    }
+
+    vDB.push_back(decoy);
+  }
+
+  cout << "  Adding Magnum-generated decoys. New Total Proteins: " << vDB.size() << endl;
 }
 
 
@@ -339,6 +421,16 @@ bool MDatabase::buildPeptides(double min, double max, int mis,int minP, int maxP
 
   return true;
 
+}
+
+void MDatabase::exportDB(string fName) {
+  size_t i;
+  FILE* f = fopen(fName.c_str(), "wt");
+  for (i = 0; i < vDB.size(); i++) {
+    fprintf(f, ">%s\n", vDB[i].name.c_str());
+    fprintf(f, "%s\n", vDB[i].sequence.c_str());
+  }
+  fclose(f);
 }
 
 //==============================

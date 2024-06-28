@@ -1087,6 +1087,18 @@ bool MData::outputResults(MDatabase& db){
   string fXML;
   NeoPepXMLParser* pepxml=NULL;
 
+  //Export FASTA database if Magnum generated the decoys.
+  if (params->buildDecoy) {
+    string outFile = params->dbFile;
+    size_t i = outFile.find_last_of("/\\");
+    if (i != string::npos) outFile = outFile.substr(i + 1);
+    outFile = params->resPath + slashdir + outFile;
+    outFile += ".magnum.fasta";
+    db.exportDB(outFile);
+    params->dbFile=outFile.c_str();
+    params->buildDecoy = false; //only build the decoy library once if in batch mode
+  }
+
   //Create output files
   if(!createTXT(fTXT)) return false;
   if(params->diag.size()>0) {

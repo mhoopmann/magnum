@@ -462,4 +462,19 @@ typedef struct sDIndex{
   size_t b;
 } sDIndex;
 
+typedef struct sIPep {
+  double pepMass=0;
+  std::vector<size_t> pepIndex;
+} sIPep;
+
+typedef struct sIPeak {
+  double mass=0;
+  std::vector<sIPep> index;
+} sIPeak;
+
+typedef struct sScoreSet2 {
+  double scoreP[MAX_PRECURSOR]{};  //never more than 10 precursors
+  double score = 0;
+} sScoreSet2;
+
 #endif

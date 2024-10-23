@@ -60,6 +60,7 @@ public:
   //void      modIonsRec2       (int start, int link, int index, int depth, bool xl);
   void      modIonsRec4       (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask); //could be private?
   void      modIonsRec4Rev    (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask); //could be private?
+  void      modIonsRec4Rev2   (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask); //could be private?
   void      modIonsRec5       (int pos, double mMass, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask);
   void      modIonsRec5Rev    (int pos, double mMass, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask);
   //void      reset             ();
@@ -99,6 +100,12 @@ public:
   double pepMassMin;
   double pepMassMax;
   int maxLink;
+
+
+  std::vector<sIPeak> vPeaksRev;
+  std::map<int,size_t> mPeaks;
+  void addPeakRevNew(double mass, double pepMass, size_t pepIndex);
+  void modIonsRecNew(const std::string& mask, size_t pepIndex, double mass);
 
 private:
 

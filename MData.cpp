@@ -192,7 +192,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
+    fprintf(f, "\tMass\tPPM\tLength"); //\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f, "\tPeptide\tProteins\n");
 
     string file2 = sPercName + ".open.perc.txt";
@@ -204,7 +204,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f2, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f2, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f2, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f2, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
+    fprintf(f2, "\tMass\tPPM\tLength"); //\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f2, "\tPeptide\tProteins\n");
 
 
@@ -219,7 +219,7 @@ bool MData::createPercolator(FILE*& f, FILE*& f2){
     fprintf(f, "SpecId\tLabel\tscannr\tMScore\tDScore");
     fprintf(f, "\tnLog10Eval\tCharge1\tCharge2\tCharge3");
     fprintf(f, "\tCharge4\tCharge5\tCharge6plus");
-    fprintf(f, "\tMass\tPPM\tLength\tOpenMod\tOpenMass\tAdjMass\tMC");
+    fprintf(f, "\tMass\tPPM\tLength"); //\tOpenMod\tOpenMass\tAdjMass\tMC");
     fprintf(f, "\tPeptide\tProteins\n");
 
   }
@@ -453,14 +453,14 @@ void MData::exportPercolator(FILE*& f, vector<mResults>& r){
     fprintf(f, "\t%d", (int)r[a].peptide.size());
 
     //OpenMod\tOpenMass\tAdjMass\tMC
-    if(r[a].openMod.empty()) fprintf(f, "\t0\t0");
-    else fprintf(f,"\t1\t%.4lf",r[a].openModMass);
-    fprintf(f,"\t%.4lf",r[a].psmMass/r[a].peptide.size());
-    int mc=0;
-    for(size_t b=0;b<r[a].peptide.size()-1;b++){
-      if((r[a].peptide[b]=='R' || r[a].peptide[b]=='K') && r[a].peptide[b+1]!='P') mc++;
-    }
-    fprintf(f,"\t%d",mc);
+    //if(r[a].openMod.empty()) fprintf(f, "\t0\t0");
+    //else fprintf(f,"\t1\t%.4lf",r[a].openModMass);
+    //fprintf(f,"\t%.4lf",r[a].psmMass/r[a].peptide.size());
+    //int mc=0;
+    //for(size_t b=0;b<r[a].peptide.size()-1;b++){
+    //  if((r[a].peptide[b]=='R' || r[a].peptide[b]=='K') && r[a].peptide[b+1]!='P') mc++;
+    //}
+    //fprintf(f,"\t%d",mc);
 
     fprintf(f, "\t-.%s.-", r[a].modPeptide[0].c_str());
     for(size_t b=0;b<r[a].proteins.size();b++){

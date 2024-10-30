@@ -106,6 +106,7 @@ public:
   std::map<int,size_t> mPeaks;
   void addPeakRevNew(double mass, double pepMass, size_t pepIndex);
   void modIonsRecNew(const std::string& mask, size_t pepIndex, double mass);
+  void modIonsMaskRec(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, std::string mask); //could be private?
 
 private:
 

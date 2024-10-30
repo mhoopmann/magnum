@@ -323,8 +323,10 @@ void MIons::buildModIons2(bool bAdduct) {
     pepMass[0] += aaMass['$'];
   }
   pepMods.emplace_back();
-  if(bAdduct) modIonsRec4(0, mMass, -99, pepCount, 0, -1, 0, true, 0,modMask);
-  else modIonsRec5(0, mMass, pepCount, 0, -1, 0, true, 0,modMask);
+  if(bAdduct) {
+    modIonsRec4(0, mMass, -99, pepCount, 0, -1, 0, true, 0,modMask);
+    //modIonsMaskRec(0,mMass,-99,pepCount,0,-1,modMask);
+  } else modIonsRec5(0, mMass, pepCount, 0, -1, 0, true, 0,modMask);
   pepCount++; //Double-check this?
 
   //if(!bAdduct) return;
@@ -594,6 +596,377 @@ double MIons::getFixedModMass(char aa){
 //  }
 //
 //}
+
+void MIons::modIonsRec4(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, string mask) {
+  //cout << "modIonsRec4: " << pos << " of " << ionCount << endl;
+  for (int i = pos; i < ionCount; i++) { //recursive function continues from last position
+
+    //see if adduct attaches here
+    if (oSite == -99 && i == 0 && nPep1 && site['n']) {  //if n-terminus can be linked, proceed as if it is linked
+      pepCount++;
+      string mask2(mask);
+      mask2[pep1Len]='x';
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string,size_t>(mask2,pepCount));
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      peaks->at(linkNode).start.emplace_back();
+      peaks->at(linkNode).start.back().pepNum = pepCount;
+      peaks->at(linkNode).start.back().parentPepNum = pepNum;
+      modIonsRec4(i, mMass, i, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1,mask2);
+
+    } else if (oSite == -99 && modSite < i && site[pep1[i]]) { //otherwise attach adduct to available site
+      pepCount++;
+      string mask2(mask);
+      mask2[i] = 'x';
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      peaks->at(linkNode).start.emplace_back();
+      peaks->at(linkNode).start.back().pepNum = pepCount;
+      peaks->at(linkNode).start.back().parentPepNum = pepNum;
+      modIonsRec4(i, mMass, i, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1,mask2);
+    }
+
+    //only check modifications if adduct is not attached and we are allowed more modifications
+    if (i > modSite && i != oSite && depth < maxModCount) {
+      //Check if amino acid is on the modification list
+      for (int j = 0; j < aaMod[pep1[i]].count; j++) {
+
+        //skip mods if it is xl mod on a cut site - is this relevant in Magnum?
+        if (aaMod[pep1[i]].mod[j].xl && i == pep1Len - 1 && !cPep1) continue;
+
+        //Add masses
+        pepCount++;
+        string mask2(mask);
+        mask2[i] = 49+j;
+        //cout << mask2 << endl;
+        mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+        pepMass.push_back(pepMass[pepNum] + aaMod[pep1[i]].mod[j].mass);
+        pepMods.push_back(pepMods[pepNum]);
+        mPepMod pm;
+        pm.mass = aaMod[pep1[i]].mod[j].mass;
+        pm.pos = (char)i;
+        pm.term = false;
+        pepMods.back().mods.push_back(pm);
+        peaks->at(linkNode).start.emplace_back();   //need to add y-ion also??
+        peaks->at(linkNode).start.back().pepNum = pepCount;
+        peaks->at(linkNode).start.back().parentPepNum = pepNum;
+        modIonsRec4(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, pepCount, depth+1, i, linkNode, true, peaks->at(linkNode).start.size() - 1,mask2);
+
+      }
+    }
+
+    mMass += aaMass[pep1[i]]; //add the amino acid mass
+    if (i == ionCount) { //special case for the end of a peptide
+      mMass += aaMass['c']; //add static mods to last amino acid
+      pepMass[pepNum] += aaMass['c'];
+      if (cPep1) {
+        mMass += aaMass['%']; //add static mods to end of protein
+        pepMass[pepNum] += aaMass['%'];
+      }
+    }
+
+    if (oSite >= 0 && i >= oSite) addPeak(mMass, true, linkNode, linkAr, linkIndex);
+    else addPeak(mMass, false, linkNode, linkAr, linkIndex);
+    peaks->at(linkNode).next[linkIndex].pepNum = pepNum;
+    
+  }
+
+  if (oSite == -99 && cPep1 && site['c']) { //if c-terminus can be linked, proceed as if it is linked
+    pepCount++;
+    string mask2(mask);
+    mask2[pep1Len+1] = 'x';
+    //cout << mask2 << endl;
+    mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+    pepMass.push_back(pepMass[pepNum]);
+    pepMods.push_back(pepMods[pepNum]);
+    peaks->at(linkNode).start.emplace_back();
+    peaks->at(linkNode).start.back().pepNum = pepCount;
+    peaks->at(linkNode).start.back().parentPepNum = pepNum;
+    modIonsRec4(ionCount, mMass, ionCount, pepCount, depth, modSite, linkNode, true, peaks->at(linkNode).start.size() - 1,mask2);
+  }
+
+  //if the c-terminus can be modified, proceed with the modifications
+  if(pos==ionCount && cPep1 && oSite!=pos && depth < maxModCount){
+    //Check if amino acid is on the modification list
+    for (int j = 0; j < aaMod[pep1[pos]].count; j++) {
+      //Add masses
+      pepCount++;
+      string mask2(mask);
+      mask2[pos] = 49 + j;
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+      pepMass.push_back(pepMass[pepNum] + aaMod[pep1[pos]].mod[j].mass);
+      pepMods.push_back(pepMods[pepNum]);
+      mPepMod pm;
+      pm.mass = aaMod[pep1[pos]].mod[j].mass;
+      pm.pos = (char)pos;
+      pm.term = false;
+      pepMods.back().mods.push_back(pm);
+      peaks->at(linkNode).start.emplace_back();   //need to add y-ion also??
+      peaks->at(linkNode).start.back().pepNum = pepCount;
+      peaks->at(linkNode).start.back().parentPepNum = pepNum;
+      modIonsRec4(ionCount, mMass + aaMod[pep1[pos]].mod[j].mass, oSite, pepCount, depth + 1, pos, linkNode, true, peaks->at(linkNode).start.size() - 1, mask2);
+
+    }
+  }
+
+  //check if mass boundaries have changed
+  if (pepMass[pepNum] < pepMassMin)pepMassMin = pepMass[pepNum]; 
+  if (pepMass[pepNum] > pepMassMax)pepMassMax = pepMass[pepNum];
+
+  //Mark position of adduct
+  while (pepLinks.size() <= pepNum) pepLinks.push_back(0);
+  pepLinks[pepNum] = oSite;
+  if (oSite>maxLink) maxLink = oSite;
+}
+
+void MIons::modIonsRec4Rev2(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, string mask) {
+  map<string, size_t>::iterator it;
+  //cout << "modIonsRec4Rev2, Pos:" << pos << " of " << ionCount << ". PepNum:" << pepNum << " oSite:" << oSite << endl;
+  for (int i = pos; i < ionCount; i++) { //recursive function continues from last position
+    //cout << " pos: " << i << " " << mMass << "\tosite: " << oSite << endl;
+    //see if adduct attaches here
+    if (oSite == -99 && i == 0 && nPep1 && site['n']) {  //if n-terminus can be linked, proceed as if it is linked
+      string mask2(mask);
+      mask2[pep1Len] = 'x';
+      //cout << "A " << mask2; // << endl;
+      //it = mPrecursor.find(mask2);
+      //if (it == mPrecursor.end()) {
+      //  cout << "Error modIonsRec4Rev2" << endl;
+      //  exit(1);
+      //}
+      //cout << " next pepNum:" << it->second << ", mMass:" << mMass << endl;
+      peaksRev->at(linkNode).start.emplace_back();
+      peaksRev->at(linkNode).start.back().pepNum = it->second;
+      peaksRev->at(linkNode).start.back().parentPepNum = pepNum;
+      modIonsRec4Rev2(i, mMass, i, it->second, depth, modSite, linkNode, true, peaksRev->at(linkNode).start.size() - 1, mask2);
+
+    } else if (oSite == -99 && modSite < i && site[pep1[i]]) { //otherwise attach adduct to available site
+      string mask2(mask);
+      mask2[i] = 'x';
+      //cout << "B " << mask2; // << endl;
+      //it = mPrecursor.find(mask2);
+      //if (it == mPrecursor.end()) {
+      //  cout << "Error modIonsRec4Rev2" << endl;
+      //  exit(1);
+      //}
+      //cout << " next pepNum:" << it->second << ", mMass:" << mMass << endl;
+      peaksRev->at(linkNode).start.emplace_back();
+      peaksRev->at(linkNode).start.back().pepNum = it->second;
+      peaksRev->at(linkNode).start.back().parentPepNum = pepNum;
+      modIonsRec4Rev2(i, mMass, i, it->second, depth, modSite, linkNode, true, peaksRev->at(linkNode).start.size() - 1, mask2);
+    }
+
+    //only check modifications if adduct is not attached and we are allowed more modifications
+    if (i > modSite && i != oSite && depth < maxModCount) {
+      //Check if amino acid is on the modification list
+      for (int j = 0; j < aaMod[pep1[i]].count; j++) {
+
+        //TEMPORARY: skip mods on protein C-terminal amino acid
+        if (i == pep1Len - 1) continue;
+
+        //skip mods if it is xl mod on a cut site - is this relevant in Magnum?
+        if (aaMod[pep1[i]].mod[j].xl && i == pep1Len - 1 && !cPep1) continue;
+
+        //Add masses
+        string mask2(mask);
+        mask2[i] = 49 + j;
+        //cout << "C " << mask2;// << endl;
+        //it = mPrecursor.find(mask2);
+        //if (it == mPrecursor.end()) {
+        //  cout << "Error modIonsRec4Rev2" << endl;
+        //  exit(1);
+        //}
+        //cout << " next pepNum:" << it->second << ", mMass:" << mMass + aaMod[pep1[i]].mod[j].mass << endl;
+        //cout << "\t" << it->second << "\tParent: " << pepNum << "\t" << mMass + aaMod[pep1[i]].mod[j].mass << endl;
+        peaksRev->at(linkNode).start.emplace_back();   //need to add y-ion also??
+        peaksRev->at(linkNode).start.back().pepNum = it->second;
+        peaksRev->at(linkNode).start.back().parentPepNum = pepNum;
+        modIonsRec4Rev2(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, it->second, depth + 1, i, linkNode, true, peaksRev->at(linkNode).start.size() - 1, mask2);
+      }
+    }
+
+    mMass -= aaMass[pep1[i]]; //subtract the amino acid mass
+    if (i == ionCount) { //special case for the end of a peptide
+      mMass -= aaMass['c']; //subtract static mods to last amino acid
+      pepMass[pepNum] -= aaMass['c'];
+      if (cPep1) {
+        mMass -= aaMass['%']; //subtract static mods to end of protein
+        pepMass[pepNum] -= aaMass['%'];
+      }
+    }
+
+    if (oSite >= 0 && i >= oSite) addPeakRev(mMass, true, linkNode, linkAr, linkIndex);
+    else addPeakRev(mMass, false, linkNode, linkAr, linkIndex);
+    peaksRev->at(linkNode).next[linkIndex].pepNum = pepNum;
+
+  }
+
+  if (oSite == -99 && cPep1 && site['c']) { //if c-terminus can be linked, proceed as if it is linked
+    string mask2(mask);
+    mask2[pep1Len + 1] = 'x';
+    //cout << "D " << mask2;// << endl;
+    //it = mPrecursor.find(mask2);
+    //if (it == mPrecursor.end()) {
+    //  cout << "Error modIonsRec4Rev2" << endl;
+    //  exit(1);
+    //}
+    //cout << " next pepNum:" << it->second << ", mMass:" << mMass << endl;
+    peaksRev->at(linkNode).start.emplace_back();
+    peaksRev->at(linkNode).start.back().pepNum = it->second;
+    peaksRev->at(linkNode).start.back().parentPepNum = pepNum;
+    modIonsRec4Rev2(ionCount, mMass, ionCount, it->second, depth, modSite, linkNode, true, peaksRev->at(linkNode).start.size() - 1, mask2);
+
+  }
+
+  //if the c-terminus can be modified, proceed with the modifications
+  //TEMPORARILY DISABLED
+  //if (pos == ionCount && cPep1 && oSite != pos && depth < maxModCount) {
+  //  //Check if amino acid is on the modification list
+  //  for (int j = 0; j < aaMod[pep1[pos]].count; j++) {
+  //    //Add masses
+  //    pepCount++;
+  //    string mask2(mask);
+  //    mask2[pos] = 49 + j;
+  //    cout << mask2 << endl;
+  //    mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+  //    pepMass.push_back(pepMass[pepNum] + aaMod[pep1[pos]].mod[j].mass);
+  //    pepMods.push_back(pepMods[pepNum]);
+  //    mPepMod pm;
+  //    pm.mass = aaMod[pep1[pos]].mod[j].mass;
+  //    pm.pos = (char)pos;
+  //    pm.term = false;
+  //    pepMods.back().mods.push_back(pm);
+  //    peaks->at(linkNode).start.emplace_back();   //need to add y-ion also??
+  //    peaks->at(linkNode).start.back().pepNum = pepCount;
+  //    peaks->at(linkNode).start.back().parentPepNum = pepNum;
+  //    modIonsRec4(ionCount, mMass + aaMod[pep1[pos]].mod[j].mass, oSite, pepCount, depth + 1, pos, linkNode, true, peaks->at(linkNode).start.size() - 1, mask2);
+
+  //  }
+  //}
+
+  //check if mass boundaries have changed
+  if (pepMass[pepNum] < pepMassMin)pepMassMin = pepMass[pepNum];
+  if (pepMass[pepNum] > pepMassMax)pepMassMax = pepMass[pepNum];
+
+  //Mark position of adduct
+  //while (pepLinks.size() <= pepNum) pepLinks.push_back(0);
+  //pepLinks[pepNum] = oSite;
+  //if (oSite > maxLink) maxLink = oSite;
+}
+
+
+//Iterates over the peptide amino acid sequence and creates a map of all variations
+//that are possible (variable modifications, adducts, etc.).
+void MIons::modIonsMaskRec(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, string mask) {
+
+  for (int i = pos; i < ionCount; i++) { //recursive function continues from last position
+
+    //see if adduct attaches here
+    if (oSite == -99 && i == 0 && nPep1 && site['n']) {  //if n-terminus can be linked, proceed as if it is linked
+      pepCount++;
+      string mask2(mask);
+      mask2[pep1Len] = 'x';
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      modIonsMaskRec(i, mMass, i, pepCount, depth, modSite, mask2);
+
+    } else if (oSite == -99 && modSite < i && site[pep1[i]]) { //otherwise attach adduct to available site
+      pepCount++;
+      string mask2(mask);
+      mask2[i] = 'x';
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+      pepMass.push_back(pepMass[pepNum]);
+      pepMods.push_back(pepMods[pepNum]);
+      modIonsMaskRec(i, mMass, i, pepCount, depth, modSite, mask2);
+    }
+
+    //only check modifications if adduct is not attached and we are allowed more modifications
+    if (i > modSite && i != oSite && depth < maxModCount) {
+      //Check if amino acid is on the modification list
+      for (int j = 0; j < aaMod[pep1[i]].count; j++) {
+
+        //skip mods if it is xl mod on a cut site - is this relevant in Magnum?
+        if (aaMod[pep1[i]].mod[j].xl && i == pep1Len - 1 && !cPep1) continue;
+
+        //Add masses
+        pepCount++;
+        string mask2(mask);
+        mask2[i] = 49 + j;
+        //cout << mask2 << endl;
+        mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+        pepMass.push_back(pepMass[pepNum] + aaMod[pep1[i]].mod[j].mass);
+        pepMods.push_back(pepMods[pepNum]);
+        mPepMod pm;
+        pm.mass = aaMod[pep1[i]].mod[j].mass;
+        pm.pos = (char)i;
+        pm.term = false;
+        pepMods.back().mods.push_back(pm);
+        modIonsMaskRec(i, mMass + aaMod[pep1[i]].mod[j].mass, oSite, pepCount, depth + 1, i, mask2);
+
+      }
+    }
+
+    mMass += aaMass[pep1[i]]; //add the amino acid mass
+    if (i == ionCount) { //special case for the end of a peptide
+      mMass += aaMass['c']; //add static mods to last amino acid
+      pepMass[pepNum] += aaMass['c'];
+      if (cPep1) {
+        mMass += aaMass['%']; //add static mods to end of protein
+        pepMass[pepNum] += aaMass['%'];
+      }
+    }
+
+  }
+
+  if (oSite == -99 && cPep1 && site['c']) { //if c-terminus can be linked, proceed as if it is linked
+    pepCount++;
+    string mask2(mask);
+    mask2[pep1Len + 1] = 'x';
+    //cout << mask2 << endl;
+    mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+    pepMass.push_back(pepMass[pepNum]);
+    pepMods.push_back(pepMods[pepNum]);
+    modIonsMaskRec(ionCount, mMass, ionCount, pepCount, depth, modSite, mask2);
+  }
+
+  //if the c-terminus can be modified, proceed with the modifications
+  if (pos == ionCount && cPep1 && oSite != pos && depth < maxModCount) {
+    //Check if amino acid is on the modification list
+    for (int j = 0; j < aaMod[pep1[pos]].count; j++) {
+      //Add masses
+      pepCount++;
+      string mask2(mask);
+      mask2[pos] = 49 + j;
+      //cout << mask2 << endl;
+      mPrecursor.insert(pair<string, size_t>(mask2, pepCount));
+      pepMass.push_back(pepMass[pepNum] + aaMod[pep1[pos]].mod[j].mass);
+      pepMods.push_back(pepMods[pepNum]);
+      mPepMod pm;
+      pm.mass = aaMod[pep1[pos]].mod[j].mass;
+      pm.pos = (char)pos;
+      pm.term = false;
+      pepMods.back().mods.push_back(pm);
+      modIonsMaskRec(ionCount, mMass + aaMod[pep1[pos]].mod[j].mass, oSite, pepCount, depth + 1, pos, mask2);
+
+    }
+  }
+
+  //check if mass boundaries have changed
+  if (pepMass[pepNum] < pepMassMin)pepMassMin = pepMass[pepNum];
+  if (pepMass[pepNum] > pepMassMax)pepMassMax = pepMass[pepNum];
+
+  //Mark position of adduct
+  while (pepLinks.size() <= pepNum) pepLinks.push_back(0);
+  pepLinks[pepNum] = oSite;
+  if (oSite > maxLink) maxLink = oSite;
+}
 
 void MIons::modIonsRec4(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, string mask) {
   //cout << "modIonsRec4: " << pos << " of " << ionCount << endl;

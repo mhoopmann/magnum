@@ -116,12 +116,13 @@ private:
   static char magnumScoring2(MSpectrum* s, double mass);
   static void scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex);
   static void scoreSpectra2(std::vector<int>& index, double mass, int len, int pep1, int iIndex);
-  static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
-  static void score7(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
-  static void score8(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex);
-  static void score6solo(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
-  static void score7solo(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
+  //static void score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
+  //static void score7(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/);
+  //static void score8(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex);
+  //static void score6solo(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
+  //static void score7solo(MSpectrum* s, std::vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass);
   static void score9(MSpectrum* s, std::vector<sIPeak>& peakSet, sScoreSet2* score, std::vector<sPrecursor>* pre, int iIndex);
+  static void score9solo(MSpectrum* s, std::vector<sIPeak>& peakSet, sScoreSet2* score, int maxZ, int iIndex);
   //static void score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, std::vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/);
 
   //Utilities

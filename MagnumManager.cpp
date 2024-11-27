@@ -109,6 +109,10 @@ int MagnumManager::run(){
       return -2;
     }
 
+    //for (size_t a = 0;a < spec.size();a++) {
+    //  if (spec[a].getScanNumber() == 130224) spec[a].getPrecursor(1).monoMass = 1818.8927;
+    //}
+
     //log.addMessage("Reading spectra data file: " + files[i].input, true);
     //cout << "\n Reading spectra data file: " << files[i].input << " ... ";
     //if (!spec.readSpectra()){

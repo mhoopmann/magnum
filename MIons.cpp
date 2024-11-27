@@ -75,7 +75,7 @@ void MIons::addMod(char mod, bool xl, double mass){
 }
 
 void MIons::buildModIons2(bool bAdduct) {
-  //cout << "buildModIons2" << endl;
+  //cout << "buildModIons2: " << (int)bAdduct << endl;
   double mMass;
 
   mPrecursor.clear();
@@ -109,9 +109,15 @@ void MIons::buildModIons2(bool bAdduct) {
   }
   pepMods.emplace_back();
   if(bAdduct) {
+    //cout << "Adduct: " << vPeaks.size() << "\t" << vPeaksRev.size() << endl;
     //TODO: Combine modIonsMaskRec and modIonsNew into single function.
+    //So that you don't have to clear and repeat as is done below.
     modIonsMaskRec(0,mMass,-99,pepCount,0,-1,modMask);
-    if (pepseq.compare("NFPPSQDASGDLYTTSSQLTLPATQCLAGK") == 0) displayPrecursors();
+    vPeaks.clear();
+    mPeaks.clear();
+
+    //displayPrecursors();
+    //if (pepseq.compare("NFPPSQDASGDLYTTSSQLTLPATQCLAGK") == 0) displayPrecursors();
     mMass = pep1Mass+aaMass['n'];
     if(nPep1) mMass += aaMass['$'];
     map<string, size_t>::iterator it = mPrecursor.begin();
@@ -120,8 +126,10 @@ void MIons::buildModIons2(bool bAdduct) {
       it++;
     }
   } else {
+    //cout << "NoAdduct" << endl;
     modIonsMaskRecNoAdduct(0, mMass, pepCount, 0, -1, modMask);
-    if (pepseq.compare("NFPPSQDASGDLYTTSSQLTLPATQCLAGK") == 0) displayPrecursors();
+    //displayPrecursors();
+    //if (pepseq.compare("NFPPSQDASGDLYTTSSQLTLPATQCLAGK") == 0) displayPrecursors();
     mMass = pep1Mass + aaMass['n'];
     if (nPep1) mMass += aaMass['$'];
     map<string, size_t>::iterator it = mPrecursor.begin();
@@ -133,18 +141,19 @@ void MIons::buildModIons2(bool bAdduct) {
   pepCount++; //Double-check this?
 
   //build y-ions here
-  mMass = 18.0105633 + aaMass['c'];
-  if (cPep1) mMass += aaMass['$']; //'%' instead??
+  //use same mMass?
+  //mMass = 18.0105633 + aaMass['c'];
+  //if (cPep1) mMass += aaMass['$']; //'%' instead??
   if (bAdduct) {
     map<string, size_t>::iterator it = mPrecursor.begin();
     while (it != mPrecursor.end()) {
-      modIonsRecNew(it->first, it->second,mMass);
+      modIonsRecNew(it->first, it->second,pepMass[it->second]);
       it++;
     }
   } else {
     map<string, size_t>::iterator it = mPrecursor.begin();
     while (it != mPrecursor.end()) {
-      modIonsRecNew(it->first, it->second, mMass,3);
+      modIonsRecNew(it->first, it->second,pepMass[it->second],3);
       it++;
     }
   }
@@ -168,6 +177,7 @@ void MIons::displayPrecursors() {
 }
 
 void MIons::modIonsNew(const string& mask, size_t pepIndex, double mass, size_t stop) {
+  //cout << "modIonsNew: " << mask << " " << pepIndex << " " << mass << endl;
   double m = mass;
   bool bAdduct = false;
   int iAdduct = -1;
@@ -197,18 +207,20 @@ void MIons::modIonsNew(const string& mask, size_t pepIndex, double mass, size_t 
 }
 
 void MIons::modIonsRecNew(const string& mask, size_t pepIndex, double mass, size_t stop){
+  //cout << "modIonsRecNew: " << mask << " " << pepIndex << " " << mass << endl;
   double m=mass;
   int iAdduct=-1;
 
   //add all modification masses
   for (int a = 0; a < mask.size() - 2; a++) {
     if(mask[a]=='x') iAdduct=a;
-    else if(mask[a]!='0'){
-      //cout << mask << " has mod at: " << a << "  new mass=" << m << " val=" << mask[a] - 49 << " aa:" << pep1[a] << " wtf:" << aaMod[pep1[a]].mod[mask[a] - 49].mass << endl;
-      m+=aaMod[pep1[a]].mod[mask[a]-49].mass;
-    }
+    //else if(mask[a]!='0'){
+    //  cout << mask << " has mod at: " << a << "  new mass=" << m << " val=" << mask[a] - 49 << " aa:" << pep1[a] << " wtf:" << aaMod[pep1[a]].mod[mask[a] - 49].mass << endl;
+    //  m+=aaMod[pep1[a]].mod[mask[a]-49].mass;
+    //}
   }
   double trueMass=m;
+  //cout << "trueMass: " << m << endl;
 
   //process n-term here
 
@@ -216,11 +228,17 @@ void MIons::modIonsRecNew(const string& mask, size_t pepIndex, double mass, size
   for(int a=0;a<mask.size()-stop;a++){
     if(mask[a]!='0' && mask[a]!='x'){
       if (a<iAdduct)addPeakRevNew((aaMass[pep1[a]]+aaMod[pep1[a]].mod[mask[a] - 49].mass) - m, trueMass, pepIndex);
-      else addPeakRevNew(m - (aaMass[pep1[a]] + aaMod[pep1[a]].mod[mask[a] - 49].mass), trueMass, pepIndex);
+      else {
+        //cout << "Add peak1: " << m << " - " << (aaMass[pep1[a]] + aaMod[pep1[a]].mod[mask[a] - 49].mass) << " " << trueMass << endl;
+        addPeakRevNew(m - (aaMass[pep1[a]] + aaMod[pep1[a]].mod[mask[a] - 49].mass), trueMass, pepIndex);
+      }
       m -= (aaMass[pep1[a]]+ aaMod[pep1[a]].mod[mask[a] - 49].mass);
     } else {
       if(a <iAdduct)addPeakRevNew(aaMass[pep1[a]]-m, trueMass, pepIndex);
-      else addPeakRevNew(m-aaMass[pep1[a]], trueMass, pepIndex);
+      else {
+        //cout << "Add peak2: " << m << " - " << aaMass[pep1[a]] << " " << trueMass << endl;
+        addPeakRevNew(m - aaMass[pep1[a]], trueMass, pepIndex);
+      }
       m-=aaMass[pep1[a]];
     }
   }
@@ -230,6 +248,7 @@ void MIons::modIonsRecNew(const string& mask, size_t pepIndex, double mass, size
 
 //Abstract this and combine with addPeakRevNew
 void MIons::addPeakNew(double mass, double pepMass, size_t pepIndex) {
+  //cout << "addPeakNew: " << mass << "\t" << pepMass << "\t" << pepIndex << endl;
   map<int, size_t>::iterator it;
   map<int, size_t>::iterator it2;
   int peak = (int)(mass * 10);

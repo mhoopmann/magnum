@@ -235,14 +235,14 @@ void MParams::exportDefault(string ver){
 }
 
 void MParams::logParam(string name, string value){
-  pxwBasicXMLTag t;
+  CnpxParameter t;
   t.name = name;
   t.value = value;
   if (log != NULL) log->addParameter(t.name + " = " + t.value);
   xmlParams.push_back(t);
 }
 
-void MParams::logParam(pxwBasicXMLTag& t){
+void MParams::logParam(CnpxParameter& t){
   if (log != NULL) log->addParameter(t.name + " = " + t.value);
   xmlParams.push_back(t);
 }
@@ -331,7 +331,7 @@ void MParams::parse(const char* cmd) {
 
   } else if(strcmp(param,"enzyme")==0){
     params->enzyme=values[0];
-    pxwBasicXMLTag xml;
+    CnpxParameter xml;
     xml.name = "enzyme";
     xml.value = values[0];
     if (values.size() > 1) {

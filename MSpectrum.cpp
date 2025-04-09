@@ -721,29 +721,46 @@ void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, fl
   MakeCorrData(pdTempRawData, pPre, 50.0);
 
   // Make fast xcorr spectrum.
+  double dm = 1.0 / 150;
   mSpecPoint *pdCorrelationData = pPre->pdCorrelationData;
   dSum = 0.0;
   for (i = 0; i<75; i++) dSum += pdCorrelationData[i].intensity;
   for (i = 75; i < xCorrArraySize + 75; i++) {
     if (i<xCorrArraySize && pdCorrelationData[i].intensity>0) dSum += pdCorrelationData[i].intensity;
     if (i >= 151 && pdCorrelationData[i - 151].intensity>0) dSum -= pdCorrelationData[i - 151].intensity;
-    pdTmpFastXcorrData[i - 75] = (dSum - pdCorrelationData[i - 75].intensity)* 0.0066666667;
+    pdTmpFastXcorrData[i - 75] = (dSum - pdCorrelationData[i - 75].intensity)* dm;
   }
 
   xCorrSparseArraySize = 1;
 
-  double dTmp0 = pdCorrelationData[0].intensity - pdTmpFastXcorrData[0];
-  double dTmp1 = pdCorrelationData[1].intensity - pdTmpFastXcorrData[1];
-  double dTmp2 = pdCorrelationData[2].intensity - pdTmpFastXcorrData[2];
-  pfFastXcorrData[0] = (float)(dTmp0 + dTmp1*0.5);
-  pfFastXcorrData[1] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
-  for (i = 2; i<xCorrArraySize - 1; i++){
-    dTmp0 = dTmp1;
-    dTmp1 = dTmp2;
-    dTmp2 = pdCorrelationData[i + 1].intensity - pdTmpFastXcorrData[i + 1];
-    pfFastXcorrData[i] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //double dTmp0 = pdCorrelationData[0].intensity - pdTmpFastXcorrData[0];
+  //double dTmp1 = pdCorrelationData[1].intensity - pdTmpFastXcorrData[1];
+  //double dTmp2 = pdCorrelationData[2].intensity - pdTmpFastXcorrData[2];
+  //pfFastXcorrData[0] = (float)(dTmp0 + dTmp1*0.5);
+  //pfFastXcorrData[1] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //for (i = 2; i<xCorrArraySize - 1; i++){
+  //  dTmp0 = dTmp1;
+  //  dTmp1 = dTmp2;
+  //  dTmp2 = pdCorrelationData[i + 1].intensity - pdTmpFastXcorrData[i + 1];
+  //  pfFastXcorrData[i] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //}
+  //pfFastXcorrData[xCorrArraySize - 1] = (float)(dTmp2 + dTmp1*0.5);
+  pfFastXcorrData[0] = 0;
+  //double dTmp;
+  for (i = 1;i < xCorrArraySize-1;i++) {
+    dTmp = pdCorrelationData[i].intensity - pdTmpFastXcorrData[i];
+    pfFastXcorrData[i] = (float)dTmp;
+
+    //TODO: Parameterize this
+    // Allow user to set flanking peaks
+    if (true) {
+      iTmp = i - 1;
+      pfFastXcorrData[i] += (float)((pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp]) * 0.5);
+
+      iTmp = i + 1;
+      pfFastXcorrData[i] += (float)((pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp]) * 0.5);
+    }
   }
-  pfFastXcorrData[xCorrArraySize - 1] = (float)(dTmp2 + dTmp1*0.5);
 
   //MH: Fill sparse matrix
   for (i = 0; i<xCorrArraySize; i++){
@@ -756,7 +773,7 @@ void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, fl
         kojakSparseArray[iTmp] = new char[(int)invBinSize + 1];
         for (j = 0; j<(int)invBinSize + 1; j++) kojakSparseArray[iTmp][j] = 0;
       }
-      j = (int)((dTmp - iTmp)*invBinSize/*+0.5*/);
+      j = (int)((dTmp - iTmp)*invBinSize+0.5);
 
       if (pfFastXcorrData[i]>127) kojakSparseArray[iTmp][j] = 127;
       else if (pfFastXcorrData[i]<-128) kojakSparseArray[iTmp][j] = -128;
@@ -786,13 +803,9 @@ void MSpectrum::BinIons(mPreprocessStruct *pPre) {
 
   memset(pdCorrelationData, 0, xCorrArraySize*sizeof(mSpecPoint));
 
-  i = 0;
-  while(true) {
-    if (i >= (int)spec->size()) break;
-
+  for(i=0;i<(int)spec->size();i++){
     dIon = spec->at(i).mass;
     dIntensity = spec->at(i).intensity;   
-    i++;
 
     if (dIntensity > 0.0) {
       if (dIon < (dPrecursor + 50.0)) {

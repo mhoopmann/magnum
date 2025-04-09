@@ -128,7 +128,6 @@ private:
   //Utilities
   static int compareD           (const void *p1,const void *p2);
 
-  static bool echo;
   
 };
 

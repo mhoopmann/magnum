@@ -128,6 +128,7 @@ public:
   bool generateXcorrDecoys(mParams* params, MDecoys& decoys);
   bool generateXcorrDecoys2(int maxPepLen);
   bool generateXcorrDecoys3(int minP, int maxP, int depth);
+  bool generateXcorrDecoys4(int minP, int maxP, int depth);
   void linearRegression(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr);
   void linearRegression2(double& slope, double& intercept, int&  iMaxXcorr, int& iStartXcorr, int& iNextXcorr, double& rSquared);
   void linearRegression3(double& slope, double& intercept, double& rSquared);

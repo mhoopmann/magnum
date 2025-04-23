@@ -1315,6 +1315,94 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
   return true;
 }
 
+//from Comet
+//Drastically simplifying this process. Future steps would be to use a 
+//decoy library index to rapidly calculate these values, should the memory be available.
+bool MSpectrum::generateXcorrDecoys4(int minP, int maxP, int depth) {
+  //cout << "generateXcorrDecoys4: " << scanNumber << endl;
+  int histoXCount[MAX_DECOY_PEP_LEN];
+  int histoX[MAX_DECOY_PEP_LEN][HISTOSZ];
+  for (int a = 0;a < MAX_DECOY_PEP_LEN;a++) {
+    histoXCount[a] = 0;
+    for (int b = 0;b < HISTOSZ;b++) {
+      histoX[a][b] = 0;
+    }
+  }
+
+  int decoyIndex = 0;
+  double monoMass = bigMonoMass;
+  double ionB, ionY;
+  double dFragmentIonMass;
+  double xcorr=0;
+  int k;
+  double m;
+  int maxZ = bigZ;
+  if (maxZ > 4) maxZ = 4;
+  int key, pos;
+
+  for (int x = 0;x < depth;x++) {
+
+    //cout << "MonoMass: " << monoMass << "\t" << "Depth: " << x << endl;
+    decoyIndex = x;
+    xcorr = 0;
+    for (int a = 0;a < maxP;a++) {
+
+      //the unmodified ions
+      ionB = decoys->decoyIons[decoyIndex].pdIonsN[a];
+      //cout << "B" << a + 1 << "\t" << ionB << endl;
+      ionY = decoys->decoyIons[decoyIndex].pdIonsC[a];
+      //cout << "Y" << a+1 << "\t" << ionY << endl;
+      for (int b = 0; b < 6; b++) {
+        if (!ionSeries[b]) continue;
+        switch (b) {
+        case 0: dFragmentIonMass = ionB - 27.9949141; break;
+        case 1: dFragmentIonMass = ionB; break;
+        case 2: dFragmentIonMass = ionB + 17.026547; break;
+        case 3: dFragmentIonMass = ionY + 25.9792649; break;
+        case 4: dFragmentIonMass = ionY; break;
+        case 5: dFragmentIonMass = ionY - 16.0187224; break;
+        }
+        //if (dFragmentIonMass>monoMass) continue;
+
+        for (int z = 1; z < maxZ; z++) {
+          m = (dFragmentIonMass + (z - 1) * 1.007276466) / z;
+          m = binSize * (int)(m * invBinSize + binOffset);
+          key = (int)m;
+          if (key >= kojakBins) break;
+          if (key < 0 || kojakSparseArray[key] == NULL) continue;
+          pos = (int)((m - key) * invBinSize+0.5);
+          //cout << (int)kojakSparseArray[key][pos] << endl;
+          xcorr += kojakSparseArray[key][pos];
+        }
+      }
+
+      if (xcorr <= 0.0) k = 0;
+      else k = (int)(xcorr * 0.05 + 0.5);  // 0.05=0.005*10; see MAnalysis::mangnumScoring
+      if (k < 0) k = 0;
+      else if (k >= HISTOSZ) k = HISTOSZ - 1;
+      histoX[a+2][k]++;   //the first ion results from a peptide of len=2
+      histoXCount[a+2]++;
+
+    }
+
+  }
+
+  for (int a = minP;a < maxP + 1;a++) {
+    mHisto[a] = new MHistogram();
+    linearRegression4(histoX[a], histoXCount[a], mHisto[a]->slope, mHisto[a]->intercept, mHisto[a]->rSq);
+    mHisto[a]->slope *= 10;
+
+    //** temporary
+    //cout << "\nDecoy Histogram: " << a << "\t" << histoXCount[a] << endl;
+    //for (int i = 0; i<HISTOSZ; i++) cout << i << "\t" << histoX[a][i] << endl;
+    //cout << mHisto[a]->slope << "\t" << mHisto[a]->intercept << "\t" << mHisto[a]->rSq << endl;
+    //**
+
+  }
+
+  return true;
+}
+
 double MSpectrum::makeXCorrB(int decoyIndex, double modMass, int maxZ, int len, int offset){
  
   double xcorr=0;

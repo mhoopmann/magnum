@@ -1075,6 +1075,14 @@ void MData::outputDiagnostics(FILE* f, MSpectrum& s, MDatabase& db){
   }
   fprintf(f,"  </histogram>\n");
   */
+
+  fprintf(f,"  <histogram>\n");
+  for (j = 0;j < params->maxPepLen;j++) {
+    if (s.mHisto[j] == NULL) continue;
+    fprintf(f, "   <peplen value=\"%d\" slope=\"%.4lf\" intercept=\"%.4lf\" rsq=\"%.4lf\" />\n", j, s.mHisto[j]->slope, s.mHisto[j]->intercept, s.mHisto[j]->rSq);
+  }
+  fprintf(f, "  </histogram>\n");
+
   fprintf(f, " </scan>\n");
  
 }

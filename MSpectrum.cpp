@@ -1318,7 +1318,7 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
 //from Comet
 //Drastically simplifying this process. Future steps would be to use a 
 //decoy library index to rapidly calculate these values, should the memory be available.
-bool MSpectrum::generateXcorrDecoys4(int minP, int maxP, int depth) {
+bool MSpectrum::generateXcorrDecoys4(int minP, int maxP) {
   //cout << "generateXcorrDecoys4: " << scanNumber << endl;
   int histoXCount[MAX_DECOY_PEP_LEN];
   int histoX[MAX_DECOY_PEP_LEN][HISTOSZ];
@@ -1340,7 +1340,7 @@ bool MSpectrum::generateXcorrDecoys4(int minP, int maxP, int depth) {
   if (maxZ > 4) maxZ = 4;
   int key, pos;
 
-  for (int x = 0;x < depth;x++) {
+  for (int x = 0;x < DECOY_SIZE;x++) {
 
     //cout << "MonoMass: " << monoMass << "\t" << "Depth: " << x << endl;
     decoyIndex = x;

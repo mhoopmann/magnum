@@ -203,7 +203,8 @@ void MParams::exportDefault(string ver){
   fprintf(f, "\n\n#\n# Search Space Prameters: specifies breadth of data analysis.\n#\n");
   fprintf(f, "#adduct_sites = DE         #restricts adduct mass to the specified amino acids. Use 'n' and 'c' for protein termini.\n");
   fprintf(f, "decoy_filter = %s %d    #identifier for all decoys in the database. 0=database has decoys, 1=have Magnum generate decoys\n",def.decoy.c_str(),(int)def.buildDecoy);
-  fprintf(f, "e_value_depth = %d       #robustness of e-value histogram. Larger number improves e-value estimates, but increases computation time.\n",def.eValDepth);
+  //deprecated:
+  //fprintf(f, "e_value_depth = %d       #robustness of e-value histogram. Larger number improves e-value estimates, but increases computation time.\n",def.eValDepth);
   fprintf(f, "min_adduct_mass = %.1lf     #lowest allowed adduct mass in Daltons.\n",def.minAdductMass);
   fprintf(f, "max_adduct_mass = %.1lf    #highest allowed adduct mass in Daltons.\n",def.maxAdductMass);
   fprintf(f, "\nppm_tolerance_pre = %.1lf   #mass tolerance on precursor when searching (in ppm)\n",def.ppmPrecursor);
@@ -344,12 +345,13 @@ void MParams::parse(const char* cmd) {
     logParam(xml);
 
   } else if (strcmp(param, "e_value_depth") == 0){
-    params->eValDepth = atoi(&values[0][0]);
-    if (params->eValDepth<0 || params->eValDepth>15000){
-      warn("ERROR: e_value_depth out of range (0-15000). Reverting to default of 3000.", 3);
-      params->eValDepth = 3000;
-    }
-    logParam("e_value_depth",values[0]);
+    warn("Using deprecated e_value_depth parameter. Value will be ignored.", 4);
+    //params->eValDepth = atoi(&values[0][0]);
+    //if (params->eValDepth<0 || params->eValDepth>15000){
+    //  warn("ERROR: e_value_depth out of range (0-15000). Reverting to default of 3000.", 3);
+    //  params->eValDepth = 5000;
+    //}
+    //logParam("e_value_depth",values[0]);
 
   } else if(strcmp(param, "export_pepXML")==0 || strcmp(param, "export_pepxml")==0){
     if(atoi(&values[0][0])!=0) params->exportPepXML=true;

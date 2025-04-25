@@ -253,7 +253,7 @@ void MAnalysis::analyzePeptideProc(mAnalysisStruct* s){
 }
 
 void MAnalysis::analyzeEValuePrecalcProc(MSpectrum* s){
-  s->generateXcorrDecoys4(params.minPepLen, db->getMaxPepLen(s->bigMonoMass),params.eValDepth);
+  s->generateXcorrDecoys4(params.minPepLen, db->getMaxPepLen(s->bigMonoMass));
   s = NULL;
 }
 

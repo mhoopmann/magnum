@@ -253,7 +253,7 @@ void MAnalysis::analyzePeptideProc(mAnalysisStruct* s){
 }
 
 void MAnalysis::analyzeEValuePrecalcProc(MSpectrum* s){
-  s->generateXcorrDecoys3(params.minPepLen, db->getMaxPepLen(s->bigMonoMass),params.eValDepth);
+  s->generateXcorrDecoys4(params.minPepLen, db->getMaxPepLen(s->bigMonoMass));
   s = NULL;
 }
 
@@ -270,6 +270,11 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
 
   //char str[256];
   //db->getPeptideSeq(p->map->at(0).index,p->map->at(0).start,p->map->at(0).stop,str);
+  //if(strcmp(str,"RFDMVTPLQSEKLAEK")==0) {
+  //if (strcmp(str, "NFPPSQDASGDLYTTSSQLTLPATQCLAGK") == 0) {
+  //  cout << "\n" << str << "\t" << p->mass << "\t" << pepIndex << endl;
+  //  echo=true;
+  //} else return true;
   //if(strcmp(str,"EFNAETFTFHADICTLSEK")==0) cout <<"Peptide: " << pepIndex << "." << endl;
   //cout << str << "\t" << p->mass << "\t" << pepIndex << endl;
 
@@ -278,50 +283,29 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
 
   //skip peptide if its smallest possible mass with modifications is more than largest precursor.
   if(p->mass>spec->getMaxMass()+1) {
-    //cout << "Too big. Next" << endl;
     return true;
   }
 
   ions[iIndex].setPeptide(&db->at(p->map->at(0).index).sequence[p->map->at(0).start],p->map->at(0).stop-p->map->at(0).start+1,p->mass,p->nTerm,p->cTerm);
   ions[iIndex].buildModIons2(false); //having this here is bad if there are lots of mods and few spectra
 
-  /*if(pepIndex==635){
-    cout <<"Bions-normal:" << endl;
-    vector<sNode2>* peaks=ions[iIndex].peaks;
-    for (size_t a = 0; a < peaks->size(); a++) {
-      cout << a << " " << peaks->at(a).id << "\t" << peaks->at(a).mass << "\t" << peaks->at(a).next.size() << endl;
-      for (size_t b = 0; b < peaks->at(a).next.size(); b++) {
-        cout << "  N\t" << b << "\t" << peaks->at(a).next[b].nextIndex << "\t" << peaks->at(a).next[b].nextNode << "\t" << peaks->at(a).next[b].pepNum << endl;
-      }
-      for (size_t b = 0; b < peaks->at(a).start.size(); b++) {
-        cout << "  S\t" << b << "\t" << peaks->at(a).start[b].nextIndex << "\t" << peaks->at(a).start[b].nextNode << "\t" << peaks->at(a).start[b].pepNum <<  endl;
-      }
-    }
-    cout << "Yions-normal:" <<endl;
-    vector<sNode2>* peaksRev = ions[iIndex].peaksRev;
-    for (size_t a = 0; a < peaksRev->size(); a++) {
-      cout << a << " " << peaksRev->at(a).id << "\t" << peaksRev->at(a).mass << "\t" << peaksRev->at(a).next.size() << endl;
-      for (size_t b = 0; b < peaksRev->at(a).next.size(); b++) {
-        cout << "  N\t" << b << "\tNindex: " << peaksRev->at(a).next[b].nextIndex << "\tNnode: " << peaksRev->at(a).next[b].nextNode << "\tPep: " << peaksRev->at(a).next[b].pepNum << endl;
-      }
-      for (size_t b = 0; b < peaksRev->at(a).start.size(); b++) {
-        cout << "  S\t" << b << "\tSindex: " << peaksRev->at(a).start[b].nextIndex << "\tSnode: " << peaksRev->at(a).start[b].nextNode << "\tPep: " << peaksRev->at(a).start[b].pepNum << "\tParentPep: " << peaksRev->at(a).start[b].parentPepNum << endl;
-      }
-    }
-  }*/
-
   //Check peptide without open modifications
   double lastMass=0;
-  for(size_t j=0;j<ions[iIndex].pepCount;j++){
-    if(ions[iIndex].pepMass[j]<=lastMass) continue; //skip peptide variants already searched
+  for(size_t j=0;j<ions[iIndex].pepCount;j++){ //TODO: instead of pepcount, go by unique peptide masses
+    //TODO: skip variants already searched. Must do some additional work to 
+    //identify peptides with the same mass
+    //if (ions[iIndex].pepMass[j] <= lastMass) {
+    //  if(echo) cout << "skip" << endl;
+    //  continue; //skip peptide variants already searched
+    //}
+
     if(spec->getBoundaries2(ions[iIndex].pepMass[j],params.ppmPrecursor,index,scanBuffer[iIndex])){
       scoreSpectra2(index, ions[iIndex].pepMass[j], len, pepIndex, iIndex);
-    }
+    } 
     lastMass= ions[iIndex].pepMass[j];
   }
   
   if (p->xlSites == 0) {
-    //cout << "No sites" << endl;
     return true;
   }
 
@@ -329,7 +313,6 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
   analyzeSinglets(*p, pepIndex, iIndex);
 
   //cout << "Done: " << str << endl;
-
   return true;
   
   
@@ -350,19 +333,19 @@ bool MAnalysis::analyzePeptide(mPeptide* p, int pepIndex, int iIndex){
   //return true;
 }
 
-bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
-  
+bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex) {
+
   //get the peptide sequence
-  //string pepSeq;
-  //db->getPeptideSeq(pep,pepSeq);
-  //cout << "analyzeSinglets(): " << pepSeq << endl;
+  string pepSeq;
+  db->getPeptideSeq(pep, pepSeq);
 
   //if(index!=903) return false;
 
   //Build our peptide
-  int len=(pep.map->at(0).stop-pep.map->at(0).start)+1;
+  int len = (pep.map->at(0).stop - pep.map->at(0).start) + 1;
   ions[iIndex].setPeptide(&db->at(pep.map->at(0).index).sequence[pep.map->at(0).start], len, pep.mass, pep.nTerm, pep.cTerm);
   ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.
+                                
   //cout << "BUILD DONE: " << ions[iIndex].pepCount << endl;
 
   /*if (index == 103) {
@@ -410,10 +393,6 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex){
 
   //cout << "onward" << endl;
   for (size_t j = 0; j<scanIndex.size(); j++){
-    if(j>0){
-      for(size_t a=0;a<ions[iIndex].peaks->size();a++) ions[iIndex].peaks->at(a).visit=false; //reset for the next analysis
-      for (size_t a = 0; a < ions[iIndex].peaksRev->size(); a++) ions[iIndex].peaksRev->at(a).visit = false;
-    }
     scoreSingletSpectra2(scanIndex[j], pep.mass, len, index, minMass, maxMass, iIndex);
   }
 
@@ -616,7 +595,6 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   maxZ2[iIndex] = 1;
   //double maxPre=0;
   //double minPre=100000;
-  //cout << "scoreSingletSpectra2 " << s->getScanNumber() << "\t" << sz << endl;
   //bEcho=true; //comment this out
   if(sz>MAX_PRECURSOR){
     cout << "WARNING: " << s->getScanNumber() << " has too many candidate precursor ions. Analysis limited to " << MAX_PRECURSOR << " precursors." << endl;
@@ -651,124 +629,11 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   //  cout << pre[a].monomass << "\t" << pre[a].maxZ << "\t" << pre[a].index << endl;
   //}
   size_t preCount=pre.size();
-  sScoreSet* pScores = new sScoreSet[pepCount];
-  vector<sNode2>* peaks=ions[iIndex].peaks;
-  //cout << "\n\nBions:" << endl;
-  for (size_t a = 0; a<peaks->at(0).start.size(); a++){
-    //sCounter=0;
-    //score7(s, peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores, &pre, iIndex /*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
-    score8(s, peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], pScores, &pre, iIndex);
-    //cout << "Final counter: " << sCounter << endl;
-    //score6(s, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, dummyM, dummyM, 0, pScores, &pre, iIndex, maxZ, sizeof(double)*pre.size(), sizeof(int)*pre.size()/*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
-  }
+  sScoreSet2* pScores = new sScoreSet2[pepCount];
+  score9(s, ions[iIndex].vPeaks, pScores, &pre, iIndex);
 
-  //diagnostics
-  /*cout << "PepCount: " << pepCount << endl;
-  for (size_t a = 0; a < pepCount; a++) {
-    for (size_t b = 0; b < preCount; b++) {
-      cout << "Peptide: " << a << " Precursor: " << b << "\tPepMass: " << ions[iIndex].pepMass[a] << "\tpepLinks: " << ions[iIndex].pepLinks[a] << "\tModCount: " << ions[iIndex].pepMods[a].mods.size() << "\tScore: " << pScores[a].scores[b] << endl;
-    }
-  }*/
-
-  //cout << "\n\nScore7: " << endl;
-  //delete pScores;
-  sScoreSet* pScores2 = new sScoreSet[pepCount];
-  peaks = ions[iIndex].peaksRev;
-  //cout << "\nYions:" << endl;
-  //if(pep==103 && s->getScanNumber()==55157) bEcho=true;
-  //cout << s->getScanNumber() << endl;
-  //bEcho=true;
-
-  //cout << "start: " << peaks->at(0).start.size() << endl;
-  for (size_t a = 0; a < peaks->at(0).start.size(); a++) {
-    //sCounter=0;
-    //score7(s, peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex], dummy, dummy, 0, pScores2, &pre, iIndex /*,minPre-params.maxAdductMass,maxPre-params.minAdductMass*/);
-    score8(s,peaks, &peaks->at(peaks->at(0).start[a].nextNode), &peaks->at(peaks->at(0).start[a].nextNode).next[peaks->at(0).start[a].nextIndex],pScores2,&pre,iIndex);
-    //cout << "Final counter: " << sCounter << endl;
-  }
-  //bEcho=false;
-  //cout << endl;
-
-  //diagnostics
-  /*cout << "PepCount: " << pepCount << endl;
-  for(size_t a=0;a<pepCount;a++){
-    for (size_t b = 0; b < preCount; b++) {
-      cout << "Peptide: " << a << " Precursor: " << b << "\tPepMass: " << ions[iIndex].pepMass[a] << "\tpepLinks: " << ions[iIndex].pepLinks[a] << "\tModCount: " << ions[iIndex].pepMods[a].mods.size() << "\tScore: " << pScores2[a].scores[b]  << "\t" << pScores[a].scores[b]+pScores2[a].scores[b] << endl;
-    }
-  }
-
-  cout << pre.size() << "\t" << preCount << endl;
-  for(size_t a=0;a<peaks->size();a++){
-    cout << a << "\t" << peaks->at(a).visit << "\t" << peaks->at(a).mass;
-    if(peaks->at(a).mass>0) cout << "[" << peaks->at(a).mass + 1.007276466 << " = " << (int)magnumScoring2(s,peaks->at(a).mass+1.007276466) <<"]";
-    else cout << "[" << -peaks->at(a).mass + 1.007276466  << " = "<< (int)magnumScoring2(s, -peaks->at(a).mass+1.007276466) << "]";
-    cout << "\t" << peaks->at(a).score[0] << "," << peaks->at(a).score[1] << "," << peaks->at(a).score[2];
-    if(peaks->at(a).mass<0) cout << "\t" << pre[0].monomass+ peaks->at(a).mass << "," << peaks->at(a).scoreAlt[0][1] << "," << peaks->at(a).scoreAlt[0][2] << "\t" << pre[1].monomass + peaks->at(a).mass << "," << peaks->at(a).scoreAlt[1][1] << "," << peaks->at(a).scoreAlt[1][2] << endl;
-    else cout << "\t" <<  peaks->at(a).scoreAltNL[0] << "," << peaks->at(a).scoreAltNL[1] << "," << peaks->at(a).scoreAltNL[2] << endl;
-  }
-
-  for(size_t c=0;c<pepCount;c++){
-    cout << "C: " << c << endl;
-    int tally=0;
-    for (size_t a = 0; a < peaks->size(); a++) {
-      for(size_t b=0;b<peaks->at(a).start.size();b++){
-        sLink2* l=&peaks->at(a).start[b];
-        if(l->pepNum==c) {
-          cout << "start " << c << " at " << a << "," << b << "\t" << l->nextNode << "\t" << l->nextIndex << endl;
-          size_t nn= l->nextNode;
-          while(true){
-            double mz= peaks->at(nn).mass+1.007276466;
-            if(peaks->at(nn).mass<0) mz= -peaks->at(nn).mass + pre[preCount - 1].monomass - ions[iIndex].pepMass[c]+1.007276466;
-            double mz2= (peaks->at(nn).mass + 1.007276466*2)/2;
-            if (peaks->at(nn).mass < 0) mz2 = (-peaks->at(nn).mass + pre[preCount - 1].monomass - ions[iIndex].pepMass[c] + 1.007276466*2)/2;
-            tally+= (int)magnumScoring2(s, mz);
-            tally += (int)magnumScoring2(s, mz2);
-            cout << "\t" << nn << "\t" << mz << "\t" << (int)magnumScoring2(s,mz) << "\t" << (int)magnumScoring2(s, mz2) << "\t" << peaks->at(nn).score[2]+peaks->at(nn).scoreAlt[preCount-1][2] << endl;
-            size_t d;
-            for(d=0;d<peaks->at(nn).next.size();d++){
-              if(peaks->at(nn).next[d].pepNum==c) break;
-            }
-            if(d== peaks->at(nn).next.size()) break;
-            nn=peaks->at(nn).next[d].nextNode;
-            if(nn==SIZE_MAX) {
-              cout << "\tTally: " << tally << "\t" << (double)tally*0.005 << endl;
-              break;
-            }
-          }
-        }
-      }
-    }
-  }*/
-
-  //Sanity check score diagnostics
-  //int isize=14;
-  //double b[14]={ 156.1011115,319.1644395,447.2594025,518.2965165,589.3336305,736.4020445,837.4497225,966.4923155,1126.522965,1286.553613,1414.612191,1485.649305,1556.686419,1671.713362};
-  //double y[14]={ 1661.717778,1498.65445,1370.559487,1299.522373,1228.485259,1081.416845,980.3691665,851.3265725,691.2959245,531.2652755,403.2066985,332.1695845,261.1324705,146.1055275};
-  //int isize=18;
-  //double b[18]={ 103.0091845,206.0183685,334.1133325,463.1559255,562.2243395,709.2927535,780.3298665,851.3669805,998.4353945,1113.462338,1228.489281,1359.529766,1458.59818,1529.635294,1772.562057,1885.646121,2013.704698,2142.747291};
-  //double y[18]={ 2185.843635,2082.83445,1954.739487,1825.696894,1726.62848,1579.560066,1508.522952,1437.485838,1290.417424,1175.390481,1060.363538,929.3230535,830.2546395,759.2175255,516.2907625,403.2066985,275.1481205,146.1055275  };
-  /*int isize = 18;
-  double b[18] = { 129.0425935,276.1110075,390.1539345,461.1910485,590.2336415,691.2813195,838.3497335,939.3974125,1086.465827,1223.524739,1294.561853,1409.588796,1522.67286,1682.703508,1783.751187,1896.835251,1983.867279,2112.909872  };
-  double y[18] = { 2129.972807,1982.904393,1868.861465,1797.824352,1668.781758,1567.73408,1420.665666,1319.617988,1172.549574,1035.490662,964.4535475,849.4266045,736.3425405,576.3118915,475.2642135,362.1801495,275.1481205,146.1055275  };
-  float sum=0;
-  for(int q=0;q<isize;q++){
-    for(int z=1;z<=1;z++){
-      double mz=(b[q]+1.007276466*z)/z;
-      float scor= magnumScoring2(s, mz);
-      sum+=scor;
-      cout << "\t" << mz << " " << scor;
-    }
-    for (int z = 1; z <= 1; z++) {
-      double mz = (y[q] + 1.007276466 * z) / z;
-      float scor = magnumScoring2(s, mz);
-      sum+=scor;
-      cout << "\t" << mz << " " << scor;
-    }
-    cout << "\t" << sum << endl;
-  }
-  cout << "Final: " << sum << "\t" << sum*0.005 << endl;*/
-
-
+  sScoreSet2* pScores3 = new sScoreSet2[pepCount];
+  score9(s,ions[iIndex].vPeaksRev,pScores3, &pre, iIndex);
 
   //keep only the best score(s).
   vector<sDIndex> vTop;
@@ -779,69 +644,22 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     double topPreScore=0;
     size_t topPreIndex=0;
     for (size_t b = 0; b<preCount; b++){
-      //if(pep==103 && s->getScanNumber()==55157) cout << "Peptide: " << a << "\tmass: " << ions[iIndex].pepMass[a] << "\tmod: " << pre[b].monomass - ions[iIndex].pepMass[a] << "\tsite: " << ions[iIndex].pepLinks[a] << "\tdiffmods: " << ions[iIndex].pepMods[a].mods.size() << "\tTscore: " << (pScores[a].scores[b]+pScores2[a].scores[b])*0.005 << "\tB: " <<pScores[a].scores[b] << "\tY: " << pScores2[a].scores[b] << "\tprecursor:" <<b  << endl;
-      //cout << pScores[a].scored << endl;
-      /*if (s->getScanNumber()==55157){
-      if(a==6 && b==0){
-        float sum=0;
-        float pb1,pb2,py1,py2;
-        pb1= magnumScoring2(s, 157.108388); pb2= magnumScoring2(s, 79.057832); py1= magnumScoring2(s, 147.112804); py2 = magnumScoring2(s, 74.060040);
-        sum+=(pb1+pb2+py1+py2);
-        cout << 157.108388 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 320.171716); pb2 = magnumScoring2(s, 160.589496); py1 = magnumScoring2(s, 262.139747); py2 = magnumScoring2(s, 131.573512);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 320.171716 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 448.266679); pb2 = magnumScoring2(s, 224.636978); py1 = magnumScoring2(s, 333.176861); py2 = magnumScoring2(s, 167.092069);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 448.266679 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 519.303793); pb2 = magnumScoring2(s, 260.155535); py1 = magnumScoring2(s, 404.213975); py2 = magnumScoring2(s, 202.610626);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 519.303793 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 590.340907); pb2 = magnumScoring2(s, 295.674092); py1 = magnumScoring2(s, 532.272552); py2 = magnumScoring2(s, 266.639914);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 590.340907 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 737.409321); pb2 = magnumScoring2(s, 369.208299); py1 = magnumScoring2(s, 692.303201); py2 = magnumScoring2(s, 346.655239);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 737.409321 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 838.456999); pb2 = magnumScoring2(s, 419.732138); py1 = magnumScoring2(s, 852.333849); py2 = magnumScoring2(s, 426.670563);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 838.456999 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 967.499592); pb2 = magnumScoring2(s, 484.253434); py1 = magnumScoring2(s, 981.376443); py2 = magnumScoring2(s, 491.191860);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 967.499592 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1127.530241); pb2 = magnumScoring2(s, 564.268759); py1 = magnumScoring2(s, 1082.424121); py2 = magnumScoring2(s, 541.715699);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1127.530241 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1287.560889); pb2 = magnumScoring2(s, 644.284083); py1 = magnumScoring2(s, 1229.492535); py2 = magnumScoring2(s, 615.249906);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1287.560889 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1415.619467); pb2 = magnumScoring2(s, 708.313372); py1 = magnumScoring2(s, 1300.529649); py2 = magnumScoring2(s, 650.768463);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1415.619467 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1486.656581); pb2 = magnumScoring2(s, 743.831929); py1 = magnumScoring2(s, 1371.566763); py2 = magnumScoring2(s, 686.287020);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1486.656581 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1557.693695); pb2 = magnumScoring2(s, 779.350485); py1 = magnumScoring2(s, 1499.661726); py2 = magnumScoring2(s, 750.334501);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1557.693695 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        pb1 = magnumScoring2(s, 1672.720638); pb2 = magnumScoring2(s, 836.863957); py1 = magnumScoring2(s, 1662.725054); py2 = magnumScoring2(s, 831.866165);
-        sum += (pb1 + pb2 + py1 + py2);
-        cout << 1672.720638 << "\t" << pb1 << "\t" << pb2 << "\t" << py1 << "\t" << py2 << "\t" << sum << endl;
-        cout << sum*0.005 << endl;
-      }
-      }*/
 
       double massA = pre[b].monomass - ions[iIndex].pepMass[a];
       if(massA<params.minAdductMass || massA>params.maxAdductMass) continue; //skip adducts outside our bounds
 
-      if (pScores[a].scores[b]+pScores2[a].scores[b] > topPreScore){
-        topPreScore=pScores[a].scores[b] + pScores2[a].scores[b];
+      double trueScore=pScores[a].score+pScores[a].scoreP[b]+pScores3[a].score+pScores3[a].scoreP[b];
+      if(trueScore>topPreScore){
+      //if (pScores[a].scores[b]+pScores2[a].scores[b] > topPreScore){
+        topPreScore=trueScore;
+        //topPreScore=pScores[a].scores[b] + pScores2[a].scores[b];
         topPreIndex=b;
       }
     }
 
     if (topPreScore > topScore){
-      topScore = pScores[a].scores[topPreIndex]+pScores2[a].scores[topPreIndex];
+      topScore = topPreScore;
+      //topScore = pScores[a].scores[topPreIndex]+pScores2[a].scores[topPreIndex];
       vTop.clear();
       sDIndex di;
       di.a=a;
@@ -861,7 +679,8 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   //TODO: Combine all ambiguous localizations here
   if(topScore>0){
     for(size_t a=0;a<vTop.size();a++){
-      double score = (pScores[vTop[a].a].scores[vTop[a].b]+ pScores2[vTop[a].a].scores[vTop[a].b]) *0.005;
+      double score= (pScores[vTop[a].a].score+pScores[vTop[a].a].scoreP[vTop[a].b] + pScores3[vTop[a].a].score+ pScores3[vTop[a].a].scoreP[vTop[a].b]) * 0.005;
+      //double score = (pScores[vTop[a].a].scores[vTop[a].b]+ pScores2[vTop[a].a].scores[vTop[a].b]) *0.005;
       if (ions[iIndex].pepMods[vTop[a].a].mods.size()>minMods) continue; //skip modified peptides that are explained with fewer modifications
 
       topScore = score;
@@ -899,447 +718,61 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
   }
 
   delete [] pScores;
-  delete [] pScores2;
-  peaks=NULL;
+  //delete [] pScores2;
+  delete [] pScores3;
+  //peaks=NULL;
 
 }
 
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-void MAnalysis::score6(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/) {
-  cout << "Peptide: " << link->pepNum << "\tNode: " << node->id << "\tmass: " << node->mass << "\tsite: " << ions[iIndex].pepLinks[link->pepNum];
-
-  if (node->mass > 0) {
-
-    if (!node->visit) {
-      for (int b = 1; b <= maxZ2[iIndex]; b++){
-        double mz = (node->mass + 1.007276466*b)/b;
-        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-        //cout << "ScoreA: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->score[b] << endl;
-        mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b)/ b;
-        node->scoreAltNL[b] = node->scoreAltNL[b - 1] + magnumScoring2(s, mz);//score reverse without link
-        //cout << "ScoreA-ALtNL: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->scoreAltNL[b] << endl;
+void MAnalysis::score9(MSpectrum* s, vector<sIPeak>& peakSet, sScoreSet2* ss, vector<sPrecursor>* pre, int iIndex){
+  for(size_t a=0;a<peakSet.size();a++){
+    if (peakSet[a].mass > 0) {
+      double score=0;
+      //if(echo) cout << a << " score9 A: " << peakSet[a].mass << endl;
+      for (int b = 1; b <= maxZ2[iIndex]; b++) {
+        double mz = (peakSet[a].mass + 1.007276466 * b) / b;
+        score+=magnumScoring2(s, mz);
       }
-      cout << "\tScore: " << node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-      cout << "\tScoreAltNL: " << ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAltNL[1] << "," << node->scoreAltNL[2];
+      for (size_t b = 0; b < peakSet[a].index[0].pepIndex.size(); b++) {
+        //if(echo) cout << "Add " << score << " to " << peakSet[a].index[0].pepIndex[b] << endl;
+        ss[peakSet[a].index[0].pepIndex[b]].score += score;
+      }
     } else {
-      cout << "\tCarryover-Score: " << node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-      cout << "\tCarryover-ScoreAltNL: " << ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAltNL[1] << "," << node->scoreAltNL[2];
-    }
-
-    for (size_t a = 0; a<pre->size(); a++){
-      link->score[a] = score[a] + node->score[pre->at(a).maxZ];
-      link->scoreNL[a] = scoreNL[a] + node->score[pre->at(a).maxZ] + node->scoreAltNL[pre->at(a).maxZ];
-      cout << "\tDepth: " << depth << "," << ions[iIndex].maxLink;
-      if (depth < ions[iIndex].maxLink) {  
-        if (!node->visit) {
-          for (int b = 1; b <= maxZ2[iIndex]; b++) {
-            double mz = (pre->at(a).monomass - node->mass + 1.007276466*b) / b;
-            node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score reverse after precursor subtraction
-            //cout << "Pre: " << a << "\tScoreA-Alt: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->scoreAlt[a][b] << endl;
+      //if two peptides have the same precursor mass, then scoring is repeated.
+      //TODO: see if we can avoid the repeat...
+      for(size_t b=0;b< peakSet[a].index.size();b++){
+        for (size_t c = 0; c < pre->size(); c++) {
+          double score = 0;
+          //if(echo) cout << a << " score9 b: " << peakSet[a].mass << " pep:"<< peakSet[a].index[b].pepMass << " pre: " << c << " becomes " << pre->at(c).monomass- peakSet[a].index[b].pepMass - peakSet[a].mass << endl;
+          for (int d = 1; d <= maxZ2[iIndex]; d++) {
+            double mz = (pre->at(c).monomass - peakSet[a].index[b].pepMass - peakSet[a].mass + 1.007276466 *d) /d;
+            if(mz<0) continue;
+            score += magnumScoring2(s, mz);
           }
-          cout << "\tScoreAlt: " << pre->at(a).monomass - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-        } else {
-          cout << "\tCarryover-Alt: " << pre->at(a).monomass - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-        }
-        link->score[a] += node->scoreAlt[a][pre->at(a).maxZ];
-        //cout << "Pre: " << a << " scoreA final: " << link->score[a] << endl;
-      }
-    }
-    cout << "\tLinkScore: " << link->score[0] << "," << link->score[1];
-    cout << "\tLinkScoreNL: " << link->scoreNL[0] << "," << link->scoreNL[1];
-
-  } else {
-
-    if (!node->visit) {
-      for (int b = 1; b <= maxZ2[iIndex]; b++) {
-        double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466*b) / b;
-        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-        //cout << "ScoreB: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->score[b] << endl;
-      }
-      cout << "\tScore: " << ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    } else {
-      cout << "\tCarryover-Score: " << ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    }
-    for (size_t a = 0; a < pre->size(); a++) {
-      if (!node->visit) {
-        for (int b = 1; b <= maxZ2[iIndex]; b++) {
-          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
-          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction
-          //cout << "ScoreB-Alt: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->scoreAlt[a][b] << "\t" << ions[iIndex].pepMass[link->pepNum] << "\t" << link->pepNum << "\t" << pre->at(a).monomass  << "\t" << node->mass << endl;
-        }
-        cout << "\tScoreAlt: " << pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-      } else {
-        cout << "\tCarryover-Alt: " << pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-      }
-      link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
-      link->scoreNL[a] = scoreNL[a] + node->scoreAlt[a][pre->at(a).maxZ];
-    }
-    cout << "\tLinkScore: " << link->score[0] << "," << link->score[1];
-    cout << "\tLinkScoreNL: " << link->scoreNL[0] << "," << link->scoreNL[1];
-
-  }
-
-  node->visit = true;
-  cout << endl;
-  if (link->nextNode == SIZE_MAX) {
-    //cout << "In memswap" << endl;
-    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
-      //cout << ions[iIndex].pepLinks[link->pepNum] << " no localization" << endl;
-      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize2[iIndex]);
-      cout << link->pepNum << " scores now " << v[link->pepNum].scores[0] << "," << v[link->pepNum].scores[1] << endl;
-      //cout << "Copy NL scores for: " << link->pepNum << "\t" << bufSize2[iIndex] << endl;
-    } else {
-      memcpy(v[link->pepNum].scores, link->score, bufSize2[iIndex]);
-      cout << link->pepNum << " scores now " << v[link->pepNum].scores[0] << "," << v[link->pepNum].scores[1] << endl;
-    }
-  } else score6(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
-
-  for (size_t a = 0; a < node->start.size(); a++) {
-    //cout << "Iterate from " << link->nextNode << "\t" << a << "\t" << node->start[a].pepNum << "\t" << link->pepNum << "\tScored: " << v[node->start[a].pepNum].scored << endl;
-    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-    if (node->start[a].pepNum < link->pepNum) continue;
-    //if (ions[iIndex].pepMass[node->start[a].pepNum] <minMass || ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
-    v[node->start[a].pepNum].scored = true;
-    //cout << "Next node: " << node->start[a].nextNode << endl;
-    if (node->start[a].nextNode == SIZE_MAX) {
-      cout << "Obscure score position: " << ions[iIndex].pepLinks[node->start[a].pepNum] << endl;
-      if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0)  memcpy(v[node->start[a].pepNum].scores, link->scoreNL, bufSize2[iIndex]);
-      else memcpy(v[node->start[a].pepNum].scores, link->score, bufSize2[iIndex]);
-    } else score6(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
-  }
-  cout << "Done " << node->id << endl;
-
-}
-
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-void MAnalysis::score7(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex/*, double minMass, double maxMass*/) {
-  //sCounter++;
-  //cout << "score7 : " << sCounter << endl;
-  //if(bEcho) cout << "Peptide: " << link->pepNum << "\tNode: " << node->id << "\tmass: " << node->mass << "\tsite: " << ions[iIndex].pepLinks[link->pepNum] << "\t";
-
-  if (node->mass > 0) {
-
-    if (!node->visit) {
-      //cout << link->pepNum << "," << node->mass;
-      for (int b = 1; b <= maxZ2[iIndex]; b++) {
-        double mz = (node->mass + 1.007276466 * b) / b;
-        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-        //cout << "\t" << mz << "," << (int)magnumScoring2(s, mz);
-        //cout << "ScoreA: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->score[b] << endl;
-      }
-      //cout << endl;
-      //if (bEcho) cout << "\tScore: " << node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    } else {
-      //if (bEcho) cout << "\tCarryover-Score: " << node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    }
-
-    for (size_t a = 0; a < pre->size(); a++) {
-      link->score[a] = score[a] + node->score[pre->at(a).maxZ];
-      link->scoreNL[a] = scoreNL[a] + node->score[pre->at(a).maxZ];// + node->scoreAltNL[pre->at(a).maxZ];
-      //cout << "\tDepth: " << depth << "," << ions[iIndex].maxLink;
-    }
-    //cout << "\tLinkScore: " << link->score[0] << "," << link->score[1];
-    //cout << "\tLinkScoreNL: " << link->scoreNL[0] << "," << link->scoreNL[1];
-
-  } else {
-
-    //if (!node->visit) {
-    //  for (int b = 1; b <= maxZ2[iIndex]; b++) {
-    //    double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466 * b) / b;
-    //    node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-    //    cout << "ScoreB: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->score[b] << endl;
-    //  }
-    //  cout << "\tScore: " << ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    //} else {
-    //  cout << "\tCarryover-Score: " << ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466 << "," << node->score[1] << "," << node->score[2];
-    //}
-    for (size_t a = 0; a < pre->size(); a++) {
-      if (!node->visit) {
-        //cout << link->pepNum << "," << node->mass;
-        for (int b = 1; b <= maxZ2[iIndex]; b++) {
-          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
-          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction
-          //cout << "\t" << mz << "," << (int)magnumScoring2(s, mz);
-          //cout << "ScoreB-Alt: " << mz << " " << b << "\t" << (int)magnumScoring2(s, mz) << "\t" << node->scoreAlt[a][b] << "\t" << ions[iIndex].pepMass[link->pepNum] << "\t" << link->pepNum << "\t" << pre->at(a).monomass  << "\t" << node->mass << endl;
-        }
-        //cout << endl;
-        //if (bEcho) cout << "\tScoreAlt: " << pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-      } else {
-        //if (bEcho) cout << "\tCarryover-Alt: " << pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 << "," << node->scoreAlt[a][1] << "," << node->scoreAlt[a][2];
-      }
-      link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
-      link->scoreNL[a] = scoreNL[a] + node->scoreAlt[a][pre->at(a).maxZ];
-    }
-
-    //cout << "\tLinkScore: " << link->score[0] << "," << link->score[1];
-    //cout << "\tLinkScoreNL: " << link->scoreNL[0] << "," << link->scoreNL[1];
-
-  }
-
-  node->visit = true;
-
-  //if (bEcho) cout << endl;
-  if (link->nextNode == SIZE_MAX) {
-    //cout << "In memswap" << endl;
-    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
-      //cout << ions[iIndex].pepLinks[link->pepNum] << " no localization" << endl;
-      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize2[iIndex]);
-      //cout << link->pepNum << " scores now " << v[link->pepNum].scores[0] << "," << v[link->pepNum].scores[1] << endl;
-      //cout << "Copy NL scores for: " << link->pepNum << "\t" << bufSize2[iIndex] << endl;
-    } else {
-      memcpy(v[link->pepNum].scores, link->score, bufSize2[iIndex]);
-      //cout << link->pepNum << " scores now " << v[link->pepNum].scores[0] << "," << v[link->pepNum].scores[1] << endl;
-    }
-  } else {
-    //cout << "Continuing: " << link->nextNode << "\tindex: " << link->nextIndex << endl;
-    score7(s, peakSet, &peakSet->at(link->nextNode), &peakSet->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
-    //cout << "Gniunitnoc: " << link->nextNode << "\tindex: " << link->nextIndex << endl;
-  }
-
-  for (size_t a = 0; a < node->start.size(); a++) { //Change this to only do starts at first time to node?
-    //cout << "Iterate from " << node->id << "\t" << a << "\tNewPep: " << node->start[a].pepNum << "\tOldPep: " << link->pepNum << "\tScored: " << v[node->start[a].pepNum].scored << endl;
-    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-    //if (node->start[a].pepNum < link->pepNum) continue;
-    //if (ions[iIndex].pepMass[node->start[a].pepNum] <minMass || ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
-    if(node->start[a].parentPepNum!=link->pepNum) continue; //skip start if it comes from a different peptide...must still iterate all starts (slow)
-    v[node->start[a].pepNum].scored = true;
-    if (node->start[a].nextNode == SIZE_MAX) {
-      cout << "Obscure score position: " << ions[iIndex].pepLinks[node->start[a].pepNum] << endl;
-      if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0)  memcpy(v[node->start[a].pepNum].scores, link->scoreNL, bufSize2[iIndex]);
-      else memcpy(v[node->start[a].pepNum].scores, link->score, bufSize2[iIndex]);
-    } else {
-      //if (bEcho) cout << "Starting: " << node->start[a].pepNum << "\tnode: " << node->start[a].nextNode << "\tindex: " << node->start[a].nextIndex << endl;
-      score7(s, peakSet, &peakSet->at(node->start[a].nextNode), &peakSet->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, depth + 1, v, pre, iIndex/*, minMass, maxMass*/);
-      //if(bEcho) cout << "Gnitrats: " << node->start[a].pepNum << "\tnode: " << node->start[a].nextNode << "\tindex: " << node->start[a].nextIndex << endl;
-    }
-  }
-
-  //if (bEcho) cout << "Done " << node->id << endl;
-  //sCounter--;
-  //cout << "end Score7: " << sCounter << endl;
-
-}
-
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-void MAnalysis::score8(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLink2* link, sScoreSet* v, vector<sPrecursor>* pre, int iIndex) {
-
-  //First visit to node means it needs to be scored
-  if(!node->visit){
-    if (node->mass > 0) {
-      for (int b = 1; b <= maxZ2[iIndex]; b++) {
-        double mz = (node->mass + 1.007276466 * b) / b;
-        node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-      }
-    } else {
-      node->lastMass= pre->at(0).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass;
-      for (size_t a = 0; a < pre->size(); a++) {
-        for (int b = 1; b <= maxZ2[iIndex]; b++) {
-          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
-          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction  
-        }
-      }
-    }
-    node->visit = true;
-
-  } else { 
-
-    //but repeat visits may need to be rescored if the peptide mass has changed (due to differential modifications)...
-    if (node->mass <0) {
-      double mass= pre->at(0).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass - node->lastMass;
-      if(mass>0.01 || mass<0.01){
-        for (size_t a = 0; a < pre->size(); a++) {
-          for (int b = 1; b <= maxZ2[iIndex]; b++) {
-            double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
-            node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + magnumScoring2(s, mz); //score after precursor subtraction  
+          for (size_t d = 0; d < peakSet[a].index[b].pepIndex.size(); d++) {
+            //if (echo) cout << "Add " << score << " to " << peakSet[a].index[b].pepIndex[d] << endl;
+            ss[peakSet[a].index[b].pepIndex[d]].scoreP[c] += score;
           }
         }
       }
     }
   }
-
-  //Add the node score to the running tally for the peptide
-  if(node->mass>0){
-    for(size_t a=0;a<pre->size();a++) v[link->pepNum].scores[a]+=node->score[maxZ2[iIndex]];
-  } else {
-    for (size_t a = 0; a < pre->size(); a++) v[link->pepNum].scores[a] += node->scoreAlt[a][maxZ2[iIndex]];
-  }
-  
-
-
-  //Branch to next peptide, if necessary
-  for (size_t a = 0; a < node->start.size(); a++) {
-
-    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-    if (node->start[a].parentPepNum != link->pepNum) continue; //skip start if it comes from a different peptide...must still iterate all starts (slow)
-    v[node->start[a].pepNum].scored = true;
-
-    //copy over scores to the new peptide
-    memcpy(v[peakSet->at(node->start[a].nextNode).next[node->start[a].nextIndex].pepNum].scores, v[link->pepNum].scores, bufSize2[iIndex]);
-    score8(s, peakSet, &peakSet->at(node->start[a].nextNode), &peakSet->at(node->start[a].nextNode).next[node->start[a].nextIndex], v, pre, iIndex);
-  }
-
-    //Continue to next amino acid in this peptide
-  if (link->nextNode != SIZE_MAX) {
-    score8(s, peakSet, &peakSet->at(link->nextNode), &peakSet->at(link->nextNode).next[link->nextIndex], v, pre, iIndex);
-  }
-
 }
 
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-void MAnalysis::score6solo(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass) {
-
-  if (!node->visit) {
-    for (int b = 1; b <= pre.maxZ; b++) {
-      double mz = (node->mass + 1.007276466 * b) / b;
-      node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-      mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
-      node->scoreAltNL[b] = node->scoreAltNL[b - 1] + magnumScoring2(s, mz);//score reverse without link
+//TODO: Fix inefficiencies. Right now all precursor variations are scored, including those that are the wrong mass.
+void MAnalysis::score9solo(MSpectrum* s, vector<sIPeak>& peakSet, sScoreSet2* ss, int maxZ, int iIndex) {
+  for (size_t a = 0;a < peakSet.size();a++) {
+    double score = 0;
+    for (int b = 1; b <= maxZ; b++) {
+      double mz = (peakSet[a].mass + 1.007276466 * b) / b;
+      score += magnumScoring2(s, mz);
+    }
+    for (size_t b = 0; b < peakSet[a].index[0].pepIndex.size(); b++) {
+      ss[peakSet[a].index[0].pepIndex[b]].score += score;
     }
   }
-
-  link->score[0] = score[0] + node->score[pre.maxZ];
-  link->scoreNL[0] = scoreNL[0] + node->score[pre.maxZ] + node->scoreAltNL[pre.maxZ];
-  node->visit = true;
-
-  if (link->nextNode == SIZE_MAX) v[link->pepNum].scores[0]=link->scoreNL[0];
-  else score6solo(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
-
-  for (size_t a = 0; a < node->start.size(); a++) {
-    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-    if (node->start[a].pepNum < link->pepNum) continue;
-    //if (ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
-    v[node->start[a].pepNum].scored = true;
-    if (node->start[a].nextNode == SIZE_MAX)  v[link->pepNum].scores[0] = link->scoreNL[0];
-    else score6solo (s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
-  }
-
 }
 
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-void MAnalysis::score7solo(MSpectrum* s, vector<sNode2>* peakSet, sNode2* node, sLink2* link, double* score, double* scoreNL, sScoreSet* v, sPrecursor& pre, int iIndex, double maxMass) {
-
-  if (!node->visit) {
-    for (int b = 1; b <= pre.maxZ; b++) {
-      double mz = (node->mass + 1.007276466 * b) / b;
-      node->score[b] = node->score[b - 1] + magnumScoring2(s, mz);//score forward
-      //mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466 * b) / b;
-      //node->scoreAltNL[b] = node->scoreAltNL[b - 1] + magnumScoring2(s, mz);//score reverse without link
-    }
-  }
-
-  link->score[0] = score[0] + node->score[pre.maxZ];
-  link->scoreNL[0] = scoreNL[0] + node->score[pre.maxZ];// + node->scoreAltNL[pre.maxZ];
-  node->visit = true;
-
-  if (link->nextNode == SIZE_MAX) v[link->pepNum].scores[0] = link->scoreNL[0];
-  else score7solo(s, peakSet, &peakSet->at(link->nextNode), &peakSet->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
-
-  for (size_t a = 0; a < node->start.size(); a++) {
-    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-    //if (node->start[a].pepNum < link->pepNum) continue;
-    //if (ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
-    if (node->start[a].parentPepNum != link->pepNum) continue;
-    v[node->start[a].pepNum].scored = true;
-    if (node->start[a].nextNode == SIZE_MAX)  v[link->pepNum].scores[0] = link->scoreNL[0];
-    else score7solo(s, peakSet, &peakSet->at(node->start[a].nextNode), &peakSet->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, v, pre, iIndex, maxMass);
-  }
-
-}
-
-//could speed up this function significantly (>5%) by replacing the calls to magnumScoring2 with the code inside magnumScoring2
-//this version tries to count matched peaks, but it is currently buggy...
-//void MAnalysis::score7(MSpectrum* s, sNode2* node, sLink2* link, double* score, double* scoreNL, int* match, int* matchNL, int depth, sScoreSet* v, vector<sPrecursor>* pre, int iIndex, int maxZ, size_t bufSize, size_t bufSizeM/*, double minMass, double maxMass*/) {
-//
-//  if (node->mass > 0) {
-//
-//    if (!node->visit) {
-//      for (int b = 1; b <= maxZ; b++){
-//        double mz = (node->mass + 1.007276466*b) / b;
-//        char c = magnumScoring2(s, mz);//score forward
-//        node->score[b] = node->score[b - 1] + c;
-//        if (c>5) node->match[b] = node->match[b - 1] + 1;
-//        mz = (ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
-//        c = magnumScoring2(s, mz);//score reverse without link
-//        node->scoreAltNL[b] = node->scoreAltNL[b - 1] + c;
-//        if (c>5) node->matchAltNL[b] = node->matchAltNL[b - 1] + 1;
-//      }
-//    }
-//
-//    for (size_t a = 0; a<pre->size(); a++){
-//      link->score[a] = score[a] + node->score[pre->at(a).maxZ];
-//      link->scoreNL[a] = scoreNL[a] + node->score[pre->at(a).maxZ] + node->scoreAltNL[pre->at(a).maxZ];
-//      link->match[a] = match[a] + node->match[pre->at(a).maxZ];
-//      link->matchNL[a] = matchNL[a] + node->match[pre->at(a).maxZ] + node->matchAltNL[pre->at(a).maxZ];
-//
-//      if (depth < ions[iIndex].maxLink) {
-//        if (!node->visit) {
-//          for (int b = 1; b <= maxZ; b++) {
-//            double mz = (pre->at(a).monomass - node->mass + 1.007276466*b) / b;
-//            char c = magnumScoring2(s, mz); //score reverse after precursor subtraction
-//            node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + c;
-//            if (c>5) node->matchAlt[a][b] = node->matchAlt[a][b - 1] + 1;
-//          }
-//        }
-//        link->score[a] += node->scoreAlt[a][pre->at(a).maxZ];
-//        link->match[a] += node->matchAlt[a][pre->at(a).maxZ];
-//      }
-//    }
-//
-//  } else {
-//
-//    if (!node->visit) {
-//      for (int b = 1; b <= maxZ; b++) {
-//        double mz = (ions[iIndex].pepMass[link->pepNum] + node->mass + 1.007276466*b) / b;
-//        char c = magnumScoring2(s, mz);//score forward
-//        node->score[b] = node->score[b - 1] + c;
-//        if (c>5) node->match[b] = node->match[b - 1] + 1;
-//      }
-//    }
-//    for (size_t a = 0; a < pre->size(); a++) {
-//      if (!node->visit) {
-//        for (int b = 1; b <= maxZ; b++) {
-//          double mz = (pre->at(a).monomass - ions[iIndex].pepMass[link->pepNum] - node->mass + 1.007276466*b) / b;
-//          char c = magnumScoring2(s, mz); //score after precursor subtraction  
-//          node->scoreAlt[a][b] = node->scoreAlt[a][b - 1] + c;
-//          if (c>5) node->matchAlt[a][b] = node->matchAlt[a][b - 1] + 1;
-//        }
-//      }
-//      link->score[a] = score[a] + node->scoreAlt[a][pre->at(a).maxZ] + node->score[pre->at(a).maxZ];
-//      link->scoreNL[a] = scoreNL[a] + node->scoreAlt[a][pre->at(a).maxZ];
-//      link->match[a] = match[a] + node->matchAlt[a][pre->at(a).maxZ] + node->match[pre->at(a).maxZ];
-//      link->matchNL[a] = matchNL[a] + node->matchAlt[a][pre->at(a).maxZ];
-//    }
-//
-//  }
-//
-//  node->visit = true;
-//  if (link->nextNode == SIZE_MAX) {
-//    if (ions[iIndex].pepLinks[link->pepNum] < 0) {
-//      memcpy(v[link->pepNum].scores, link->scoreNL, bufSize);
-//      memcpy(v[link->pepNum].match, link->matchNL, bufSizeM);
-//    } else {
-//      memcpy(v[link->pepNum].scores, link->score, bufSize);
-//      memcpy(v[link->pepNum].match, link->match, bufSizeM);
-//    }
-//  } else score7(s, &ions[iIndex].peaks->at(link->nextNode), &ions[iIndex].peaks->at(link->nextNode).next[link->nextIndex], link->score, link->scoreNL, link->match, link->matchNL, depth + 1, v, pre, iIndex, maxZ, bufSize, bufSizeM/*, minMass, maxMass*/);
-//
-//  for (size_t a = 0; a < node->start.size(); a++) {
-//    if (v[node->start[a].pepNum].scored) continue; //maybe create a structure and flag instead?
-//    if (node->start[a].pepNum < link->pepNum) continue;
-//    //if (ions[iIndex].pepMass[node->start[a].pepNum] <minMass || ions[iIndex].pepMass[node->start[a].pepNum]>maxMass) continue; //interesting!! skip peptides of too high mass - doesn't work for low masses (other than fewer iterations)
-//    v[node->start[a].pepNum].scored = true;
-//    if (node->start[a].nextNode == SIZE_MAX) {
-//      if (ions[iIndex].pepLinks[node->start[a].pepNum] < 0) {
-//        memcpy(v[node->start[a].pepNum].scores, link->scoreNL, bufSize);
-//        memcpy(v[node->start[a].pepNum].match, link->matchNL, bufSizeM);
-//      } else {
-//        memcpy(v[node->start[a].pepNum].scores, link->score, bufSize);
-//        memcpy(v[node->start[a].pepNum].match, link->match, bufSizeM);
-//      }
-//    } else score7(s, &ions[iIndex].peaks->at(node->start[a].nextNode), &ions[iIndex].peaks->at(node->start[a].nextNode).next[node->start[a].nextIndex], link->score, link->scoreNL, link->match, link->matchNL, depth + 1, v, pre, iIndex, maxZ, bufSize, bufSizeM/*, minMass, maxMass*/);
-//  }
-//
-//}
 
 //void MAnalysis::scoreSpectra(vector<int>& index, int sIndex, int len, double modMass, int pep1, int pep2, int k1, int k2, int link, int iIndex){
 //  unsigned int a;
@@ -1433,12 +866,6 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
   //score spectra
   for (a = 0; a < index.size(); a++) {
     s=spec->getSpectrum(index[a]);
-    //cout << s->getScanNumber() << endl;
-
-    if (a > 0) {
-      for (size_t b = 0;b < ions[iIndex].peaks->size(); b++) ions[iIndex].peaks->at(b).visit = false; //reset for the next analysis
-      for (size_t b = 0; b < ions[iIndex].peaksRev->size(); b++) ions[iIndex].peaksRev->at(b).visit = false;
-    }
 
     //find the specific precursor mass in this spectrum to identify the charge state
     sPrecursor pre;
@@ -1460,24 +887,18 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
 
     //bufSize2[iIndex] = sizeof(double);
     size_t pepCount = ions[iIndex].pepCount;
-    sScoreSet* pScores = new sScoreSet[pepCount];
-    vector<sNode2>* peaks = ions[iIndex].peaks;
-    for (size_t b = 0; b < peaks->at(0).start.size(); b++) {
-      score7solo(s, peaks, &peaks->at(peaks->at(0).start[b].nextNode), &peaks->at(peaks->at(0).start[b].nextNode).next[peaks->at(0).start[b].nextIndex], dummy, dummy, pScores, pre, iIndex, pre.monomass+pre.monomass/1e6*params.ppmPrecursor);
-    }
 
-    sScoreSet* pScores2 = new sScoreSet[pepCount];
-    peaks = ions[iIndex].peaksRev;
-    for (size_t b = 0; b < peaks->at(0).start.size(); b++) {
-      score7solo(s, peaks, &peaks->at(peaks->at(0).start[b].nextNode), &peaks->at(peaks->at(0).start[b].nextNode).next[peaks->at(0).start[b].nextIndex], dummy, dummy, pScores2, pre, iIndex, pre.monomass + pre.monomass / 1e6 * params.ppmPrecursor);
-    }
+    //TODO: FIX TO ONLY SCORE AROUND ONCE
+    sScoreSet2* pScores = new sScoreSet2[pepCount];
+    sScoreSet2* pScores2 = new sScoreSet2[pepCount];
+    score9solo(s, ions[iIndex].vPeaks, pScores, pre.maxZ, iIndex);
+    score9solo(s, ions[iIndex].vPeaksRev, pScores2, pre.maxZ, iIndex);
 
     vector<sDIndex> vTop;
     size_t minMods = 100;
     sc.simpleScore = 0;
     for (size_t b = 0; b < pepCount; b++) {
-      //cout << b << " of " << pepCount << "\t" << mass << "\t" << ions[iIndex].pepMass[b] << endl;
-      double sumScore=pScores[b].scores[0]+pScores2[b].scores[0];
+      double sumScore=pScores[b].score+pScores2[b].score;
       if(ions[iIndex].pepMass[b]!=mass) continue;
       if (sumScore<=0) continue;
       if (sumScore > sc.simpleScore) {
@@ -1498,8 +919,9 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
     }
     //cout << "simpleScore: " << sc.simpleScore << endl;
     if (sc.simpleScore == 0) {
-      peaks=NULL;
+      //peaks=NULL;
       delete [] pScores;
+      delete[] pScores2;
       continue;
     }
 
@@ -1532,7 +954,8 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
     }
     
     delete[] pScores;
-    peaks=NULL;
+    delete[] pScores2;
+    //peaks=NULL;
   }
 
   p = NULL;
@@ -1672,13 +1095,14 @@ void MAnalysis::scoreSpectra2(vector<int>& index, double mass, int len, int pep1
 
 //An alternative score uses the XCorr metric from the Comet algorithm
 //This version allows for fast scoring when the cross-linked mass is added.
+//MH: TODO: simplify the calculation of mz...
 char MAnalysis::magnumScoring2(MSpectrum* s, double mass) {
   double invBinSize = s->getInvBinSize();
   double mz = params.binSize * (int)(mass * invBinSize + params.binOffset);
   int key = (int)mz;
   if (key >= s->kojakBins) return 0;
   if (s->kojakSparseArray[key] == NULL) return 0;
-  int pos = (int)((mz - key)*invBinSize);
+  int pos = (int)((mz - key)*invBinSize+0.5);
   return s->kojakSparseArray[key][pos];
 }
 

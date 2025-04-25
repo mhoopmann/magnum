@@ -721,29 +721,46 @@ void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, fl
   MakeCorrData(pdTempRawData, pPre, 50.0);
 
   // Make fast xcorr spectrum.
+  double dm = 1.0 / 150;
   mSpecPoint *pdCorrelationData = pPre->pdCorrelationData;
   dSum = 0.0;
   for (i = 0; i<75; i++) dSum += pdCorrelationData[i].intensity;
   for (i = 75; i < xCorrArraySize + 75; i++) {
     if (i<xCorrArraySize && pdCorrelationData[i].intensity>0) dSum += pdCorrelationData[i].intensity;
     if (i >= 151 && pdCorrelationData[i - 151].intensity>0) dSum -= pdCorrelationData[i - 151].intensity;
-    pdTmpFastXcorrData[i - 75] = (dSum - pdCorrelationData[i - 75].intensity)* 0.0066666667;
+    pdTmpFastXcorrData[i - 75] = (dSum - pdCorrelationData[i - 75].intensity)* dm;
   }
 
   xCorrSparseArraySize = 1;
 
-  double dTmp0 = pdCorrelationData[0].intensity - pdTmpFastXcorrData[0];
-  double dTmp1 = pdCorrelationData[1].intensity - pdTmpFastXcorrData[1];
-  double dTmp2 = pdCorrelationData[2].intensity - pdTmpFastXcorrData[2];
-  pfFastXcorrData[0] = (float)(dTmp0 + dTmp1*0.5);
-  pfFastXcorrData[1] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
-  for (i = 2; i<xCorrArraySize - 1; i++){
-    dTmp0 = dTmp1;
-    dTmp1 = dTmp2;
-    dTmp2 = pdCorrelationData[i + 1].intensity - pdTmpFastXcorrData[i + 1];
-    pfFastXcorrData[i] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //double dTmp0 = pdCorrelationData[0].intensity - pdTmpFastXcorrData[0];
+  //double dTmp1 = pdCorrelationData[1].intensity - pdTmpFastXcorrData[1];
+  //double dTmp2 = pdCorrelationData[2].intensity - pdTmpFastXcorrData[2];
+  //pfFastXcorrData[0] = (float)(dTmp0 + dTmp1*0.5);
+  //pfFastXcorrData[1] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //for (i = 2; i<xCorrArraySize - 1; i++){
+  //  dTmp0 = dTmp1;
+  //  dTmp1 = dTmp2;
+  //  dTmp2 = pdCorrelationData[i + 1].intensity - pdTmpFastXcorrData[i + 1];
+  //  pfFastXcorrData[i] = (float)(dTmp1 + (dTmp0 + dTmp2)*0.5);
+  //}
+  //pfFastXcorrData[xCorrArraySize - 1] = (float)(dTmp2 + dTmp1*0.5);
+  pfFastXcorrData[0] = 0;
+  //double dTmp;
+  for (i = 1;i < xCorrArraySize-1;i++) {
+    dTmp = pdCorrelationData[i].intensity - pdTmpFastXcorrData[i];
+    pfFastXcorrData[i] = (float)dTmp;
+
+    //TODO: Parameterize this
+    // Allow user to set flanking peaks
+    if (true) {
+      iTmp = i - 1;
+      pfFastXcorrData[i] += (float)((pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp]) * 0.5);
+
+      iTmp = i + 1;
+      pfFastXcorrData[i] += (float)((pdCorrelationData[iTmp].intensity - pdTmpFastXcorrData[iTmp]) * 0.5);
+    }
   }
-  pfFastXcorrData[xCorrArraySize - 1] = (float)(dTmp2 + dTmp1*0.5);
 
   //MH: Fill sparse matrix
   for (i = 0; i<xCorrArraySize; i++){
@@ -756,7 +773,7 @@ void MSpectrum::kojakXCorr(double* pdTempRawData, double* pdTmpFastXcorrData, fl
         kojakSparseArray[iTmp] = new char[(int)invBinSize + 1];
         for (j = 0; j<(int)invBinSize + 1; j++) kojakSparseArray[iTmp][j] = 0;
       }
-      j = (int)((dTmp - iTmp)*invBinSize/*+0.5*/);
+      j = (int)((dTmp - iTmp)*invBinSize+0.5);
 
       if (pfFastXcorrData[i]>127) kojakSparseArray[iTmp][j] = 127;
       else if (pfFastXcorrData[i]<-128) kojakSparseArray[iTmp][j] = -128;
@@ -786,13 +803,9 @@ void MSpectrum::BinIons(mPreprocessStruct *pPre) {
 
   memset(pdCorrelationData, 0, xCorrArraySize*sizeof(mSpecPoint));
 
-  i = 0;
-  while(true) {
-    if (i >= (int)spec->size()) break;
-
+  for(i=0;i<(int)spec->size();i++){
     dIon = spec->at(i).mass;
     dIntensity = spec->at(i).intensity;   
-    i++;
 
     if (dIntensity > 0.0) {
       if (dIon < (dPrecursor + 50.0)) {
@@ -1289,6 +1302,94 @@ bool MSpectrum::generateXcorrDecoys3(int minP, int maxP, int depth) {
   for(int a=minP;a<maxP+1;a++){
     mHisto[a] = new MHistogram();
     linearRegression4(histoX[a],histoXCount[a],mHisto[a]->slope, mHisto[a]->intercept, mHisto[a]->rSq);
+    mHisto[a]->slope *= 10;
+
+    //** temporary
+    //cout << "\nDecoy Histogram: " << a << "\t" << histoXCount[a] << endl;
+    //for (int i = 0; i<HISTOSZ; i++) cout << i << "\t" << histoX[a][i] << endl;
+    //cout << mHisto[a]->slope << "\t" << mHisto[a]->intercept << "\t" << mHisto[a]->rSq << endl;
+    //**
+
+  }
+
+  return true;
+}
+
+//from Comet
+//Drastically simplifying this process. Future steps would be to use a 
+//decoy library index to rapidly calculate these values, should the memory be available.
+bool MSpectrum::generateXcorrDecoys4(int minP, int maxP) {
+  //cout << "generateXcorrDecoys4: " << scanNumber << endl;
+  int histoXCount[MAX_DECOY_PEP_LEN];
+  int histoX[MAX_DECOY_PEP_LEN][HISTOSZ];
+  for (int a = 0;a < MAX_DECOY_PEP_LEN;a++) {
+    histoXCount[a] = 0;
+    for (int b = 0;b < HISTOSZ;b++) {
+      histoX[a][b] = 0;
+    }
+  }
+
+  int decoyIndex = 0;
+  double monoMass = bigMonoMass;
+  double ionB, ionY;
+  double dFragmentIonMass;
+  double xcorr=0;
+  int k;
+  double m;
+  int maxZ = bigZ;
+  if (maxZ > 4) maxZ = 4;
+  int key, pos;
+
+  for (int x = 0;x < DECOY_SIZE;x++) {
+
+    //cout << "MonoMass: " << monoMass << "\t" << "Depth: " << x << endl;
+    decoyIndex = x;
+    xcorr = 0;
+    for (int a = 0;a < maxP;a++) {
+
+      //the unmodified ions
+      ionB = decoys->decoyIons[decoyIndex].pdIonsN[a];
+      //cout << "B" << a + 1 << "\t" << ionB << endl;
+      ionY = decoys->decoyIons[decoyIndex].pdIonsC[a];
+      //cout << "Y" << a+1 << "\t" << ionY << endl;
+      for (int b = 0; b < 6; b++) {
+        if (!ionSeries[b]) continue;
+        switch (b) {
+        case 0: dFragmentIonMass = ionB - 27.9949141; break;
+        case 1: dFragmentIonMass = ionB; break;
+        case 2: dFragmentIonMass = ionB + 17.026547; break;
+        case 3: dFragmentIonMass = ionY + 25.9792649; break;
+        case 4: dFragmentIonMass = ionY; break;
+        case 5: dFragmentIonMass = ionY - 16.0187224; break;
+        }
+        //if (dFragmentIonMass>monoMass) continue;
+
+        for (int z = 1; z < maxZ; z++) {
+          m = (dFragmentIonMass + (z - 1) * 1.007276466) / z;
+          m = binSize * (int)(m * invBinSize + binOffset);
+          key = (int)m;
+          if (key >= kojakBins) break;
+          if (key < 0 || kojakSparseArray[key] == NULL) continue;
+          pos = (int)((m - key) * invBinSize+0.5);
+          //cout << (int)kojakSparseArray[key][pos] << endl;
+          xcorr += kojakSparseArray[key][pos];
+        }
+      }
+
+      if (xcorr <= 0.0) k = 0;
+      else k = (int)(xcorr * 0.05 + 0.5);  // 0.05=0.005*10; see MAnalysis::mangnumScoring
+      if (k < 0) k = 0;
+      else if (k >= HISTOSZ) k = HISTOSZ - 1;
+      histoX[a+2][k]++;   //the first ion results from a peptide of len=2
+      histoXCount[a+2]++;
+
+    }
+
+  }
+
+  for (int a = minP;a < maxP + 1;a++) {
+    mHisto[a] = new MHistogram();
+    linearRegression4(histoX[a], histoXCount[a], mHisto[a]->slope, mHisto[a]->intercept, mHisto[a]->rSq);
     mHisto[a]->slope *= 10;
 
     //** temporary

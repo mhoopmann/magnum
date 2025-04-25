@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "MLog.h"
 #include "MStructs.h"
-#include "pepXMLWriter.h"
+#include "NeoPepXMLParser.h"
 
 #ifdef _MSC_VER
 #include <direct.h>
@@ -37,7 +37,7 @@ public:
   MParams(mParams* p);
   ~MParams();
 
-  std::vector<pxwBasicXMLTag> xmlParams;
+  std::vector<CnpxParameter> xmlParams;
 
   bool buildOutput(std::string in, std::string base, std::string ext);
   void exportDefault(std::string ver);
@@ -55,7 +55,7 @@ private:
   
   bool checkMod(mMass m);
   void logParam(std::string name, std::string value);
-  void logParam(pxwBasicXMLTag& t);
+  void logParam(CnpxParameter& t);
   bool processPath(const char* cwd, const char* in_path, char* out_path);
   void trimPath(std::string in, std::string& path, std::string& fname);
   void warn(const char* c, int i);

@@ -49,20 +49,9 @@ public:
   //Functions
   void      addFixedMod       (char mod, double mass);
   void      addMod            (char mod, bool xl, double mass);
-  void      addPeak           (double mass, bool adduct, size_t& node, bool& ar, size_t& index); //could be private?
-  void      addPeakRev        (double mass, bool adduct, size_t& node, bool& ar, size_t& index); //could be private?
-  //void      buildIons         ();
-  //void      buildModIons      (int modSite);
   void      buildModIons2     (bool bAdduct=true);
   double    getAAMass         (char aa);
   double    getFixedModMass   (char aa);
-  //void      modIonsRec        (int start, int link, int index, int depth, bool xl);
-  //void      modIonsRec2       (int start, int link, int index, int depth, bool xl);
-  void      modIonsRec4       (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask); //could be private?
-  void      modIonsRec4Rev    (int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask); //could be private?
-  void      modIonsRec5       (int pos, double mMass, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask);
-  void      modIonsRec5Rev    (int pos, double mMass, size_t pepNum, int depth, int modSite, size_t linkNode, bool linkAr, size_t linkIndex, std::string mask);
-  //void      reset             ();
 
   //Accessors
   //MIonSet&  operator[ ]   (const int& i);
@@ -86,10 +75,10 @@ public:
   bool site[128]; //possible sites of linkage based on parameters
 
   //New data members for tree search
-  std::vector<sNode2>* peaks;
-  std::vector<sNode2>* peaksRev;
-  std::map<int, size_t> mP;  //could be private
-  std::map<int, size_t> mPRev;  //could be private
+  //std::vector<sNode2>* peaks;
+  //std::vector<sNode2>* peaksRev;
+  //std::map<int, size_t> mP;  //could be private
+  //std::map<int, size_t> mPRev;  //could be private
   std::map<std::string,size_t> mPrecursor;
   std::string modMask; //could be private
   size_t pepCount;
@@ -99,6 +88,20 @@ public:
   double pepMassMin;
   double pepMassMax;
   int maxLink;
+
+  std::string pepseq;
+  std::vector<sIPeak> vPeaksRev;
+  std::map<int,size_t> mPeaksRev;
+  std::vector<sIPeak> vPeaks;
+  std::map<int, size_t> mPeaks;
+  void addPeakNew(double mass, double pepMass, size_t pepIndex);
+  void addPeakRevNew(double mass, double pepMass, size_t pepIndex);
+  void modIonsNew(const std::string& mask, size_t pepIndex, double mass, size_t stop=2);
+  void modIonsRecNew(const std::string& mask, size_t pepIndex, double mass, size_t stop=2);
+  void modIonsMaskRec(int pos, double mMass, int oSite, size_t pepNum, int depth, int modSite, std::string mask); //could be private?
+  void modIonsMaskRecNoAdduct(int pos, double mMass, size_t pepNum, int depth, int modSite, std::string mask); //could be private?
+
+  void displayPrecursors();
 
 private:
 

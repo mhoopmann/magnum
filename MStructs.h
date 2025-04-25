@@ -166,7 +166,7 @@ typedef struct mParams {
   std::vector<mMass>    fMods;
   std::vector<double>   rIons;
   mParams(){
-    eValDepth=3000;
+    eValDepth=5000;
     instrument=0;
     isotopeError=3;
     maxMods=2;
@@ -461,5 +461,20 @@ typedef struct sDIndex{
   size_t a;
   size_t b;
 } sDIndex;
+
+typedef struct sIPep {
+  double pepMass=0;
+  std::vector<size_t> pepIndex;
+} sIPep;
+
+typedef struct sIPeak {
+  double mass=0;
+  std::vector<sIPep> index;
+} sIPeak;
+
+typedef struct sScoreSet2 {
+  double scoreP[MAX_PRECURSOR]{};  //never more than 10 precursors
+  double score = 0;
+} sScoreSet2;
 
 #endif

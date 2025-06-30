@@ -16,7 +16,7 @@ INCLUDE = -I$(MSTOOLKITPATH)/include -I$(HARDKLORPATH) -I$(PEPXMLPATH)
 
 
 #Do not touch these variables
-MAGNUM = MagnumManager.o MParams.o MAnalysis.o MData.o MDB.o MLog.o MPrecursor.o MSpectrum.o MIons.o MIonSet.o MTopPeps.o Threading.o CometDecoys.o
+MAGNUM = MagnumManager.o MParams.o MAnalysis.o MData.o MDB.o MLog.o MSpectrum.o MIons.o MIonSet.o MTopPeps.o Threading.o CometDecoys.o
 
 
 #Make statements

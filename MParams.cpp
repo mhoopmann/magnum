@@ -221,7 +221,7 @@ void MParams::exportDefault(string ver){
   fprintf(f, "max_peptide_length = %d    #maximum number of amino acids per peptide searched.\n", def.maxPepLen);
   fprintf(f, "min_peptide_mass = %.1lf   #minimum allowed peptide mass in Daltons.\n", def.minPepMass);
   fprintf(f, "max_peptide_mass = %.1lf  #maximum allowed peptide mass in Daltons.\n", def.maxPepMass);
-  fprintf(f, "\natomic_signature = 0       #molecular formula for the unusual atoms only. Case sensitive. 0=off.\n", def.atomSig);
+  fprintf(f, "\natomic_signature = 0       #molecular formula for the unusual atoms only. Case sensitive. 0=off.\n");
   fprintf(f, "atomic_processing = %d     #defines rules for use only with atomic_signature settings.\n",def.atomicProcessing);
   fprintf(f, "                          # 0 = no special rules.\n");
   fprintf(f, "                          # 1 = prefer atomic signature in precursor monoisotopic mass correction.\n");

@@ -344,40 +344,7 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex) {
   //Build our peptide
   int len = (pep.map->at(0).stop - pep.map->at(0).start) + 1;
   ions[iIndex].setPeptide(&db->at(pep.map->at(0).index).sequence[pep.map->at(0).start], len, pep.mass, pep.nTerm, pep.cTerm);
-  ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.
-                                
-  //cout << "BUILD DONE: " << ions[iIndex].pepCount << endl;
-
-  /*if (index == 103) {
-    cout << "Bions:" << endl;
-    vector<sNode2>* peaks = ions[iIndex].peaks;
-    for (size_t a = 0; a < peaks->size(); a++) {
-      cout << a << " " << peaks->at(a).id << "\t" << peaks->at(a).mass << "\t" << peaks->at(a).next.size() << endl;
-      for (size_t b = 0; b < peaks->at(a).next.size(); b++) {
-        cout << "  N\t" << b << "\t" << peaks->at(a).next[b].nextIndex << "\t" << peaks->at(a).next[b].nextNode << "\t" << peaks->at(a).next[b].pepNum << endl;
-      }
-      for (size_t b = 0; b < peaks->at(a).start.size(); b++) {
-        cout << "  S\t" << b << "\t" << peaks->at(a).start[b].nextIndex << "\t" << peaks->at(a).start[b].nextNode << "\t" << peaks->at(a).start[b].pepNum << endl;
-      }
-    }
-
-    cout << "Yions:"<<endl;
-    vector<sNode2>* peaksRev=ions[iIndex].peaksRev;
-    for (size_t a = 0; a < peaksRev->size(); a++) {
-      cout << a << " " << peaksRev->at(a).id << "\t" << peaksRev->at(a).mass << "\t" << peaksRev->at(a).next.size() << endl;
-      for (size_t b = 0; b < peaksRev->at(a).next.size(); b++) {
-        cout << "  N\t" << b << "\tNindex: " << peaksRev->at(a).next[b].nextIndex << "\tNnode: " << peaksRev->at(a).next[b].nextNode << "\tPep: " << peaksRev->at(a).next[b].pepNum << endl;
-      }
-      for (size_t b = 0; b < peaksRev->at(a).start.size(); b++) {
-        cout << "  S\t" << b << "\tSindex: " << peaksRev->at(a).start[b].nextIndex << "\tSnode: " << peaksRev->at(a).start[b].nextNode << "\tPep: " << peaksRev->at(a).start[b].pepNum << "\tParentPep: " << peaksRev->at(a).start[b].parentPepNum << endl;
-      }
-    }
-  }*/
-
-  /*cout << endl;
-  for(size_t a=0;a<ions[iIndex].peaks->size();a++){
-    cout << ions[iIndex].peaks->at(a).mass << "\t" << ions[iIndex].peaks->at(a).next.size() << "\t" << ions[iIndex].peaks->at(a).start.size() << endl;
-  }*/
+  ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.         
 
   //get all spectra that might contain this peptide and adduct
   //Set Mass boundaries
@@ -431,149 +398,6 @@ void MAnalysis::deallocateMemory(int threads){
   delete[] bufSize2;
 }
 
-//This function is way out of date. Particularly the mutexes and how to deal with multiple precursors.
-//void MAnalysis::scoreSingletSpectra(int index, int sIndex, double mass, int len, int pep, char k, double minMass, double maxMass, int iIndex, bool bSiteless){
-//  //cout << "scoreSingletSpectra()" << endl;
-//  mScoreCard sc;
-//  MIonSet* iset;
-//  mPepMod mod;
-//  double score=0;
-//  int i,j;
-//  int precI;
-//  int match;
-//  int conFrag;
-//
-//  MSpectrum* s=spec->getSpectrum(index);
-//  mPrecursor* p=NULL;
-//  MTopPeps* tp;
-//  int sz=s->sizePrecursor();
-//  double topScore=0;
-//  int topMatch=0;
-//  int topConFrag=0;
-//
-//  int code;
-//  for(i=0;i<sz;i++){
-//    p=s->getPrecursor2(i);
-//    if (p->corr<-4) code = 2;
-//    else if (p->corr<0)code = 3;
-//    else if (p->corr == 0)code = 2;
-//    else code = 1;
-//    if(code==1) break;
-//
-//  }
-//  if(i==sz) {
-//    i=0;
-//    p = s->getPrecursor2(i);
-//  }
-//
-//  if((p->monoMass-mass)<params.minAdductMass) score=0;  //this could be narrowed down to user-defined precursor tolerance.
-//  else if((p->monoMass-mass)>params.maxAdductMass) score=0;
-//  else if(bSiteless) score = magnumScoring(index, 0, sIndex, iIndex, match, conFrag, p->charge); //score peptide without open mod (i.e. scores peptide without localization)
-//
-//  if(score>0){
-//    topScore = score;
-//    topMatch = match;
-//    topConFrag = conFrag;
-//    precI = i;
-//    sc.simpleScore = (float)score;
-//    sc.pep = pep;
-//    sc.mass = mass;
-//    sc.massA = p->monoMass - mass;
-//    sc.precursor = i;
-//    sc.site = -99;
-//    sc.mods->clear();
-//    iset = ions[iIndex].at(sIndex);
-//    if (iset->difMass != 0){
-//      for (j = 0; j<ions[iIndex].getIonCount(); j++) {
-//        if (iset->mods[j] != 0){
-//          if (j == 0 && iset->modNTerm) mod.term = true;
-//          else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
-//          else mod.term = false;
-//          mod.pos = (char)j;
-//          mod.mass = iset->mods[j];
-//          sc.mods->push_back(mod);
-//        }
-//      }
-//    }
-//  }
-//
-//  for(i=0;i<sz;i++){
-//    p=s->getPrecursor2(i);
-//    //cout << i << " of " << sz << "\t" << p->monoMass << "\t" << minMass << "\t" << maxMass << "\t" << mass << endl;
-//    if(p->monoMass<minMass) continue;
-//    if(p->monoMass>maxMass) continue;
-//    if ((p->monoMass - mass)>params.maxAdductMass) continue;
-//    if ((p->monoMass - mass)<params.minAdductMass) continue;
-//    //cout << "Before magnumScoring" << endl;
-//    score=magnumScoring(index,p->monoMass-mass,sIndex,iIndex,match,conFrag,p->charge);  //open mod with localization
-//    //cout << score << endl;
-//    if(score==0) continue;
-//    else if(score>topScore) { //replace the previous peptide scores, if this version of the peptide scores better.
-//      topScore=score;
-//      topMatch=match;
-//      topConFrag=conFrag;
-//      precI=i;
-//      sc.simpleScore = (float)score;
-//      sc.pep = pep;
-//      sc.mass = mass;
-//      sc.massA = p->monoMass - mass;
-//      sc.precursor = i;
-//      sc.site = k;
-//      sc.mods->clear();
-//      iset = ions[iIndex].at(sIndex);
-//      if (iset->difMass != 0){
-//        for (j = 0; j<ions[iIndex].getIonCount(); j++) {
-//          if (iset->mods[j] != 0){
-//            if (j == 0 && iset->modNTerm) mod.term = true;
-//            else if (j == ions[iIndex].getIonCount() - 1 && iset->modCTerm) mod.term = true;
-//            else mod.term = false;
-//            mod.pos = (char)j;
-//            mod.mass = iset->mods[j];
-//            sc.mods->push_back(mod);
-//          }
-//        }
-//      }
-//    }
-//  }
-//
-//  if(topScore>0){
-//    //cout << "Topper " << topScore << endl;
-//    double ev = 1000;
-//    Threading::LockMutex(mutexSpecScore[index]);
-//    ev = s->computeE(topScore, len);
-//
-//    //** temporary
-//    //s->tHistogram(topScore, len);
-//    //**
-//
-//    //cout << "DoneE " << ev << endl;
-//    Threading::UnlockMutex(mutexSpecScore[index]);
-//    sc.eVal=ev;
-//    sc.match=topMatch;
-//    sc.conFrag=topConFrag;
-//
-//    tp = s->getTopPeps(precI);
-//    //cout << "GotTopPeps" << endl;
-//    Threading::LockMutex(mutexSingletScore[index][precI]);
-//    tp->checkPeptideScore(sc);
-//    //cout << "CheckPepScore" << endl;
-//    Threading::UnlockMutex(mutexSingletScore[index][precI]);
-//  
-//    Threading::LockMutex(mutexSpecScore[index]);
-//    s->checkScore(sc,iIndex);
-//    //cout << "CheckScore" << endl;
-//    Threading::UnlockMutex(mutexSpecScore[index]);
-//  } 
-//
-//  //** temporary
-//  //else {
-//  //  Threading::LockMutex(mutexSpecScore[index]);
-//  //  s->tHistogram(0, len);
-//  //  Threading::UnlockMutex(mutexSpecScore[index]);
-//  //}
-//  //**
-//
-//}
 
 void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, double minMass, double maxMass, int iIndex){
   mScoreCard sc;
@@ -649,11 +473,20 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
       if(massA<params.minAdductMass || massA>params.maxAdductMass) continue; //skip adducts outside our bounds
 
       double trueScore=pScores[a].score+pScores[a].scoreP[b]+pScores3[a].score+pScores3[a].scoreP[b];
+      if (trueScore == 0) continue;
       if(trueScore>topPreScore){
       //if (pScores[a].scores[b]+pScores2[a].scores[b] > topPreScore){
         topPreScore=trueScore;
         //topPreScore=pScores[a].scores[b] + pScores2[a].scores[b];
         topPreIndex=b;
+
+        //if we have a tie between two precursors, go with the precursor with the better correlation?
+        //or the type?
+        //note that the correlation must be a Hardklor determined (i.e., it is above 0).
+      } else if (trueScore == topPreScore) {
+        if (s->getPrecursor2(pre[b].index)->corr>0 && s->getPrecursor2(pre[b].index)->type > s->getPrecursor2(topPreIndex)->type) {
+          topPreIndex = b;
+        }
       }
     }
 

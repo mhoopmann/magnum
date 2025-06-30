@@ -344,11 +344,26 @@ void MIons::modIonsMaskRec(int pos, double mMass, int oSite, size_t pepNum, int 
 
     //only check modifications if adduct is not attached and we are allowed more modifications
     if (i > modSite && i != oSite && depth < maxModCount) {
+
+
+
       //Check if amino acid is on the modification list
       for (int j = 0; j < aaMod[pep1[i]].count; j++) {
 
         //skip mods if it is xl mod on a cut site - is this relevant in Magnum?
         if (aaMod[pep1[i]].mod[j].xl && i == pep1Len - 1 && !cPep1) continue;
+
+        //MH: new in 1.6.0
+        //skip mods on last available adduct site if adduct is not localized, because then it be adducted to the peptide.
+        //should include n- and c-termini, if those are allowed sites
+        if (oSite == -99) {
+          size_t w;
+          for (w = 0;w < adductIndex.size();w++) {
+            if (adductIndex[w] == i) continue;
+            if (mask[adductIndex[w]] == '0') break;
+          }
+          if (w == adductIndex.size()) continue;
+        }
 
         //Add masses
         pepCount++;
@@ -530,6 +545,13 @@ void MIons::setPeptide(char* seq, int len, double mass, bool nTerm, bool cTerm){
   strncpy(pp, seq, len);
   pp[len] = '\0';
   pepseq = pp;
+
+  adductIndex.clear();
+  for (size_t a = 0;a < len;a++) {
+    if (site[pp[a]]) adductIndex.push_back(a);
+  }
+  if (site['n']) adductIndex.push_back((size_t)len);
+  if (site['c']) adductIndex.push_back((size_t)len + 1);
 
 }
 

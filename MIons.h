@@ -131,6 +131,7 @@ private:
 
   std::vector<mModPos> modQueue;
   std::vector<double>  modMassArray;
+  std::vector<size_t>  adductIndex;
   //std::vector<MIonSet> sets;
 
   //Utilities

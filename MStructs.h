@@ -110,48 +110,54 @@ typedef struct mEnzymeRules{
   bool exceptN[128];
 } mEnzymeRules;
 
+typedef struct mAtom {
+  int index = 0;
+  int count = 0;
+}mAtom;
+
 typedef struct mParams {
-  int     eValDepth;
-  int     instrument;     //0=Orbi, 1=FTICR
-  int     isotopeError;
-  int     maxMods;
-  int     maxPeaks;
-  int     maxPepLen;
-  int     minPeaks;
-  int     minPepLen;
-  int     miscleave;
-  int     ms1Centroid;
-  int     ms2Centroid;
-  int     ms1Resolution;
-  int     ms2Resolution;
-  int     preferPrecursor;
-  int     setA;
-  int     setB;
-  int     specProcess;
-  int     threads;
-  int     topCount;
-  int     truncate;
-  bool    buildDecoy;
-  bool    exportPepXML;
-  bool    exportPercolator;
-  bool    ionSeries[6];
-  bool    precursorRefinement;
-  bool    splitPercolator;
-  bool    xcorr;
-  double  binOffset;
-  double  binSize;
-  double  maxPepMass;
-  double  minPepMass;
-  double  maxAdductMass;
-  double  minAdductMass;
-  double  percVersion;
-  double  ppmPrecursor;
-  double  rIonThreshold;
+  int     atomicProcessing = 0;
+  int     eValDepth = 5000;
+  int     instrument = 0;     //0=Orbi, 1=FTICR
+  int     isotopeError = 3;
+  int     maxMods = 2;
+  int     maxPeaks = 0;
+  int     maxPepLen = 50;
+  int     minPeaks = 20;
+  int     minPepLen = 6;
+  int     miscleave = 2;
+  int     ms1Centroid = 1;
+  int     ms2Centroid = 1;
+  int     ms1Resolution = 60000;
+  int     ms2Resolution = 15000;
+  int     preferPrecursor = 2;
+  int     setA = 0;
+  int     setB = 0;
+  int     specProcess = 1;
+  int     threads = 1;
+  int     topCount = 5;
+  int     truncate = 0;
+  bool    buildDecoy = false;
+  bool    exportPepXML = true;
+  bool    exportPercolator = false;
+  bool    ionSeries[6] = { false,true,false,false,true,false };
+  bool    precursorRefinement = true;
+  bool    splitPercolator = false;
+  bool    xcorr = false;
+  double  binOffset = 0.0;
+  double  binSize = 0.03;
+  double  maxPepMass = 4000.0;
+  double  minPepMass = 500.0;
+  double  maxAdductMass = 500.0;
+  double  minAdductMass = 10.0;
+  double  percVersion = 2.04;
+  double  ppmPrecursor = 25.0;
+  double  rIonThreshold = 10;
   std::string     adductSites;
   std::string     dbFile;
-  std::string     decoy;
-  std::string     enzyme;
-  std::string     enzymeName;
+  std::string     decoy = "random";
+  std::string     enzyme = "[KR]|{P}";
+  std::string     enzymeName = "Trypsin";
   std::string     ext;
   std::string     inFile;  //true input file with full path
   std::string     inFileNoExt;  //for pepXML
@@ -161,56 +167,11 @@ typedef struct mParams {
   std::string     dbPath;
   std::string     msBase;
   std::vector<mMass>    aaMass;
+  std::vector<mAtom>    atomSig;
   std::vector<int>      diag;
   std::vector<mMass>    mods;
   std::vector<mMass>    fMods;
   std::vector<double>   rIons;
-  mParams(){
-    eValDepth=5000;
-    instrument=0;
-    isotopeError=3;
-    maxMods=2;
-    maxPeaks=0;
-    maxPepLen=50;
-    minPeaks=20;
-    minPepLen=6;
-    miscleave=2;
-    ms1Centroid=1;
-    ms2Centroid=1;
-    ms1Resolution=60000;
-    ms2Resolution=15000;
-    preferPrecursor=2;
-    setA=0;
-    setB=0;
-    specProcess=1;
-    threads=1;
-    topCount=5;
-    truncate=0;
-    buildDecoy=false;
-    exportPepXML=true;
-    exportPercolator=false;
-    ionSeries[0]=false; //a-ions
-    ionSeries[1]=true;  //b-ions
-    ionSeries[2]=false; //c-ions
-    ionSeries[3]=false; //x-ions
-    ionSeries[4]=true;  //y-ions
-    ionSeries[5]=false; //z-ions
-    precursorRefinement=true;
-    splitPercolator=false;
-    xcorr=false;
-    binSize=0.03;
-    binOffset=0.0;
-    maxPepMass=4000.0;
-    minPepMass=500.0;
-    maxAdductMass=500.0;
-    minAdductMass=10.0;
-    percVersion=2.04;
-    ppmPrecursor=25.0;
-    rIonThreshold=10;
-    decoy="random";
-    enzyme="[KR]|{P}";
-    enzymeName="Trypsin";
-  }
 } mParams;
 
 typedef struct mSpecPoint{

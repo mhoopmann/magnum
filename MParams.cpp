@@ -221,6 +221,11 @@ void MParams::exportDefault(string ver){
   fprintf(f, "max_peptide_length = %d    #maximum number of amino acids per peptide searched.\n", def.maxPepLen);
   fprintf(f, "min_peptide_mass = %.1lf   #minimum allowed peptide mass in Daltons.\n", def.minPepMass);
   fprintf(f, "max_peptide_mass = %.1lf  #maximum allowed peptide mass in Daltons.\n", def.maxPepMass);
+  fprintf(f, "\natomic_signature = 0       #molecular formula for the unusual atoms only. Case sensitive. 0=off.\n", def.atomSig);
+  fprintf(f, "atomic_processing = %d     #defines rules for use only with atomic_signature settings.\n",def.atomicProcessing);
+  fprintf(f, "                          # 0 = no special rules.\n");
+  fprintf(f, "                          # 1 = prefer atomic signature in precursor monoisotopic mass correction.\n");
+  fprintf(f, "                          # 2 = only open mod search when atomic signature found.\n");
   fprintf(f, "\n\n#\n# Reporter Ions\n#\n");
   fprintf(f, "reporter_ion_threshold = %.1lf    #relative MS2 abundance threshold for reporter ions.\n",def.rIonThreshold);
   fprintf(f, "#reporter_ion = 160.04           #list as many MS2 reporter ion m/z values as desired, one per line.\n");
@@ -307,9 +312,24 @@ void MParams::parse(const char* cmd) {
     params->aaMass.push_back(m);
     logParam("aa_mass",values[0] + " " + values[1]);
 
-  } else if(strcmp(param,"adduct_sites")==0){
-    params->adductSites=values[0];
-    logParam("adduct_sites",values[0]);
+  } else if (strcmp(param, "adduct_sites") == 0) {
+    params->adductSites = values[0];
+    logParam("adduct_sites", values[0]);
+
+  } else if(strcmp(param,"atomic_processing")==0){
+    params->atomicProcessing = atoi(values[0].c_str());
+    if (params->atomicProcessing < 0 || params->atomicProcessing>2) {
+      params->atomicProcessing = 0;
+      warn("atomic_processing value is out of range. Value was reset to default (0).", 4);
+    }
+    logParam("atomic_processing", values[0]);
+
+  } else if (strcmp(param, "atomic_signature") == 0) {
+    if (values[0][0]!='0' && !processAtomicSig(values[0], params->atomSig)) {
+      warn("ERROR: bad atomic_signature parameter. Stopping analysis.", 3);
+      exit(-5);
+    }
+    logParam("atomic_signature", values[0]);
 
 	} else if(strcmp(param,"database")==0){
     params->dbFile=values[0];
@@ -674,6 +694,103 @@ void MParams::warn(const char* c, int i){
 
 void MParams::warn(string c, int i){
   warn(c.c_str(), i);
+}
+
+//For customized Hardklor analysis
+bool MParams::processAtomicSig(string sig, vector<mAtom>& v) {
+  //build periodic table that maps element symbols to Hardklor periodic table array positions
+  map<string, int> pt;
+  pt.insert(pair<string, int>("H", 1));
+  pt.insert(pair<string, int>("He", 2));
+  pt.insert(pair<string, int>("Li", 3));
+  pt.insert(pair<string, int>("Be", 4));
+  pt.insert(pair<string, int>("B", 5));
+  pt.insert(pair<string, int>("C", 6));
+  pt.insert(pair<string, int>("N", 7));
+  pt.insert(pair<string, int>("O", 8));
+  pt.insert(pair<string, int>("F", 9));
+  pt.insert(pair<string, int>("Ne", 10));
+  pt.insert(pair<string, int>("Na", 11));
+  pt.insert(pair<string, int>("Mg", 12));
+  pt.insert(pair<string, int>("Al", 13));
+  pt.insert(pair<string, int>("Si", 14));
+  pt.insert(pair<string, int>("P", 15));
+  pt.insert(pair<string, int>("S", 16));
+  pt.insert(pair<string, int>("Cl", 17));
+  pt.insert(pair<string, int>("Ar", 18));
+  pt.insert(pair<string, int>("K", 19));
+  pt.insert(pair<string, int>("Ca", 20));
+  pt.insert(pair<string, int>("Sc", 21));
+  pt.insert(pair<string, int>("Ti", 22));
+  pt.insert(pair<string, int>("V", 23));
+  pt.insert(pair<string, int>("Cr", 24));
+  pt.insert(pair<string, int>("Mn", 25));
+  pt.insert(pair<string, int>("Fe", 26));
+  pt.insert(pair<string, int>("Co", 27));
+  pt.insert(pair<string, int>("Ni", 28));
+  pt.insert(pair<string, int>("Cu", 29));
+  pt.insert(pair<string, int>("Zn", 30));
+  pt.insert(pair<string, int>("Ga", 31));
+  pt.insert(pair<string, int>("Ge", 32));
+  pt.insert(pair<string, int>("As", 33));
+  pt.insert(pair<string, int>("Se", 34));
+  pt.insert(pair<string, int>("Br", 35));
+  pt.insert(pair<string, int>("Kr", 36));
+
+  v.clear();
+
+  //process string
+  string atom;
+  string count;
+  for (size_t a = 0;a < sig.size();a++) {
+    if (isalpha(sig[a])) {
+      if (sig[a] < 91) { //new capital letter means we have a new atom
+        if (!atom.empty()) { //process other atom
+          map<string, int>::iterator it = pt.find(atom);
+          if (it == pt.end()) {
+            cout << "Incorrect or unsupported atom: " << atom << endl;
+            return false;
+          }
+
+          mAtom at;
+          at.index = it->second; 
+          if (count.empty()) at.count = 1;
+          else at.count = atoi(count.c_str());
+          v.push_back(at);
+
+          atom.clear();
+          atom += sig[a];
+          count.clear();
+        } else {
+          atom += sig[a];
+          count.clear();
+        }
+      } else {
+        atom += sig[a];
+      }
+    } else if (sig[a] > 47 && sig[a] < 58) {
+      count += sig[a];
+    } else {
+      cout << "Unknown atomic signature character: " << sig[a] << endl;
+      return false;
+    }
+  }
+
+  if (!atom.empty()) {
+    map<string, int>::iterator it = pt.find(atom);
+    if (it == pt.end()) {
+      cout << "Incorrect or unsupported atom: " << atom << endl;
+      return false;
+    }
+
+    mAtom at;
+    at.index = it->second;
+    if (count.empty()) at.count = 1;
+    else at.count = atoi(count.c_str());
+    v.push_back(at);
+  }
+
+  return true;
 }
 
 //Takes relative path and finds absolute path

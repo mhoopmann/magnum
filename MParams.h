@@ -21,6 +21,8 @@ limitations under the License.
 #include "MStructs.h"
 #include "NeoPepXMLParser.h"
 
+#include <map>
+
 #ifdef _MSC_VER
 #include <direct.h>
 #include <Windows.h>
@@ -56,6 +58,7 @@ private:
   bool checkMod(mMass m);
   void logParam(std::string name, std::string value);
   void logParam(CnpxParameter& t);
+  bool processAtomicSig(std::string sig, std::vector<mAtom>& v);
   bool processPath(const char* cwd, const char* in_path, char* out_path);
   void trimPath(std::string in, std::string& path, std::string& fname);
   void warn(const char* c, int i);

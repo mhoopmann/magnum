@@ -33,11 +33,13 @@ deque<Spectrum*> MData::dMS1;
 vector<Spectrum*> MData::vMS1Buffer;
 Mutex MData::mutexLockMS1;
 CHardklor2** MData::h;
+CHardklor** MData::hAlt;
 CAveragine** MData::averagine;
 CMercury8** MData::mercury;
 CModelLibrary* MData::models;
 Mutex* MData::mutexHardklor;
 CHardklorSetting MData::hs;
+CHardklorSetting MData::hsAlt;
 bool* MData::bHardklor;
 
 int MData::maxPrecursorMass;
@@ -292,6 +294,36 @@ void MData::initHardklor(){
   }
   models->eraseLibrary();
   models->buildLibrary(2, 8, pepVariants);
+
+  if (params->atomSig.size() > 0) {
+    hsAlt.winSize = 10;
+    hsAlt.peptide = 4;
+    hsAlt.sn = 0;
+    hsAlt.depth = 3;
+    hsAlt.minCharge = 2;
+    hsAlt.maxCharge = 8;
+    if (params->instrument == 1) hsAlt.msType = FTICR;
+    else hsAlt.msType = OrbiTrap;
+    hsAlt.res400 = params->ms1Resolution;
+    hsAlt.corr = 0.875;
+    hsAlt.centroid = true;
+    hsAlt.noBase = true;
+
+    strcpy(hsAlt.inFile, "PLTmp.ms1");
+    hsAlt.fileFormat = ms1;
+
+    for (size_t a = 0;a < params->atomSig.size();a++) {
+      hv.addAtom(params->atomSig[a].index, params->atomSig[a].count);
+      hsAlt.variant->push_back(hv);
+    }
+
+    hAlt = new CHardklor * [params->threads]();
+    for (int a = 0;a < params->threads;a++) {
+      hAlt[a] = new CHardklor(averagine[a], mercury[a]);
+      hAlt[a]->Echo(false);
+      hAlt[a]->SetResultsToMemory(true);
+    }
+  }
 
 }
 
@@ -1447,6 +1479,7 @@ bool MData::readSpectra(){
 void MData::releaseHardklor(){
   for (int a = 0; a<params->threads; a++){
     delete h[a];
+    if(params->atomSig.size()>0) delete hAlt[a];
     Threading::DestroyMutex(mutexHardklor[a]);
     delete averagine[a];
     delete mercury[a];
@@ -2258,7 +2291,7 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
 
   //Average points between mz-1.5 and mz+2
   Spectrum sp;
-  averageScansCentroid(vs, sp, mz - 1.0, mz + 1.5);
+  averageScansCentroid(vs, sp, mz - 1.5, mz + 1.5); //note: prior to v1.6.1, this was mz-1.0, mz+1.5. It was widened for chlorine signatures.
   if (sp.size() == 0) {
     cout << "\n   WARNING: Unexpected precursor scan data!";
     if (!params->ms1Centroid) cout << " Params are set to MS1 profile mode, but are MS1 scans centroided?" << endl;
@@ -2285,6 +2318,8 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
   h[tIndex]->GoHardklor(hs, &sp);
 
   //If nothing was found, really narrow down the window and try again.
+  //not sure if this is helpful...
+  //TODO: re-evaluate this in the context of atomic signatures in v1.6.1 and higher.
   if (h[tIndex]->Size() == 0){
     averageScansCentroid(vs, sp, mz - 0.6, mz + 1.2);
     sp.setScanNumber(dMS1[precursor]->getScanNumber());
@@ -2351,6 +2386,32 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
     }
   }
 
+  //Try putting alternate chemistries here
+  if (params->atomSig.size()>0) {
+    corr = 0;
+
+    //Perform the Modified Peptide Hardklor analysis on the same data if needed
+    hAlt[tIndex]->GoHardklor(hsAlt, &sp);
+    for (j = 0; j < hAlt[tIndex]->Size(); j++) {
+      if (hAlt[tIndex]->operator[](j).corr > corr) {
+        monoMass = hAlt[tIndex]->operator[](j).monoMass;
+        charge = hAlt[tIndex]->operator[](j).charge;
+        corr = hAlt[tIndex]->operator[](j).corr;
+        ret = 2;
+      }
+    }
+    if (corr > 0) {
+      pre.monoMass = monoMass;
+      pre.charge = charge;
+      pre.corr = corr;
+      pre.label = 3;
+      if (params->atomicProcessing > 0) pre.type = 3;
+      else pre.type = 2;
+      pre.offset = 0;
+      s->pls->addPrecursor(pre, params->topCount);
+    }
+  }
+
   //Assume two precursors with nearly identical mass (within precursor tolerance) are the same.
   //This can occur when checking multiple enrichment states.
   //Keep only the higher type, then correlated precursor.
@@ -2362,10 +2423,10 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
         for (j = k + 1; j<s->pls->sizePrecursor(); j++){
           if (fabs(s->pls->getPrecursor(k).monoMass - s->pls->getPrecursor(j).monoMass) / s->pls->getPrecursor(k).monoMass*1e6 < params->ppmPrecursor){
             if(s->pls->getPrecursor(k).type == s->pls->getPrecursor(j).type){
-              if (s->pls->getPrecursor(k).corr>s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
+              if (s->pls->getPrecursor(k).corr > s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
               else s->pls->erasePrecursor(k);
             } else {
-              if(s->pls->getPrecursor(k).type > s->pls->getPrecursor(j).type) s->pls->erasePrecursor(j);
+              if (s->pls->getPrecursor(k).type > s->pls->getPrecursor(j).type) s->pls->erasePrecursor(j);
               else s->pls->erasePrecursor(k);
             }
             bCheck = true;

@@ -21,15 +21,33 @@ limitations under the License.
 #include "MIons.h"
 #include "MLog.h"
 #include "MParams.h"
-#include "MPrecursor.h"
+//#include "MPrecursor.h"
 #include "MSpectrum.h"
 #include "MSReader.h"
 #include "NeoPepXMLParser.h"
+
+#include "CHardklor2.h"
+#include "CModelLibrary.h"
+#include "CHardklorSetting.h"
+#include "CHardklorVariant.h"
+
 #include <deque>
 #include <iostream>
 #include "CometDecoys.h"
 #include "Threading.h"
 #include "ThreadPool.h"
+
+#define GAUSSCONST 5.5451774444795623
+
+typedef struct mRTProfile {
+  int   scan;
+  float rt;
+} mRTProfile;
+
+typedef struct mScanBin {
+  int   index;
+  float intensity;
+} mScanBin;
 
 //=============================
 // Structures for threading
@@ -113,7 +131,9 @@ private:
   static std::vector<MSToolkit::Spectrum*> vMS1Buffer;
   static Mutex mutexLockMS1;
   static CHardklor2** h;
+  static CHardklor** hAlt;
   static CHardklorSetting hs;
+  static CHardklorSetting hsAlt;
   static Mutex* mutexHardklor;
   static CAveragine** averagine;
   static CMercury8** mercury;

@@ -427,6 +427,7 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     p = s->getPrecursor2(i);
     if (p->monoMass<minMass) continue;
     if (p->monoMass>maxMass) continue;
+    if (params.atomSig.size() > 0 && params.atomicProcessing == 2 && p->type < 3) continue;
     //if ((p->monoMass - mass)>params.maxAdductMass) continue; //Not sure here, peptides have multiple masses
     //if ((p->monoMass - mass)<params.minAdductMass) continue;
     sPrecursor pr;
@@ -441,9 +442,10 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     pre.push_back(pr);
     if(pre.size()==MAX_PRECURSOR) break;
   }
-  if(pre.size()==0) {
-    cout << "WTF" << endl;
-    exit(1);
+  if(pre.size()==0) { //this usually occurs when requiring an atomic signature for open searches, but none was found.
+    return;
+    //cout << "WTF" << endl;
+    //exit(1);
   }
 
   bufSize2[iIndex] = sizeof(double)*pre.size();

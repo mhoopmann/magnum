@@ -124,7 +124,7 @@ private:
   int maxModCount;
   int pep1Len;
 
-  char* pep1;
+  char* pep1 = NULL;
 
   bool nPep1; //peptide has protein n-terminus
   bool cPep1; //peptide has protein c-terminus

@@ -25,13 +25,13 @@ public:
 
   MIonSet& operator=(const MIonSet& k);
 
-  double** aIons;
-  double** bIons;
-  double** cIons;
-  double** xIons;
-  double** yIons;
-  double** zIons;
-  double* mods;
+  double** aIons = nullptr;
+  double** bIons = nullptr;
+  double** cIons = nullptr;
+  double** xIons = nullptr;
+  double** yIons = nullptr;
+  double** zIons = nullptr;
+  double* mods = nullptr;
   double  mass;
   double  difMass;
   int     len;

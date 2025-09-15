@@ -221,11 +221,13 @@ void MParams::exportDefault(string ver){
   fprintf(f, "max_peptide_length = %d    #maximum number of amino acids per peptide searched.\n", def.maxPepLen);
   fprintf(f, "min_peptide_mass = %.1lf   #minimum allowed peptide mass in Daltons.\n", def.minPepMass);
   fprintf(f, "max_peptide_mass = %.1lf  #maximum allowed peptide mass in Daltons.\n", def.maxPepMass);
-  fprintf(f, "\natomic_signature = 0       #molecular formula for the unusual atoms only. Case sensitive. 0=off.\n");
-  fprintf(f, "atomic_processing = %d     #defines rules for use only with atomic_signature settings.\n",def.atomicProcessing);
-  fprintf(f, "                          # 0 = no special rules.\n");
-  fprintf(f, "                          # 1 = prefer atomic signature in precursor monoisotopic mass correction.\n");
-  fprintf(f, "                          # 2 = only open mod search when atomic signature found.\n");
+  fprintf(f, "\natomic_signature = 0                  #molecular formula for the unusual atoms only. Case sensitive. 0=off.\n");
+  fprintf(f, "atomic_signature_threshold = 0.875       #Hardklor precursor score threshold to accept atomic signature. Valid values are 0 - 1.\n");
+  fprintf(f, "atomic_processing = %d                   #defines rules for use only with atomic_signature settings.\n",def.atomicProcessing);
+  fprintf(f, "                                        # 0 = competitive; keep better of either atomic signature or normal precursor prediction.\n");
+  fprintf(f, "                                        # 1 = prefer atomic signature in precursor monoisotopic mass correction, even if score is lower than normal precursor.\n");
+  fprintf(f, "                                        # 2 = prefer atomic signature and only open mod search when atomic signature found.\n");
+  fprintf(f, "                                        # 3 = competitive and only open mod search when atomic signature found.\n");
   fprintf(f, "\n\n#\n# Reporter Ions\n#\n");
   fprintf(f, "reporter_ion_threshold = %.1lf    #relative MS2 abundance threshold for reporter ions.\n",def.rIonThreshold);
   fprintf(f, "#reporter_ion = 160.04           #list as many MS2 reporter ion m/z values as desired, one per line.\n");
@@ -318,7 +320,7 @@ void MParams::parse(const char* cmd) {
 
   } else if(strcmp(param,"atomic_processing")==0){
     params->atomicProcessing = atoi(values[0].c_str());
-    if (params->atomicProcessing < 0 || params->atomicProcessing>2) {
+    if (params->atomicProcessing < 0 || params->atomicProcessing>3) {
       params->atomicProcessing = 0;
       warn("atomic_processing value is out of range. Value was reset to default (0).", 4);
     }
@@ -330,6 +332,14 @@ void MParams::parse(const char* cmd) {
       exit(-5);
     }
     logParam("atomic_signature", values[0]);
+
+  } else if (strcmp(param, "atomic_signature_threshold") == 0) {
+    params->atomSigThreshold = atof(&values[0][0]);
+    if (params->atomSigThreshold > 1 || params->atomSigThreshold < 0) {
+      params->atomSigThreshold = 0.875;
+      warn("atomic_signature_threshold value is out of range (0.0 - 1.0). Value was reset to default (0.875).", 4);
+    }
+    logParam("atomic_signature_threshold", values[0]);
 
 	} else if(strcmp(param,"database")==0){
     params->dbFile=values[0];

@@ -144,6 +144,7 @@ typedef struct mParams {
   bool    precursorRefinement = true;
   bool    splitPercolator = false;
   bool    xcorr = false;
+  double  atomSigThreshold = 0.875;
   double  binOffset = 0.0;
   double  binSize = 0.03;
   double  maxPepMass = 4000.0;
@@ -294,7 +295,7 @@ typedef struct mPrecursor{
   double  corr;
   char    label;
   double  monoMass;
-  char    type;  //0=selected peak, 1=instrument predicted, 2=hardklor predicted
+  char    type;  //0=selected peak, 1=instrument predicted, 2=hardklor predicted, 3=atomic signature predicted
   char    offset; //offset amount (rounded)
   mPrecursor(){
     charge=0;

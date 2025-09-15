@@ -427,7 +427,7 @@ void MAnalysis::scoreSingletSpectra2(int index, double mass, int len, int pep, d
     p = s->getPrecursor2(i);
     if (p->monoMass<minMass) continue;
     if (p->monoMass>maxMass) continue;
-    if (params.atomSig.size() > 0 && params.atomicProcessing == 2 && p->type < 3) continue;
+    if (params.atomSig.size() > 0 && params.atomicProcessing >= 2 && p->type < 3) continue;
     //if ((p->monoMass - mass)>params.maxAdductMass) continue; //Not sure here, peptides have multiple masses
     //if ((p->monoMass - mass)<params.minAdductMass) continue;
     sPrecursor pr;

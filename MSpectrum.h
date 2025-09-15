@@ -48,9 +48,9 @@ public:
   mSpecPoint&  operator[](const int& i);
 
   //Data Members
-  mSparseMatrix*  xCorrSparseArray;
+  mSparseMatrix*  xCorrSparseArray = nullptr;
   int             xCorrSparseArraySize;
-  char**          kojakSparseArray;
+  char**          kojakSparseArray = nullptr;
   int             kojakBins;
 
   int peakCounts;
@@ -78,12 +78,12 @@ public:
   int                 size                  ();
   int                 sizePrecursor         ();
   
-  mScoreCard*    singletFirst;   //pointer to start of linked list
-  mScoreCard*    singletLast;    //pointer to end of linked list
+  mScoreCard*    singletFirst = nullptr;   //pointer to start of linked list
+  mScoreCard*    singletLast = nullptr;    //pointer to end of linked list
   int            singletMax;
 
   int hpSize;
-  sHistoPep* hp;
+  sHistoPep* hp = nullptr;
   int histogram[HISTOSZ];
   int histogramCount;
   int histoMaxIndex;
@@ -95,7 +95,7 @@ public:
   //void exportHisto();
   //**
 
-  MHistogram** mHisto;
+  MHistogram** mHisto = nullptr;
   MDecoys* decoys;
   double computeE(double score, int len);
   bool ionSeries[6];
@@ -155,15 +155,15 @@ private:
   float                 maxIntensity;
   double                mz;
   std::string           nativeID;
-  std::vector<mPrecursor>*   precursor;
+  std::vector<mPrecursor>*   precursor = nullptr;
   float                 rTime;
   int                   scanNumber;
   int                   singletCount;
   int maxX;
   
   
-  std::vector<MTopPeps>*     singlets;
-  std::vector<mSpecPoint>*   spec;
+  std::vector<MTopPeps>*     singlets = nullptr;
+  std::vector<mSpecPoint>*   spec = nullptr;
   mScoreCard            topHit[20];
   int                   xCorrArraySize;
   

@@ -305,7 +305,7 @@ void MData::initHardklor(){
     if (params->instrument == 1) hsAlt.msType = FTICR;
     else hsAlt.msType = OrbiTrap;
     hsAlt.res400 = params->ms1Resolution;
-    hsAlt.corr = 0.875;
+    hsAlt.corr = params->atomSigThreshold; //0.875;
     hsAlt.centroid = true;
     hsAlt.noBase = true;
 
@@ -571,7 +571,7 @@ void MData::exportPepXML(NeoPepXMLParser*& p, vector<mResults>& r){
       sh.num_tot_proteins=(int)r[a].proteins.size();
       sh.calc_neutral_pep_mass=r[a].psmMass;
       sh.massdiff=s.precursor_neutral_mass-sh.calc_neutral_pep_mass;
-      if(fabs(sh.massdiff<0.000001)) sh.massdiff=0;
+      if(fabs(sh.massdiff)<0.000001) sh.massdiff=0;
 
       //Add scores
       sprintf(str,"%.4lf",r[a].scoreMagnum);
@@ -2358,32 +2358,13 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
     }
   }
 
-  if (corr>0){
+  if (corr > 0) {
     pre.monoMass = monoMass;
     pre.charge = charge;
     pre.corr = corr;
     pre.label = 0;
-    pre.type=2;
+    pre.type = 2;
     s->pls->addPrecursor(pre, params->topCount);
-    //also add isotope error
-    if (params->isotopeError>0){
-      pre.monoMass -= 1.00335483;
-      pre.corr = -1;
-      pre.offset=-1;
-      s->pls->addPrecursor(pre, params->topCount);
-    }
-    if (params->isotopeError>1){
-      pre.monoMass -= 1.00335483;
-      pre.corr = -2;
-      pre.offset = -2;
-      s->pls->addPrecursor(pre, params->topCount);
-    }
-    if (params->isotopeError>2){
-      pre.monoMass -= 1.00335483;
-      pre.corr = -3;
-      pre.offset = -3;
-      s->pls->addPrecursor(pre, params->topCount);
-    }
   }
 
   //Try putting alternate chemistries here
@@ -2405,10 +2386,84 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
       pre.charge = charge;
       pre.corr = corr;
       pre.label = 3;
-      if (params->atomicProcessing > 0) pre.type = 3;
-      else pre.type = 2;
+      if (params->atomicProcessing > 0 && params->atomicProcessing<3) pre.type = 3;
+      else pre.type = 3;
       pre.offset = 0;
       s->pls->addPrecursor(pre, params->topCount);
+    }
+  }
+
+  //First, check if multiple precursors from Hardklor are listed. This occurs when
+  //using atomic processing. The one to keep depends on the user's run parameters.
+  if (s->pls->sizePrecursor() > 1) {
+    bool bCheck = true;
+    while (bCheck) {
+      bCheck = false;
+      for (k = 0; k < s->pls->sizePrecursor() - 1; k++) {
+        for (j = k + 1; j < s->pls->sizePrecursor(); j++) {
+          //if both came from Hardklor
+          if (s->pls->getPrecursor(k).corr > 0 && s->pls->getPrecursor(j).corr > 0) {
+
+            //Special rules for atomic processing
+            if (params->atomSig.size() > 0) {
+
+              //If atomic signature is preferred, follow these rules
+              if (params->atomicProcessing == 1 || params->atomicProcessing == 2) {
+
+                //if either has the atom sig, keep it and toss the other
+                if (s->pls->getPrecursor(k).type == 3)  s->pls->erasePrecursor(j);
+                else if (s->pls->getPrecursor(j).type == 3) s->pls->erasePrecursor(k);
+                else { //not sure this ever occurs
+                  if (s->pls->getPrecursor(k).corr > s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
+                  else s->pls->erasePrecursor(k);
+                }
+
+              //Otherwise, make it competitive, and keep higher corr
+              } else {
+                if(s->pls->getPrecursor(k).corr > s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
+                else s->pls->erasePrecursor(k);
+              }
+
+            //No atomic processing, just keep the higher corr
+            } else {
+              if (s->pls->getPrecursor(k).corr > s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
+              else s->pls->erasePrecursor(k);
+            }
+
+            bCheck = true;
+            break;
+
+          }
+        }
+        if (bCheck) break;
+      }
+    }
+
+  }
+
+  //Apply isotope error to any Hardklor determined precursor ions
+  for (k = 0;k < s->pls->sizePrecursor();k++) {
+    mPrecursor p = s->pls->getPrecursor(k);
+    if (p.corr > 0) {
+      //add isotope error
+      if (params->isotopeError > 0) {
+        p.monoMass -= 1.00335483;
+        p.corr = -1;
+        p.offset = -1;
+        s->pls->addPrecursor(p, params->topCount);
+      }
+      if (params->isotopeError > 1) {
+        p.monoMass -= 1.00335483;
+        p.corr = -2;
+        p.offset = -2;
+        s->pls->addPrecursor(p, params->topCount);
+      }
+      if (params->isotopeError > 2) {
+        p.monoMass -= 1.00335483;
+        p.corr = -3;
+        p.offset = -3;
+        s->pls->addPrecursor(p, params->topCount);
+      }
     }
   }
 
@@ -2422,13 +2477,16 @@ int MData::processPrecursor(mMS2struct* s, int tIndex){
       for (k = 0; k<s->pls->sizePrecursor() - 1; k++){
         for (j = k + 1; j<s->pls->sizePrecursor(); j++){
           if (fabs(s->pls->getPrecursor(k).monoMass - s->pls->getPrecursor(j).monoMass) / s->pls->getPrecursor(k).monoMass*1e6 < params->ppmPrecursor){
-            if(s->pls->getPrecursor(k).type == s->pls->getPrecursor(j).type){
+            
+            //if the same type, keep highest corr, otherwise keep highest type
+            if (s->pls->getPrecursor(k).type == s->pls->getPrecursor(j).type) {
               if (s->pls->getPrecursor(k).corr > s->pls->getPrecursor(j).corr) s->pls->erasePrecursor(j);
               else s->pls->erasePrecursor(k);
             } else {
               if (s->pls->getPrecursor(k).type > s->pls->getPrecursor(j).type) s->pls->erasePrecursor(j);
               else s->pls->erasePrecursor(k);
             }
+
             bCheck = true;
             break;
           }

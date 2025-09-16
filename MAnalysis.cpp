@@ -344,7 +344,7 @@ bool MAnalysis::analyzeSinglets(mPeptide& pep, int index, int iIndex) {
   //Build our peptide
   int len = (pep.map->at(0).stop - pep.map->at(0).start) + 1;
   ions[iIndex].setPeptide(&db->at(pep.map->at(0).index).sequence[pep.map->at(0).start], len, pep.mass, pep.nTerm, pep.cTerm);
-  ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.         
+  ions[iIndex].buildModIons2(); //It would be more efficient to do this after spec->getBoundaries below. Must use alternative way to compute min and max peptides.  
 
   //get all spectra that might contain this peptide and adduct
   //Set Mass boundaries

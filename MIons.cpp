@@ -184,7 +184,7 @@ void MIons::modIonsNew(const string& mask, size_t pepIndex, double mass, size_t 
 
   //add all modification masses
   for (int a = 0; a < mask.size() - 2; a++) {
-    if (mask[a] != '0') {
+    if (mask[a] != '0' && mask[a]!='x') {
       //cout << mask << " has mod at: " << a << "  new mass=" << m << " val=" << mask[a] - 49 << " aa:" << pep1[a] << " wtf:" << aaMod[pep1[a]].mod[mask[a] - 49].mass << endl;
       m += aaMod[pep1[a]].mod[mask[a] - 49].mass;
     }
@@ -197,7 +197,7 @@ void MIons::modIonsNew(const string& mask, size_t pepIndex, double mass, size_t 
   //process sequence
   for (int a = 0; a < mask.size() - stop; a++) {
     if (mask[a] == 'x') bAdduct = true;
-    if (mask[a] != '0') m += aaMod[pep1[a]].mod[mask[a] - 49].mass;
+    if (mask[a] != '0' && mask[a]!='x') m += aaMod[pep1[a]].mod[mask[a] - 49].mass;
     m += aaMass[pep1[a]];
     if(bAdduct) addPeakNew(-m, trueMass, pepIndex);
     else addPeakNew(m, trueMass, pepIndex);
